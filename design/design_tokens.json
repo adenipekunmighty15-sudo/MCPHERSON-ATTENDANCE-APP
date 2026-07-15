@@ -1,0 +1,39 @@
+{
+  "palette": {
+    "primary": "#0B4F8C",
+    "accent": "#60A5FA",
+    "background": "#FFFFFF",
+    "surface": "#F8FAFC",
+    "textPrimary": "#0B1B2B",
+    "textSecondary": "#4A4A4A",
+    "success": "#007A33",
+    "error": "#CC0000",
+    "warning": "#CC7700"
+  },
+  "fonts": {
+    "display": "Space Grotesk",
+    "body": "Inter",
+    "mono": "JetBrains Mono"
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px"
+  },
+  "radii": {
+    "sm": "8px",
+    "md": "12px",
+    "lg": "16px",
+    "rounded": "9999px"
+  },
+  "shadows": {
+    "card": "0 4px 24px rgba(0,0,0,0.06)",
+    "elevated": "0 8px 32px rgba(0,0,0,0.08)"
+  },
+  "desktop_artboard": {
+    "width": 1440,
+    "height": 900
+  }
+}

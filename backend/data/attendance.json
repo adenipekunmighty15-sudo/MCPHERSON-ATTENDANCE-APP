@@ -1,0 +1,62 @@
+[
+  {
+    "id": "a1",
+    "courseId": "c1",
+    "courseName": "CSC101",
+    "userId": "seed",
+    "status": "present",
+    "method": "QR",
+    "date": "2026-06-06"
+  },
+  {
+    "id": "a2",
+    "courseId": "c2",
+    "courseName": "CSC201",
+    "userId": "seed",
+    "status": "present",
+    "method": "Face",
+    "date": "2026-06-06"
+  },
+  {
+    "id": "a3",
+    "courseId": "c3",
+    "courseName": "MTH101",
+    "userId": "seed",
+    "status": "absent",
+    "method": "-",
+    "date": "2026-06-06"
+  },
+  {
+    "id": "60f74ca8-72cc-4309-b33f-f224abf78666",
+    "courseId": "1",
+    "courseName": "CSC101",
+    "status": "present",
+    "method": "qr",
+    "date": "2026-06-07",
+    "userId": "e16a570b-6bd1-446f-9faa-060af176c519",
+    "timestamp": "2026-06-07T06:48:57.948Z",
+    "location": null
+  },
+  {
+    "id": "5bd9843a-791f-48a7-ab48-7084405bb9e9",
+    "courseId": "10",
+    "courseName": "CSC304",
+    "status": "present",
+    "method": "face",
+    "date": "2026-06-07",
+    "userId": "5d5c1aab-e9c1-4988-a20a-c923e7580e5a",
+    "timestamp": "2026-06-07T13:23:46.317Z",
+    "location": null
+  },
+  {
+    "id": "6347635e-931c-4fbf-b0c8-283869b6a3f7",
+    "courseId": "16",
+    "courseName": "MTH101",
+    "status": "present",
+    "method": "face",
+    "date": "2026-06-07",
+    "userId": "5d5c1aab-e9c1-4988-a20a-c923e7580e5a",
+    "timestamp": "2026-06-07T13:24:03.989Z",
+    "location": null
+  }
+]

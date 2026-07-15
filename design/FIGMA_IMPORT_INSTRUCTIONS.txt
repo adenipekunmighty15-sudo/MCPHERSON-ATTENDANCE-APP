@@ -1,0 +1,44 @@
+Figma import instructions — McPherson Attendance
+
+1) Create a new Figma file for the Desktop design.
+   - Set the default frame size to 1440 x 900 (desktop)
+
+2) Import design tokens
+   - Install the "Figma Tokens" plugin (or another tokens plugin you prefer).
+   - Open the plugin and import the JSON at design/design_tokens.json (copy & paste the JSON into the plugin or upload it).
+   - Create tokens for colors, typography, spacing, radii, and shadows.
+
+3) Create the color styles in Figma
+   - From the palette in the JSON, create Color Styles named: Primary / Accent / Background / Surface / Text / Success / Error.
+
+4) Create text styles
+   - Create text styles for: Display (Space Grotesk), H1, H2, H3, Body, Body Small, Caption using sizes from the project's tailwind.config.js.
+
+5) Create components (master components)
+   - Button (primary, outline, ghost)
+   - Input / Select
+   - Card (metric card, list card)
+   - Table row (with avatar, course, date, status badge)
+   - Modal (Face ID camera modal)
+   - ID Card (front + back)
+   - Navbar / Sidebar patterns
+
+6) Create one artboard per app page (use pages list in README_design_deliverables.txt)
+   - Use the existing frontend pages as the content source; transfer labels and table columns from code to the artboards.
+
+7) Prototype links
+   - Create primary flows: Check-in flow (Dashboard -> Attendance -> Face ID modal), Admin: At-Risk -> Notify Parent.
+
+8) Export assets
+   - Export icons and illustrations as SVGs.
+   - Export images (id-card-front.jpeg, id-card-back.jpeg, mcu-campus.jpg) as needed.
+
+9) Handoff
+   - Provide the Figma file to developers with tokens, and provide this repo path and the design_tokens.json so dev can match Tailwind tokens.
+
+If you want, I can now:
+- Generate high-fidelity PNG mockups for every app page and save them under design/mockups/
+- Scaffold more Vue components (Card, Input, Modal, TableRow)
+- Export SVG icons and an assets ZIP ready for Figma import
+
+Which of those should I do next? (ask me to proceed when ready)

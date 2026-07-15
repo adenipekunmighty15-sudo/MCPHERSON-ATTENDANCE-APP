@@ -1,0 +1,26 @@
+[
+  {
+    "id": "t1",
+    "course": "CSC101 - Intro to Programming",
+    "day": "Saturday",
+    "time": "09:00 - 10:00",
+    "room": "LT-101",
+    "lecturer": "Dr. Smith"
+  },
+  {
+    "id": "t2",
+    "course": "CSC201 - Data Structures",
+    "day": "Saturday",
+    "time": "11:00 - 12:00",
+    "room": "LT-203",
+    "lecturer": "Dr. Johnson"
+  },
+  {
+    "id": "t3",
+    "course": "MTH101 - General Mathematics",
+    "day": "Saturday",
+    "time": "14:00 - 15:00",
+    "room": "HALL-A",
+    "lecturer": "Prof. Williams"
+  }
+]

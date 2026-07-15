@@ -1,0 +1,82 @@
+[
+  {
+    "id": "c01",
+    "code": "CSC101",
+    "title": "Introduction to Computing",
+    "level": "100",
+    "units": 3,
+    "department": "CSC",
+    "department_name": "Computer Science",
+    "college": "Computing"
+  },
+  {
+    "id": "c02",
+    "code": "CSC201",
+    "title": "Data Structures",
+    "level": "200",
+    "units": 3,
+    "department": "CSC",
+    "department_name": "Computer Science",
+    "college": "Computing"
+  },
+  {
+    "id": "c03",
+    "code": "BUS101",
+    "title": "Introduction to Business",
+    "level": "100",
+    "units": 3,
+    "department": "BUS",
+    "department_name": "Business Administration",
+    "college": "Humanities, Social and Management Sciences"
+  },
+  {
+    "id": "c04",
+    "code": "ACC101",
+    "title": "Introduction to Accounting",
+    "level": "100",
+    "units": 3,
+    "department": "ACC",
+    "department_name": "Accounting",
+    "college": "Humanities, Social and Management Sciences"
+  },
+  {
+    "id": "c05",
+    "code": "NUR101",
+    "title": "Introduction to Nursing",
+    "level": "100",
+    "units": 3,
+    "department": "NUR",
+    "department_name": "Nursing Science",
+    "college": "Allied Health Sciences"
+  },
+  {
+    "id": "c06",
+    "code": "MCB101",
+    "title": "Introductory Microbiology",
+    "level": "100",
+    "units": 3,
+    "department": "MCB",
+    "department_name": "Microbiology",
+    "college": "Natural and Applied Sciences"
+  },
+  {
+    "id": "c07",
+    "code": "ECO101",
+    "title": "Principles of Economics I",
+    "level": "100",
+    "units": 3,
+    "department": "ECO",
+    "department_name": "Economics",
+    "college": "Humanities, Social and Management Sciences"
+  },
+  {
+    "id": "c08",
+    "code": "LAW101",
+    "title": "Introduction to Law",
+    "level": "100",
+    "units": 3,
+    "department": "LAW",
+    "department_name": "Law",
+    "college": "Law"
+  }
+]
