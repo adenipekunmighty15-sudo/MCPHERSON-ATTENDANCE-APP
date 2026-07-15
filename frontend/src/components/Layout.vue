@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, markRaw } from 'vue'
+import { ref, computed, onMounted, onUnmounted, markRaw, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useMessagingStore } from '../stores/messaging'
@@ -249,6 +249,16 @@ async function handleLogout() {
   await authStore.logout()
   router.push('/login')
 }
+
+watch(sidebarOpen, (val) => {
+  if (val) {
+    // force a reflow to ensure CSS transitions render correctly on some browsers
+    requestAnimationFrame(() => {
+      const s = document.querySelector('.sidebar')
+      if (s) void s.offsetWidth
+    })
+  }
+})
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
@@ -646,6 +656,38 @@ onUnmounted(() => {
 /* Sidebar Overlay */
 .sidebar-overlay {
   display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0,0,0,0.45);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+/* show overlay when sidebar is open (mobile) */
+.sidebar-open .sidebar-overlay {
+  display: block;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* Mobile off-canvas behavior */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-110%);
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    width: var(--sidebar-width);
+  }
+  .sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+  .main-area {
+    margin-left: 0;
+  }
+  .menu-btn {
+    display: flex;
+  }
 }
 
 /* ==================== MAIN AREA ==================== */
