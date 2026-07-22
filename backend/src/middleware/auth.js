@@ -1,4 +1,5 @@
 import supabaseAdmin from '../config/supabase.js'
+import { query } from '../../lib/db.js'
 
 const ALLOWED_ROLES = ['student', 'lecturer', 'admin', 'super_admin']
 
@@ -7,7 +8,7 @@ function isAllowedEmail(email) {
   const atIndex = email.lastIndexOf('@')
   if (atIndex === -1) return false
   const domain = email.slice(atIndex)
-  return domain === '@mcpherson.edu' || domain === '@undergraduate.mcu.edu.ng' || domain === '@gmail.com'
+  return domain === '@mcpherson.edu' || domain === '@undergraduate.mcu.edu.ng'
 }
 
 function isValidRole(role) {
@@ -31,12 +32,23 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
     if (!isAllowedEmail(supaUser.email)) {
-      return res.status(403).json({ error: 'Use your school email (@mcpherson.edu / @undergraduate.mcu.edu.ng) or Gmail' })
+      return res.status(403).json({ error: 'Use your school email (@mcpherson.edu / @undergraduate.mcu.edu.ng)' })
     }
+
+    let role = 'student'
+    try {
+      const { rows } = await query('SELECT role FROM public.users WHERE id = $1', [supaUser.id])
+      if (rows.length && isValidRole(rows[0].role)) {
+        role = rows[0].role
+      }
+    } catch (e) {
+      console.warn('Could not verify role from DB, defaulting to student:', e.message)
+    }
+
     req.user = {
       id: supaUser.id,
       email: supaUser.email,
-      role: supaUser.user_metadata?.role || 'student',
+      role,
     }
     next()
   } catch (err) {

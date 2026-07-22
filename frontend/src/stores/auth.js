@@ -44,8 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
     return {
       id: supaUser.id,
       email: supaUser.email || '',
-      name: meta.name || meta.full_name || supaUser.email?.split('@')[0]?.replace(/[._]/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || 'User',
-      role: meta.role || 'student',
+      name: appMeta.name || meta.name || meta.full_name || supaUser.email?.split('@')[0]?.replace(/[._]/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || 'User',
+      role: appMeta.role || meta.role || 'student',
       department: meta.department || 'Computer Science',
       avatar: meta.name?.charAt(0)?.toUpperCase() || supaUser.email?.charAt(0)?.toUpperCase() || 'U',
       isGuest: false,

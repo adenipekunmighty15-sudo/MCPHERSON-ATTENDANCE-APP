@@ -8,6 +8,7 @@ import compression from 'compression'
 import { existsSync, mkdirSync } from 'fs'
 import { query } from './lib/db.js'
 import { getAvailableProviders } from './src/config/ai.js'
+import { authenticate } from './src/middleware/auth.js'
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason?.message || reason)
@@ -148,7 +149,7 @@ app.get('/health', (req, res) => {
 })
 
 // Diagnostic endpoint for study hub
-app.get('/api/study/diagnostic', async (req, res) => {
+app.get('/api/study/diagnostic', authenticate, async (req, res) => {
   const results = { timestamp: new Date().toISOString(), checks: {} }
   
   try {

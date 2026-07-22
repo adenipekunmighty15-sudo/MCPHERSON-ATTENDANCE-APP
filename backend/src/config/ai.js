@@ -337,7 +337,6 @@ function getAvailableProviders() {
   if (process.env.NVIDIA_LLAMA_KEY) available.push('llama')
   if (process.env.PHI4_KEY) available.push('phi4')
   if (process.env.DEEPSEEK_KEY) available.push('deepseek')
-  if (process.env.OPENROUTER_API_KEY) available.push('openrouter')
   if (process.env.GROQ_API_KEY) available.push('groq')
   if (process.env.MINIMAX_KEY) available.push('minimax')
   if (process.env.DIFFUSIONGEMMA_KEY) available.push('diffusiongemma')
@@ -359,6 +358,7 @@ function getAvailableProviders() {
   if (process.env.NVIDIA_SUPER_49B_V1_KEY) available.push('nemotron-super-49b-v1')
   if (process.env.NVIDIA_NANO_KEY_2) available.push('nemotron-nano-8b')
   if (process.env.MISTRAL_NEMOTRON_KEY_2) available.push('mistral-nemotron-2')
+  if (process.env.OPENROUTER_API_KEY) available.push('openrouter')
   return available
 }
 

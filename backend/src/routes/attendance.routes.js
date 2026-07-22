@@ -121,6 +121,7 @@ router.post('/api/attendance', authenticate, async (req, res) => {
   try {
     const { courseId, courseName, status, method, location, sessionId, locationLat, locationLng } = req.body
     if (!courseId && !courseName) return res.status(400).json({ error: 'Course identifier required' })
+    if (!sessionId) return res.status(400).json({ error: 'Active session ID is required for check-in' })
 
     const validStatus = status && VALID_STATUSES.includes(status.toLowerCase()) ? status.toLowerCase() : 'present'
     const validMethod = method && VALID_METHODS.includes(method) ? method : 'manual'
