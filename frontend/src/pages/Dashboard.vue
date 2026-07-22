@@ -1,278 +1,279 @@
 <template>
-  <PageContent class="dash-root">
-    <div class="dash-particles" aria-hidden="true">
-      <div class="particle p1"></div>
-      <div class="particle p2"></div>
-      <div class="particle p3"></div>
-      <div class="particle p4"></div>
-      <div class="particle p5"></div>
+  <div class="dash-page" style="background: #F5F1EA; min-height: 100dvh;">
+    <div class="max-w-7xl mx-auto px-6 py-8 lg:px-8">
+      <!-- ===== HEADER ROW ===== -->
+      <div class="flex items-start justify-between mb-8">
+        <div>
+          <div class="text-[10px] font-semibold uppercase tracking-[1.5px] mb-2" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">{{ formattedDate }}</div>
+          <h1 class="text-4xl lg:text-5xl font-bold leading-tight" style="font-family: 'Fraunces', Georgia, serif; color: #1A1A2E;">
+            {{ timeGreeting }}, <span style="color: #C9902B;">{{ firstName }}</span>
+          </h1>
+          <p class="text-sm mt-1.5" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">
+            {{ remainingCount }} class{{ remainingCount !== 1 ? 'es' : '' }} remaining today &middot; streak: {{ streak }}d &#x1F525;
+          </p>
+        </div>
+        <router-link to="/attendance" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white transition-all duration-200 no-underline shrink-0" style="background: #2563EB; font-family: 'Inter', system-ui, sans-serif;" @mouseenter="$event.target.style.background = '#1D4ED8'" @mouseleave="$event.target.style.background = '#2563EB'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Check In
+        </router-link>
+      </div>
+
+      <!-- ===== STAT CARDS (4 columns) ===== -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div v-for="(stat, i) in stats" :key="i" class="rounded-xl p-5 relative" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+          <!-- LIVE pill -->
+          <div class="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold" style="background: rgba(37,99,235,0.1); color: #2563EB; font-family: 'Inter', system-ui, sans-serif;">
+            <span class="w-1.5 h-1.5 rounded-full" style="background: #2563EB;"></span>
+            LIVE
+          </div>
+          <!-- Icon box -->
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" :style="{ background: stat.iconBg }">
+            <component :is="stat.icon" class="w-5 h-5" :style="{ color: stat.iconColor }" />
+          </div>
+          <!-- Number -->
+          <div class="text-3xl font-bold mb-0.5" style="color: #1A1A2E; font-family: 'Fraunces', Georgia, serif;">{{ stat.value }}</div>
+          <!-- Label -->
+          <div class="text-xs font-medium mb-1" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ stat.label }}</div>
+          <!-- Context line -->
+          <div class="text-[11px] font-semibold" :style="{ color: stat.deltaColor }">{{ stat.delta }}</div>
+        </div>
+      </div>
+
+      <!-- ===== TWO-COLUMN BODY ===== -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- LEFT: Today's Schedule -->
+        <div class="lg:col-span-2 rounded-xl overflow-hidden" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+          <div class="p-6 pb-0">
+            <div class="flex items-center justify-between mb-5">
+              <h2 class="text-lg font-bold" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">Today&apos;s Schedule</h2>
+              <div class="text-xs font-medium" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">{{ todayDate }}</div>
+            </div>
+
+            <!-- Timeline -->
+            <div v-for="(item, i) in schedule" :key="i" class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-2.5 h-2.5 rounded-full mt-1.5" :class="getDotClass(item.status)" :style="getDotStyle(item.status)"></div>
+                <div v-if="i < schedule.length - 1" class="w-0.5 flex-1" style="background: #E2E6ED;"></div>
+              </div>
+              <div class="flex-1 pb-6">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <div class="text-xs font-medium mb-0.5" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">{{ item.time }}</div>
+                    <div :class="item.status === 'done' ? 'line-through' : ''" class="text-sm font-semibold" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">{{ item.title }}</div>
+                    <div class="text-xs mt-0.5" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ item.location }}</div>
+                  </div>
+                  <div v-if="item.status === 'current'" class="px-3 py-1 rounded-full text-[10px] font-bold" style="background: rgba(37,99,235,0.12); color: #2563EB; font-family: 'Inter', system-ui, sans-serif;">NOW</div>
+                  <svg v-else-if="item.status === 'done'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Countdown banner -->
+          <div class="mx-6 mb-6 rounded-xl px-5 py-3.5 flex items-center gap-3" style="background: rgba(37,99,235,0.06);">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(37,99,235,0.12);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="text-xs font-medium" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">Next class ends in</div>
+              <div class="text-sm font-bold" style="font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #2563EB;">{{ countdown }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Student ID + Quick Actions -->
+        <div class="space-y-5">
+          <!-- Student ID Card (dark navy) -->
+          <div class="rounded-xl p-6" style="background: #0F1E3D; box-shadow: 0 8px 24px rgba(15,30,61,0.15);">
+            <div class="text-[10px] font-semibold mb-3 tracking-wider" style="color: rgba(255,255,255,0.5); font-family: 'Inter', system-ui, sans-serif;">{{ student.matricNo }}</div>
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold" style="background: #2563EB; color: #FFFFFF; font-family: 'Fraunces', Georgia, serif;">{{ initials }}</div>
+              <div>
+                <div class="text-base font-bold" style="color: #FFFFFF; font-family: 'Inter', system-ui, sans-serif;">{{ student.name }}</div>
+                <div class="text-xs mt-0.5" style="color: rgba(255,255,255,0.6); font-family: 'Inter', system-ui, sans-serif;">{{ student.program }} &middot; {{ student.level }}</div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: rgba(34,197,94,0.15); color: #22C55E; font-family: 'Inter', system-ui, sans-serif;">Active</span>
+              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: rgba(37,99,235,0.15); color: #60A5FA; font-family: 'Inter', system-ui, sans-serif;">Eligible</span>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <h3 class="text-[11px] font-semibold uppercase tracking-wider mb-4" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <router-link v-for="action in quickActions" :key="action.label" :to="action.to" class="flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-center no-underline transition-all duration-200" style="background: #F5F1EA; color: #1A1A2E;" @mouseenter="$event.target.style.background = '#EDEDED'" @mouseleave="$event.target.style.background = '#F5F1EA'">
+                <component :is="action.icon" class="w-5 h-5" />
+                <span class="text-[11px] font-semibold" style="font-family: 'Inter', system-ui, sans-serif;">{{ action.label }}</span>
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== COURSE ATTENDANCE GRID (3 columns) ===== -->
+      <div>
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-lg font-bold" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">Course Attendance</h2>
+          <router-link to="/courses" class="text-xs font-semibold no-underline transition-colors" style="color: #2563EB; font-family: 'Inter', system-ui, sans-serif;">View All</router-link>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="course in enrolledCourses" :key="course.code" class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold" style="font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #1A1A2E;">{{ course.code }}</span>
+              <span class="text-lg font-bold" :style="courseStyle(course.attendance)">{{ course.attendance }}%</span>
+            </div>
+            <div class="text-sm font-medium mb-3" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ course.name }}</div>
+            <!-- Progress bar -->
+            <div class="w-full h-2 rounded-full mb-2" style="background: #EDEDED;">
+              <div class="h-full rounded-full transition-all duration-500" :style="{ width: course.attendance + '%', background: course.attendance >= 75 ? '#22C55E' : '#EF4444' }"></div>
+            </div>
+            <!-- Warning only for at-risk -->
+            <div v-if="course.attendance < 75" class="flex items-center gap-1.5 text-[11px] font-semibold" style="color: #EF4444; font-family: 'Inter', system-ui, sans-serif;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Below 75%
+            </div>
+            <div v-else class="text-[11px]" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">&nbsp;</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <DashboardHeader :streak="streak" :todayDate="todayDate" />
-
-    <template v-if="loading">
-      <div class="grid grid-cols-1 gap-6">
-        <SkeletonLoader v-for="n in 6" :key="n" class="h-24" />
-      </div>
-    </template>
-
-    <template v-else>
-      <MetricsRow :metrics="metrics" />
-
-      <SessionAttendance v-if="showSession" />
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 stagger-1">
-        <div class="lg:col-span-1">
-          <StudentIdCard />
-        </div>
-        
-        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card v-if="currentClass" class="bg-primary-soft border-primary-muted card-lift-soft">
-            <template #header>
-              <Badge variant="primary" class="live-badge">
-                <span class="live-dot"></span>
-                Live Now
-              </Badge>
-            </template>
-            <h3 class="text-lg font-bold">{{ currentClass.title }}</h3>
-            <p class="text-sm text-gray-500 flex items-center gap-2">
-              <MapPin class="w-4 h-4" />
-              {{ currentClass.location }}
-            </p>
-            <template #footer>
-              <Button as="router-link" to="/attendance" variant="primary">Check In</Button>
-            </template>
-          </Card>
-
-          <Card v-else class="card-lift-soft">
-             <template #header>
-                <Badge>
-                    <Calendar class="w-4 h-4" />
-                    Next Class
-                </Badge>
-            </template>
-            <h3 class="text-lg font-bold">{{ nextClass?.title || 'No classes today' }}</h3>
-            <p v-if="nextClass" class="text-sm text-gray-500 flex items-center gap-2">
-              <MapPin class="w-4 h-4" />
-              {{ nextClass.location }}
-              <span class="w-1 h-1 bg-gray-400 rounded-full"></span>
-              {{ nextClass.time }}
-            </p>
-          </Card>
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-1 gap-4 stagger-2">
-        <Card class="card-lift-soft">
-            <template #header>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold">Enrolled Courses</span>
-                    <Button as="router-link" to="/courses" variant="ghost">View All</Button>
-                </div>
-            </template>
-            <div class="flex flex-wrap gap-2">
-                <Badge v-for="c in enrolledCourses" :key="c.code" variant="soft" as="router-link" to="/courses">
-                    {{ c.code }} {{ c.attendance }}%
-                </Badge>
-            </div>
-        </Card>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 stagger-3">
-        <div class="lg:col-span-3">
-          <Card class="card-lift-soft">
-            <template #header>
-                <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-bold">My Courses</h2>
-                    <Button as="router-link" to="/courses" variant="ghost">
-                        View All <ArrowRight class="w-4 h-4 ml-1" />
-                    </Button>
-                </div>
-            </template>
-            <div class="flex flex-col gap-4">
-                <div v-for="c in enrolledCourses" :key="c.code" class="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer my-course-item" @click="$router.push('/courses')">
-                    <div class="w-12 h-12 rounded-lg flex items-center justify-center" :style="{ backgroundColor: c.color + '14', color: c.color }">
-                        <BookOpen class="w-6 h-6" />
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center">
-                            <span class="font-semibold">{{ c.code }}</span>
-                            <span class="font-semibold" :style="{ color: c.color }">{{ c.attendance }}%</span>
-                        </div>
-                        <p class="text-sm text-gray-500">{{ c.name }}</p>
-                        <Progress :value="c.attendance" :color="c.color" class="h-1.5 mt-1" />
-                    </div>
-                </div>
-            </div>
-          </Card>
-        </div>
-
-        <div class="lg:col-span-2">
-            <Card class="card-lift-soft">
-                <template #header>
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-lg font-bold flex items-center gap-2">
-                            <Calendar class="w-5 h-5" /> Today
-                        </h2>
-                        <div class="flex items-center gap-3">
-                            <div v-if="countdown && nextUpcoming" class="countdown-chip" :title="'Next: ' + nextUpcoming.label">
-                                <Timer class="w-3.5 h-3.5" />
-                                <span class="countdown-value">{{ countdown }}</span>
-                            </div>
-                            <span class="text-sm text-gray-500">{{ todayDate }}</span>
-                        </div>
-                    </div>
-                </template>
-
-                <div v-if="schedule.length" class="flex flex-col gap-4">
-                    <div v-for="(item, i) in schedule" :key="i" class="flex gap-4">
-                        <div class="text-sm text-gray-500">{{ item.time }}</div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-3 h-3 rounded-full" :class="getTimelineDotClass(item.status)"></div>
-                            <div v-if="i < schedule.length - 1" class="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                        </div>
-                        <div class="flex-1 -mt-1">
-                             <div class="p-3 rounded-lg" :class="item.status === 'current' ? 'bg-primary-soft' : ''">
-                                <div class="flex justify-between items-center">
-                                    <span class="font-semibold">{{ item.title }}</span>
-                                    <Badge v-if="item.status === 'current'" variant="primary" size="sm" class="now-badge">Now</Badge>
-                                    <CheckCircle v-else-if="item.status === 'done'" class="w-5 h-5 text-success" />
-                                </div>
-                                <p class="text-sm text-gray-500 flex items-center gap-1">
-                                    <MapPin class="w-3 h-3" />
-                                    {{ item.location }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-else class="text-center py-8">
-                    <Calendar class="w-12 h-12 mx-auto text-gray-400" />
-                    <p class="mt-2 text-gray-500">No classes today</p>
-                </div>
-                
-                <div class="grid grid-cols-4 gap-2 mt-4">
-                    <Button as="router-link" to="/attendance" variant="ghost" class="flex flex-col h-auto quick-action-btn">
-                        <MapPin class="w-6 h-6" />
-                        <span class="text-xs mt-1">Check In</span>
-                    </Button>
-                    <Button as="router-link" to="/chat" variant="ghost" class="flex flex-col h-auto quick-action-btn">
-                        <MessageSquare class="w-6 h-6" />
-                        <span class="text-xs mt-1">AI Chat</span>
-                    </Button>
-                    <Button as="router-link" to="/study-hub" variant="ghost" class="flex flex-col h-auto quick-action-btn">
-                        <Library class="w-6 h-6" />
-                        <span class="text-xs mt-1">Study</span>
-                    </Button>
-                    <Button as="router-link" to="/timetable" variant="ghost" class="flex flex-col h-auto quick-action-btn">
-                        <Calendar class="w-6 h-6" />
-                        <span class="text-xs mt-1">Schedule</span>
-                    </Button>
-                </div>
-            </Card>
-        </div>
-      </div>
-    </template>
-
-
-  </PageContent>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { ClipboardCheck, BookOpen, Trophy, MapPin, Calendar, MessageSquare, CheckCircle, TrendingUp, ArrowRight, Library, Sun, Cloud, Moon, Star, Timer } from 'lucide-vue-next'
-import StudentIdCard from '../components/dashboard/StudentIdCard.vue'
-import DashboardHeader from '../components/dashboard/DashboardHeader.vue'
-import MetricsRow from '../components/dashboard/MetricsRow.vue'
-import SessionAttendance from '../components/dashboard/SessionAttendance.vue'
-
-import PageContent from '@/components/layout/PageContent.vue'
-import Card from '@/components/ui/Card.vue'
-import Button from '@/components/ui/Button.vue'
-import Badge from '@/components/ui/Badge.vue'
-import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
-import Progress from '@/components/ui/Progress.vue'
+import { useRouter } from 'vue-router'
+import { ClipboardCheck, Trophy, TrendingUp, Clock, BookOpen, MessageSquare, Library, Calendar } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const loading = ref(true)
 
-/* ── DATE / TIME ── */
 const now = new Date()
 const todayDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
 
+const firstName = computed(() => authStore.user?.name?.split(' ')[0] || 'Student')
 
-/* ── STATS ── */
-const streak = 3
-const attendancePct = 87
-const attendedClasses = 21
-
-const metrics = [
-  { label: 'Attendance', value: attendancePct, suffix: '%', icon: ClipboardCheck, color: 'var(--color-primary)', trend: '' },
-  { label: 'Streak', value: streak, suffix: 'd', icon: TrendingUp, color: 'var(--color-accent)', trend: '+1 this week' },
-  { label: 'Attended', value: attendedClasses, suffix: '', icon: Trophy, color: 'var(--color-primary)', trend: '' },
-]
-
-const currentClass = computed(() => schedule.find(s => s.status === 'current') || null)
-const nextClass = computed(() => schedule.find(s => s.status === 'upcoming') || schedule.find(s => s.status === 'current') || null)
-const showSession = computed(() => true)
-
-
-/* ── COURSES / SCHEDULE ── */
-const enrolledCourses = [
-  { code: 'CSC 201', name: 'Introduction to Programming', attendance: 92, color: '#1E40AF' },
-  { code: 'CSC 203', name: 'Database Systems', attendance: 88, color: '#3B82F6' },
-  { code: 'MTH 201', name: 'Linear Algebra I', attendance: 75, color: '#0D518C' },
-  { code: 'GST 201', name: 'Use of English', attendance: 95, color: '#1E3A8A' },
-  { code: 'PHY 201', name: 'Physics for Computing', attendance: 68, color: '#5C6795' },
-  { code: 'STA 201', name: 'Probability & Statistics', attendance: 81, color: '#D97706' },
-]
-
-const schedule = [
-  { time: '08:00', title: 'Programming Lab', location: 'CS Lab 3', status: 'done' },
-  { time: '10:00', title: 'Database Systems', location: 'LT 2', status: 'done' },
-  { time: '13:00', title: 'Linear Algebra', location: 'Room 204', status: 'current' },
-  { time: '15:00', title: 'Study Group', location: 'Library', status: 'upcoming' },
-]
-
-const getTimelineDotClass = (status) => {
-    switch (status) {
-        case 'done': return 'bg-success';
-        case 'current': return 'bg-primary ring-2 ring-primary-muted';
-        case 'upcoming': return 'bg-gray-400';
-        default: return 'bg-gray-300';
-    }
-}
-
-/* ── LIVE COUNTDOWN TIMER ── */
-const countdown = ref('')
-const nextUpcoming = computed(() => {
-  const upcoming = schedule.find(s => s.status === 'upcoming')
-  if (!upcoming) return null
-  const [h, m] = upcoming.time.split(':').map(Number)
-  const d = new Date()
-  d.setHours(h, m, 0, 0)
-  if (d < new Date()) d.setDate(d.getDate() + 1)
-  return { label: upcoming.title, time: upcoming.time, target: d }
+const timeGreeting = computed(() => {
+  const h = now.getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
 })
 
+const streak = 3
+
+const schedule = [
+  { time: '08:00', end: '10:00', title: 'Programming Lab', location: 'CS Lab 3', status: 'done' },
+  { time: '10:00', end: '12:00', title: 'Database Systems', location: 'LT 2', status: 'done' },
+  { time: '13:00', end: '15:00', title: 'Linear Algebra', location: 'Room 204', status: 'current' },
+  { time: '15:00', end: '17:00', title: 'Study Group', location: 'Library', status: 'upcoming' },
+]
+
+const remainingCount = computed(() => schedule.filter(s => s.status !== 'done').length)
+
+const enrolledCourses = [
+  { code: 'CSC 201', name: 'Introduction to Programming', attendance: 92 },
+  { code: 'CSC 203', name: 'Database Systems', attendance: 68 },
+  { code: 'MTH 201', name: 'Linear Algebra I', attendance: 88 },
+  { code: 'STA 201', name: 'Probability & Statistics', attendance: 75 },
+  { code: 'PHY 201', name: 'Physics for Computing', attendance: 55 },
+  { code: 'GST 201', name: 'Use of English', attendance: 95 },
+]
+
+const student = computed(() => ({
+  name: authStore.user?.name || 'Adeola Johnson',
+  matricNo: authStore.user?.matricNo || '2023/0451',
+  program: 'Computer Science',
+  level: '200 Level',
+}))
+
+const initials = computed(() => {
+  return student.value.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+})
+
+const stats = [
+  { icon: ClipboardCheck, iconBg: 'rgba(37,99,235,0.1)', iconColor: '#2563EB', value: '87%', label: 'Overall Attendance', delta: 'of 24 classes', deltaColor: '#68758E' },
+  { icon: TrendingUp, iconBg: 'rgba(234,179,8,0.1)', iconColor: '#EAB308', value: '3d', label: 'Streak', delta: '+1 this week', deltaColor: '#EAB308' },
+  { icon: Trophy, iconBg: 'rgba(34,197,94,0.1)', iconColor: '#22C55E', value: '21', label: 'Attended', delta: 'Keep it up!', deltaColor: '#22C55E' },
+  { icon: Clock, iconBg: 'rgba(239,68,68,0.1)', iconColor: '#EF4444', value: '3', label: 'Needs Attention', delta: 'needs +10%', deltaColor: '#EF4444' },
+]
+
+const quickActions = [
+  { icon: ClipboardCheck, label: 'Check In', to: '/attendance' },
+  { icon: MessageSquare, label: 'AI Chat', to: '/chat' },
+  { icon: Library, label: 'Study Hub', to: '/study-hub' },
+  { icon: Calendar, label: 'Timetable', to: '/timetable' },
+]
+
+function courseStyle(attendance) {
+  return { color: attendance >= 75 ? '#22C55E' : '#EF4444', fontFamily: "'Fraunces', Georgia, serif" }
+}
+
+function getDotClass(status) {
+  switch (status) {
+    case 'done': return ''
+    case 'current': return 'pulse-dot'
+    case 'upcoming': return ''
+    default: return ''
+  }
+}
+
+function getDotStyle(status) {
+  switch (status) {
+    case 'done': return { background: '#22C55E' }
+    case 'current': return { background: '#2563EB', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)' }
+    case 'upcoming': return { background: '#C8CED9' }
+    default: return { background: '#C8CED9' }
+  }
+}
+
+// Countdown
+const countdown = ref('--:--:--')
 let countdownInterval = null
+
 function updateCountdown() {
-  if (!nextUpcoming.value) { countdown.value = ''; return }
-  const diff = nextUpcoming.value.target - new Date()
+  const now = new Date()
+  const currentItem = schedule.find(s => s.status === 'current')
+  let target = null
+
+  if (currentItem) {
+    const [h, m] = currentItem.end.split(':').map(Number)
+    const d = new Date()
+    d.setHours(h, m, 0, 0)
+    if (d > now) target = d
+  }
+
+  if (!target) {
+    const next = schedule.find(s => s.status === 'upcoming')
+    if (next) {
+      const [h, m] = next.time.split(':').map(Number)
+      const d = new Date()
+      d.setHours(h, m, 0, 0)
+      if (d < now) d.setDate(d.getDate() + 1)
+      target = d
+    }
+  }
+
+  if (!target) { countdown.value = '--:--:--'; return }
+
+  const diff = target - now
   if (diff <= 0) { countdown.value = 'Starting now!'; return }
-  const h = Math.floor(diff / 3600000)
-  const m = Math.floor((diff % 3600000) / 60000)
-  const s = Math.floor((diff % 60000) / 1000)
-  countdown.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+
+  const hrs = Math.floor(diff / 3600000)
+  const mins = Math.floor((diff % 3600000) / 60000)
+  const secs = Math.floor((diff % 60000) / 1000)
+  countdown.value = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 onMounted(() => {
   updateCountdown()
   countdownInterval = setInterval(updateCountdown, 1000)
-  setTimeout(() => {
-    loading.value = false
-  }, 500)
+  setTimeout(() => { loading.value = false }, 300)
 })
 
 onBeforeUnmount(() => {
@@ -280,149 +281,25 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
-.live-badge {
-    animation: pulse 2s ease-in-out infinite;
-}
-.live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  animation: pulse-dot 2s ease-in-out infinite;
+<style>
+.dash-page {
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+.dash-page .pulse-dot {
+  animation: dashPulse 2s ease-in-out infinite;
+}
+
+@keyframes dashPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); }
+  50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.05); }
+}
+
+@media (max-width: 768px) {
+  .dash-page .max-w-7xl {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 20px;
   }
-  50% {
-    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
-  }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.8); opacity: 0.5; }
-}
-
-/* Course list item hover enhancement */
-.my-course-item {
-  transition: all 0.2s var(--ease-out);
-}
-.my-course-item:hover {
-  transform: translateX(4px);
-  background: var(--color-primary-soft) !important;
-}
-
-/* Quick action hover lift */
-.quick-action-btn {
-  transition: all 0.2s var(--ease-spring);
-}
-.quick-action-btn:hover {
-  transform: translateY(-3px) scale(1.03);
-  background: var(--color-primary-soft) !important;
-  color: var(--color-primary) !important;
-}
-
-/* Now badge enhanced glow */
-.now-badge {
-  animation: nowGlow 2s ease-in-out infinite;
-}
-@keyframes nowGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-  50% { box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.2); }
-}
-
-/* Stagger coordination — reset parent's flex to allow animations */
-.stagger-1, .stagger-2, .stagger-3 {
-  animation: none;
-}
-.stagger-1 > *,
-.stagger-2 > *,
-.stagger-3 > * {
-  animation: fadeInUp 0.4s var(--ease-out) both;
-}
-
-/* ── FLOATING PARTICLES ── */
-.dash-particles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-.particle {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  opacity: 0;
-  animation: particleFloat 8s ease-in-out infinite;
-}
-.p1 { left: 10%; top: 20%; width: 8px; height: 8px; background: var(--color-primary-soft); animation-delay: 0s; }
-.p2 { left: 25%; top: 60%; width: 5px; height: 5px; background: var(--color-accent-soft); animation-delay: 1.5s; }
-.p3 { left: 70%; top: 30%; width: 7px; height: 7px; background: var(--color-primary-soft); animation-delay: 3s; }
-.p4 { left: 85%; top: 70%; width: 4px; height: 4px; background: var(--color-accent-soft); animation-delay: 4.5s; }
-.p5 { left: 50%; top: 10%; width: 6px; height: 6px; background: var(--color-primary-soft); animation-delay: 6s; }
-@keyframes particleFloat {
-  0% { opacity: 0; transform: translateY(0) scale(0); }
-  20% { opacity: 0.6; transform: translateY(-20px) scale(1); }
-  80% { opacity: 0.4; transform: translateY(-60px) scale(0.8); }
-  100% { opacity: 0; transform: translateY(-80px) scale(0); }
-}
-
-/* ── COUNTDOWN CHIP ── */
-.countdown-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: linear-gradient(135deg, var(--color-primary-soft), var(--color-accent-soft));
-  border: 1px solid var(--color-border-accent);
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-primary);
-  white-space: nowrap;
-  animation: countPulse 2s ease-in-out infinite;
-  letter-spacing: 0.3px;
-}
-.countdown-value {
-  font-family: var(--font-mono);
-  min-width: 55px;
-  text-align: center;
-}
-@keyframes countPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(15, 30, 61, 0.1); }
-  50% { box-shadow: 0 0 8px 2px rgba(15, 30, 61, 0.06); }
-}
-
-/* ── ATTENDANCE ARC GLOW ── */
-.attendance-arc {
-  filter: drop-shadow(0 0 6px var(--color-primary-glow));
-  animation: arcFadeIn 1s var(--ease-out) both;
-}
-@keyframes arcFadeIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-/* ── SMALLER CARDS ── */
-.stagger-2 > * {
-  padding: var(--card-padding-sm) !important;
-}
-.stagger-2 .text-4xl {
-  font-size: var(--text-2xl) !important;
-}
-.stagger-2 svg[width="100"] {
-  transform: scale(0.7);
-}
-.stagger-2 .badge {
-  font-size: 10px;
-  padding: 1px 6px;
-}
-.stagger-2 .flex-wrap {
-  gap: 4px;
 }
 </style>
