@@ -1,500 +1,134 @@
 <template>
-  <div class="profile-page min-h-screen bg-[var(--color-bg)]" data-tour="profile">
-    <div class="page page-wide">
-      <div class="profile-cover">
-        <div class="cover-gradient"></div>
-        <div class="cover-actions">
-          <button class="btn btn-primary btn-sm" @click="editMode = !editMode">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            {{ editMode ? 'DONE' : 'EDIT PROFILE' }}
+  <div class="profile-page" style="background: #F5F1EA; min-height: 100dvh;">
+    <div class="max-w-6xl mx-auto px-6 py-8 lg:px-8">
+      <!-- Eyebrow + Title -->
+      <div class="mb-8">
+        <div class="text-[10px] font-semibold uppercase tracking-[1.5px] mb-1.5" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">Account</div>
+        <h1 class="text-3xl lg:text-4xl font-bold leading-tight" style="font-family: 'Fraunces', Georgia, serif; color: #1A1A2E;">My Profile</h1>
+      </div>
+
+      <!-- 2-column body -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- LEFT: Profile Card (2/5 width) -->
+        <div class="lg:col-span-2">
+          <div class="rounded-xl overflow-hidden" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <!-- Gradient banner -->
+            <div class="h-24 relative" style="background: linear-gradient(135deg, #2563EB, #1D4ED8, #0F1E3D);">
+              <button v-if="editMode" @click="saveProfile" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-bold border-0 cursor-pointer transition-all" style="background: rgba(255,255,255,0.2); color: #FFFFFF;" @mouseenter="$event.target.style.background = 'rgba(255,255,255,0.3)'" @mouseleave="$event.target.style.background = 'rgba(255,255,255,0.2)'">Save</button>
+            </div>
+
+            <!-- Avatar overlapping -->
+            <div class="flex justify-center -mt-10 mb-3">
+              <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold border-4" style="border-color: #FFFFFF; background: #2563EB; color: #FFFFFF; font-family: 'Fraunces', Georgia, serif;">
+                {{ initials }}
+              </div>
+            </div>
+
+            <!-- Name & Email -->
+            <div class="text-center px-6">
+              <h2 class="text-xl font-bold" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">{{ authStore.user?.name || 'Adeola Johnson' }}</h2>
+              <p class="text-sm mt-0.5 font-medium" style="color: #2563EB; font-family: 'Inter', system-ui, sans-serif;">{{ authStore.user?.email || 'adeola@mcu.edu.ng' }}</p>
+            </div>
+
+            <!-- Pills -->
+            <div class="flex flex-wrap justify-center gap-2 px-6 mt-4">
+              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">Computer Science</span>
+              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">200 Level</span>
+              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ authStore.user?.matricNo || '2023/0451' }}</span>
+            </div>
+
+            <!-- Divider -->
+            <div class="mx-6 my-5" style="border-top: 1px solid #E2E6ED;"></div>
+
+            <!-- 2x2 Stat mini-grid -->
+            <div class="grid grid-cols-2 gap-3 px-6 pb-6">
+              <div v-for="s in profileStats" :key="s.label" class="rounded-xl py-4 px-4 text-center" style="background: #F5F1EA;">
+                <div class="text-2xl font-bold" style="color: #1A1A2E; font-family: 'Fraunces', Georgia, serif;">{{ s.value }}</div>
+                <div class="text-[10px] font-semibold mt-1" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ s.label }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Edit button (outside card) -->
+          <button v-if="!editMode" @click="editMode = true" class="w-full mt-4 py-3 rounded-xl text-sm font-bold border-0 cursor-pointer transition-all" style="background: #FFFFFF; color: #1A1A2E; box-shadow: 0 2px 8px rgba(0,0,0,0.04);" @mouseenter="$event.target.style.background = '#EDEDED'" @mouseleave="$event.target.style.background = '#FFFFFF'">
+            Edit Profile
           </button>
         </div>
-        <div class="profile-avatar-ring">
-          <div class="profile-avatar" :class="{ clickable: editMode }" @click="handleAvatarClick">
-            <img v-if="authStore.user?.avatar_url" :src="authStore.user.avatar_url" class="w-full h-full rounded-full object-cover" />
-            <span v-else>{{ authStore.user?.name?.charAt(0)?.toUpperCase() || 'U' }}</span>
-          </div>
-          <div class="status-badge"></div>
-          <div v-if="editMode" class="avatar-edit-hint">Tap to change photo</div>
-        </div>
-      </div>
 
-      <div class="profile-info-section">
-        <h1 class="h2 text-[var(--color-text-primary)] text-center">{{ authStore.user?.name || 'User' }}</h1>
-        <p class="text-body text-[var(--color-text-secondary)] text-center mb-3">{{ authStore.user?.email || '' }}</p>
-        <div class="profile-tags">
-          <span class="badge">{{ authStore.user?.role || 'Student' }}</span>
-          <span class="badge">{{ authStore.user?.department || 'Computer Science' }}</span>
-          <span class="badge">300 Level</span>
-        </div>
-      </div>
-
-      <div v-if="loading" class="flex justify-center py-12">
-        <div class="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-      </div>
-
-      <template v-if="!loading">
-      <div class="stats-row card card-hover p-6">
-        <div class="stat-item">
-          <div class="stat-circle">
-            <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
-              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-primary)" stroke-width="4" stroke-linecap="round"
-                stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - gpa / 5)" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
-            </svg>
-            <span class="stat-circle-value">{{ gpa.toFixed(2) }}</span>
-          </div>
-          <span class="stat-label">GPA</span>
-        </div>
-        <div class="stat-item">
-          <div class="stat-circle">
-            <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
-              <circle cx="30" cy="30" r="26" fill="none" stroke="#10B981" stroke-width="4" stroke-linecap="round"
-                stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - attendanceRate / 100)" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
-            </svg>
-            <span class="stat-circle-value">{{ attendanceRate }}%</span>
-          </div>
-          <span class="stat-label">Attendance</span>
-        </div>
-        <div class="stat-item">
-          <div class="stat-circle">
-            <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
-              <circle cx="30" cy="30" r="26" fill="none" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"
-                stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - Math.min(1, stats.xp / 5000))" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
-            </svg>
-            <span class="stat-circle-value">{{ stats.xp }}</span>
-          </div>
-          <span class="stat-label">XP</span>
-        </div>
-        <div class="stat-item">
-          <div class="stat-circle">
-            <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
-              <circle cx="30" cy="30" r="26" fill="none" stroke="#DC2626" stroke-width="4" stroke-linecap="round"
-                stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - Math.min(1, stats.courses / 30))" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
-            </svg>
-            <span class="stat-circle-value">{{ stats.courses }}</span>
-          </div>
-          <span class="stat-label">Courses</span>
-        </div>
-      </div>
-
-      <div class="profile-tabs">
-        <button v-for="tab in tabs" :key="tab" class="btn btn-ghost" :class="{ active: activeTab === tab }" :style="activeTab === tab ? 'background:var(--color-primary);color:white' : ''" @click="activeTab = tab">{{ tab.toUpperCase() }}</button>
-      </div>
-
-      <div v-if="activeTab === 'Achievements'" class="achievements-grid">
-        <div v-for="a in displayAchievements" :key="a.title" class="card card-hover achievement-card p-4">
-          <div class="achievement-icon" :style="{ background: a.color + '18', color: a.color }">
-            <span v-html="sanitizeHtml(a.icon)"></span>
-          </div>
-          <div>
-            <p class="achievement-title">{{ a.title }}</p>
-            <p class="achievement-desc">{{ a.desc }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="activeTab === 'Activity'" class="activity-feed card p-4">
-        <div v-for="act in displayActivities" :key="act.title" class="activity-item">
-          <div class="activity-dot" :style="{ background: act.color }"></div>
-          <div class="activity-content">
-            <p class="activity-title">{{ act.title }}</p>
-            <p class="activity-time">{{ act.time }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="activeTab === 'Details'" class="details-grid">
-        <div class="card card-hover details-card p-6">
-          <h3 class="details-card-title">Personal Info</h3>
-          <div v-if="!editMode">
-            <div class="detail-row"><span>Name</span><span>{{ authStore.user?.name || 'N/A' }}</span></div>
-            <div class="detail-row"><span>Email</span><span>{{ authStore.user?.email || 'N/A' }}</span></div>
-            <div class="detail-row"><span>Department</span><span>{{ authStore.user?.department || 'N/A' }}</span></div>
-            <div class="detail-row"><span>Level</span><span>{{ authStore.user?.level || 'N/A' }} Level</span></div>
-            <div class="detail-row"><span>Role</span><span>{{ authStore.user?.role || 'Student' }}</span></div>
-            <div class="detail-row"><span>Member Since</span><span>{{ authStore.user?.created_at ? new Date(authStore.user.created_at).toLocaleDateString() : 'N/A' }}</span></div>
-          </div>
-          <div v-else>
-            <div class="form-group mb-4">
-              <label class="form-label">Name</label>
-              <input v-model="editForm.name" class="input w-full" />
+        <!-- RIGHT: Info Panels (3/5 width) -->
+        <div class="lg:col-span-3 space-y-5">
+          <!-- Personal Information -->
+          <div class="rounded-xl p-6" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <h3 class="text-[10px] font-semibold uppercase tracking-wider mb-5" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">Personal Information</h3>
+            <div class="grid grid-cols-2 gap-x-8 gap-y-4">
+              <div v-for="field in personalInfo" :key="field.label" class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-semibold uppercase tracking-wider" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">{{ field.label }}</span>
+                <span class="text-sm font-medium" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">{{ field.value }}</span>
+              </div>
             </div>
-            <div class="form-group mb-4">
-              <label class="form-label">Email</label>
-              <input v-model="editForm.email" class="input w-full" disabled />
-            </div>
-            <div class="form-group mb-4">
-              <label class="form-label">Department</label>
-              <input v-model="editForm.department" class="input w-full" />
-            </div>
-            <div class="form-group mb-4">
-              <label class="form-label">Level</label>
-              <select v-model="editForm.level" class="input w-full">
-                <option value="100">100 Level</option>
-                <option value="200">200 Level</option>
-                <option value="300">300 Level</option>
-                <option value="400">400 Level</option>
-                <option value="500">500 Level</option>
-              </select>
-            </div>
-            <div class="flex gap-2 mt-4">
-              <button class="btn btn-primary flex-1" @click="saveProfile">Save Changes</button>
-              <button class="btn btn-secondary flex-1" @click="editMode = false">Cancel</button>
+          </div>
+
+          <!-- Academic Information -->
+          <div class="rounded-xl p-6" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+            <h3 class="text-[10px] font-semibold uppercase tracking-wider mb-5" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">Academic Information</h3>
+            <div class="grid grid-cols-2 gap-x-8 gap-y-4">
+              <div v-for="field in academicInfo" :key="field.label" class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-semibold uppercase tracking-wider" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">{{ field.label }}</span>
+                <span class="text-sm font-medium" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">{{ field.value }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div class="card details-card p-6">
-          <h3 class="details-card-title">Quick Actions</h3>
-          <button class="btn btn-secondary w-full mb-2" @click="$router.push('/settings')">Settings</button>
-          <button class="btn btn-danger w-full" @click="handleLogout">Sign Out</button>
-        </div>
       </div>
-      </template>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { useMindStore } from '../stores/mind'
-import api from '../lib/api'
-import { sanitizeHtml } from '../lib/sanitize.js'
 
-const router = useRouter()
 const authStore = useAuthStore()
-const mindStore = useMindStore()
-
 const editMode = ref(false)
-const activeTab = ref('Achievements')
-const tabs = ['Achievements', 'Activity', 'Details']
-const loading = ref(true)
-const stats = ref({ gpa: 4.52, attendanceRate: 90.1, courses: 18, xp: 0, streak: 0 })
-const achievements = ref([])
-const activities = ref([])
+const stats = ref({ gpa: 4.52, attendanceRate: 90.1, courses: 18, streak: 3 })
 
-const editForm = ref({
-  name: authStore.user?.name || '',
-  email: authStore.user?.email || '',
-  department: authStore.user?.department || 'Computer Science',
-  level: authStore.user?.level || '300',
+const initials = computed(() => {
+  const name = authStore.user?.name || 'Adeola Johnson'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 })
+
+const profileStats = computed(() => [
+  { value: stats.value.gpa.toFixed(2), label: 'GPA' },
+  { value: stats.value.courses, label: 'Courses' },
+  { value: stats.value.attendanceRate + '%', label: 'Attendance' },
+  { value: stats.value.streak + 'd', label: 'Streak' },
+])
+
+const personalInfo = computed(() => [
+  { label: 'Full Name', value: authStore.user?.name || 'Adeola Johnson' },
+  { label: 'Date of Birth', value: '—' },
+  { label: 'Gender', value: '—' },
+  { label: 'Phone', value: authStore.user?.phone || '—' },
+])
+
+const academicInfo = computed(() => [
+  { label: 'Matric Number', value: authStore.user?.matricNo || '2023/0451' },
+  { label: 'Department', value: authStore.user?.department || 'Computer Science' },
+  { label: 'Faculty', value: 'Science and Technology' },
+  { label: 'Level', value: (authStore.user?.level || '200') + ' Level' },
+])
 
 onMounted(async () => {
+  const api = (await import('../lib/api')).default
   try {
-    const [statsRes, achRes] = await Promise.allSettled([
-      api.get('/gamification/profile'),
-      api.get('/students/profile'),
-    ])
-    if (statsRes.status === 'fulfilled') {
-      const d = statsRes.value.data
-      stats.value = { ...stats.value, ...d }
-    }
-    if (achRes.status === 'fulfilled') {
-      achievements.value = achRes.value.data?.achievements || []
-      activities.value = achRes.value.data?.activities || []
-    }
-  } catch (e) { console.warn('[Profile] Load stats failed:', e) }
-  loading.value = false
+    const res = await api.get('/gamification/profile')
+    if (res?.data) stats.value = { ...stats.value, ...res.data }
+  } catch { /* ignore */ }
 })
-
-const gpa = computed(() => stats.value.gpa)
-const attendanceRate = computed(() => stats.value.attendanceRate)
-
-const defaultAchievements = [
-  { title: 'Perfect Attendance', desc: '100% attendance for 1 month', icon: '&#9733;', color: 'var(--color-primary)' },
-  { title: 'Quiz Master', desc: 'Scored 100% on 5 quizzes', icon: '&#9879;', color: '#2563EB' },
-  { title: 'Study Streak', desc: '7-day consecutive study streak', icon: '&#128293;', color: '#F59E0B' },
-  { title: 'Top Performer', desc: 'Top 10 in semester leaderboard', icon: '&#127942;', color: '#10B981' },
-  { title: 'Course Complete', desc: 'Completed 18 courses total', icon: '&#9989;', color: 'var(--color-primary)' },
-]
-
-const defaultActivities = [
-  { title: 'Submitted CSC 301 assignment', time: '2 hours ago', color: 'var(--color-primary)' },
-  { title: 'Earned Perfect Attendance badge', time: '1 day ago', color: '#10B981' },
-  { title: 'Scored 92% in Machine Learning quiz', time: '3 days ago', color: '#2563EB' },
-  { title: 'Joined Study Group: Data Structures', time: '5 days ago', color: '#F59E0B' },
-  { title: 'Updated profile picture', time: '1 week ago', color: 'var(--color-primary)' },
-]
-
-const displayAchievements = computed(() => achievements.value.length ? achievements.value : defaultAchievements)
-const displayActivities = computed(() => activities.value.length ? activities.value : defaultActivities)
-
-async function saveProfile() {
-  try {
-    await api.put('/auth/profile', { name: editForm.value.name, department: editForm.value.department })
-    await authStore.refreshUser()
-    editMode.value = false
-  } catch (e) {
-    alert('Failed to save profile: ' + (e.response?.data?.error || e.message))
-  }
-}
-
-function handleAvatarClick() {
-  if (!editMode.value) return
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.onchange = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const formData = new FormData()
-    formData.append('profile_picture', file)
-    try {
-      await api.post('/auth/profile-picture', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-      await authStore.refreshUser()
-    } catch (e) {
-      alert('Failed to upload avatar: ' + (e.response?.data?.error || e.message))
-    }
-  }
-  input.click()
-}
-
-function handleLogout() {
-  authStore.logout()
-  router.push('/login')
-}
 </script>
 
-<style scoped>
-.profile-cover {
-  position: relative;
-  height: 200px;
-  border-radius: 0;
-  overflow: hidden;
-  margin-bottom: 60px;
-  border: 3px solid var(--color-border-strong);
-  box-shadow: var(--shadow-md);
+<style>
+.profile-page {
+  font-family: 'Inter', system-ui, sans-serif;
 }
-
-.cover-gradient {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 30%, var(--color-primary) 60%, #dc2626 100%);
-}
-
-.cover-actions {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 2;
-}
-
-.profile-avatar-ring {
-  position: absolute;
-  bottom: -50px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-}
-
-.profile-avatar {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: var(--color-surface);
-  font-size: 48px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 4px solid var(--color-surface);
-  box-shadow: var(--shadow-md), 0 0 0 3px var(--color-border-strong);
-  overflow: hidden;
-}
-.profile-avatar.clickable { cursor: pointer; }
-.profile-avatar.clickable:hover::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.3);
-  border-radius: 50%;
-}
-
-.avatar-edit-hint {
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: var(--color-primary);
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-.status-badge {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--color-success);
-  border: 3px solid var(--color-surface);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-.profile-info-section {
-  text-align: center;
-  margin-bottom: 28px;
-}
-
-.profile-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-
-.stat-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 80px; }
-.stat-circle { position: relative; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
-.stat-circle-value { position: absolute; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
-.stat-label { font-size: 12px; font-weight: 600; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; }
-
-.profile-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--color-border); padding-bottom: 4px; }
-.profile-tabs .btn { font-size: 12px; padding: 8px 16px; }
-
-.achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-.achievement-card { display: flex; align-items: center; gap: 14px; }
-.achievement-icon { width: 44px; height: 44px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-.achievement-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 2px; }
-.achievement-desc { font-size: 12px; color: var(--color-text-secondary); }
-
-.activity-feed { display: flex; flex-direction: column; }
-.activity-item { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--color-border); align-items: flex-start; }
-.activity-item:last-child { border-bottom: none; }
-.activity-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-.activity-title { font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 2px; }
-.activity-time { font-size: 12px; color: var(--color-text-tertiary); }
-
-.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.details-card-title { font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 16px; }
-.detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--color-border); font-size: 14px; }
-.detail-row:last-child { border-bottom: none; }
-.detail-row span:first-child { color: var(--color-text-tertiary); font-weight: 500; }
-.detail-row span:last-child { color: var(--color-text-primary); font-weight: 700; }
-
-@media (max-width: 768px) {
-  .details-grid { grid-template-columns: 1fr; }
-}
-
-/* Profile section entrance */
-.profile-page > .page > * {
-  animation: fadeInUp 0.4s var(--ease-out) both;
-}
-.profile-cover { animation-delay: 0s; }
-.profile-info-section { animation-delay: 0.1s; }
-.stats-row { animation-delay: 0.15s; }
-.profile-tabs { animation-delay: 0.2s; }
-.achievements-grid { animation-delay: 0.25s; }
-.activity-feed { animation-delay: 0.25s; }
-.details-grid { animation-delay: 0.25s; }
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Avatar glow on hover */
-.profile-avatar {
-  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
-}
-.profile-avatar:hover:not(.clickable) {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-lg), 0 0 0 3px var(--color-border-strong), 0 0 30px var(--color-primary-glow);
-}
-
-/* Avatar ring pulse for online status */
-.status-badge {
-  animation: statusPulse 2s ease-in-out infinite;
-}
-@keyframes statusPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(27, 122, 61, 0.5); }
-  50% { box-shadow: 0 0 8px 4px rgba(27, 122, 61, 0.2); }
-}
-
-/* Stat circle entrance */
-.stats-row .stat-item {
-  animation: fadeInUp 0.4s var(--ease-out) both;
-}
-.stats-row .stat-item:nth-child(1) { animation-delay: 0.1s; }
-.stats-row .stat-item:nth-child(2) { animation-delay: 0.18s; }
-.stats-row .stat-item:nth-child(3) { animation-delay: 0.26s; }
-.stats-row .stat-item:nth-child(4) { animation-delay: 0.34s; }
-
-/* Achievement card hover */
-.achievement-card {
-  transition: all 0.25s var(--ease-spring);
-}
-.achievement-card:hover {
-  transform: translateX(6px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-border-accent);
-}
-
-/* Achievement icon scale on hover */
-.achievement-card:hover .achievement-icon {
-  transform: scale(1.1);
-}
-.achievement-icon {
-  transition: transform 0.25s var(--ease-spring);
-}
-
-/* Activity item hover */
-.activity-item {
-  transition: all 0.2s var(--ease-out);
-  border-radius: var(--radius-sm);
-  padding-left: 8px;
-  padding-right: 8px;
-}
-.activity-item:hover {
-  background: var(--color-primary-soft);
-  transform: translateX(4px);
-}
-
-/* Activity dot pulse */
-.activity-dot {
-  animation: activityPulse 2s ease-in-out infinite;
-}
-@keyframes activityPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.8); }
-}
-
-/* Tab button active enhancement */
-.profile-tabs .btn.active {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15, 30, 61, 0.2);
-}
-
-/* Details card hover */
-.details-card {
-  transition: all 0.25s var(--ease-out);
-}
-.details-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--color-border-accent);
-}
-
-/* Cover gradient subtle animation */
-.cover-gradient {
-  animation: gradientShift 8s ease-in-out infinite;
-  background-size: 200% 200%;
-}
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-/* Tag badge subtle glow */
-.badge {
-  transition: all 0.2s var(--ease-out);
-}
-.badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
 </style>
