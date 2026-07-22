@@ -506,7 +506,7 @@ async function sendStream(msg) {
     if (!token) throw new Error('No auth token')
 
     const history = mindStore.messages.slice(-6).map(m => ({ role: m.role, content: m.content }))
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'
+    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')
 
     const response = await fetch(`${baseUrl}/api/ai/chat/stream`, {
       method: 'POST',
