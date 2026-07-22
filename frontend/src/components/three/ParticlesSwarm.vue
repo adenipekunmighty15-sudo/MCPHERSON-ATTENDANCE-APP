@@ -120,9 +120,13 @@ onMounted(() => {
 onUnmounted(() => {
   if (animationId) cancelAnimationFrame(animationId)
   window.removeEventListener('resize', onResize)
-  if (renderer) renderer.dispose()
-  if (composer) composer.renderTarget1?.dispose?.()
-  if (composer) composer.renderTarget2?.dispose?.()
+  if (mesh) { mesh.geometry.dispose(); mesh.material.dispose() }
+  if (renderer) {
+    if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement)
+    renderer.dispose()
+  }
+  if (composer) { composer.renderTarget1?.dispose?.(); composer.renderTarget2?.dispose?.() }
+  positions.length = 0
 })
 </script>
 

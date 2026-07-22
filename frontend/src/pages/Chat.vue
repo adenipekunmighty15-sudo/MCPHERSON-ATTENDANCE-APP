@@ -216,8 +216,8 @@ import ParticlesSwarm from '../components/three/ParticlesSwarm.vue'
 
 let katex = null
 let hljs = null
-const katexReady = import('katex').then(m => { katex = m.default || m }).catch(() => {})
-const hljsReady = import('highlight.js').then(m => { hljs = m.default || m }).catch(() => {})
+import('katex').then(m => { katex = m.default || m }).catch(() => {})
+import('highlight.js').then(m => { hljs = m.default || m }).catch(() => {})
 
 const authStore = useAuthStore()
 const mindStore = useMindStore()
@@ -274,25 +274,6 @@ function escapeHtml(text) {
 
 function isMarkdownDividerCell(cell) {
   return [...cell].every(char => char === '-' || char === ':' || char.trim() === '')
-}
-
-function toPlainText(math) {
-  return math
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
-    .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
-    .replace(/\\sum/g, 'sum of').replace(/\\int/g, 'integral of')
-    .replace(/\\infty/g, 'infinity').replace(/\\times/g, 'times')
-    .replace(/\\div/g, 'divided by').replace(/\\pm/g, 'plus or minus')
-    .replace(/\\alpha/g, 'alpha').replace(/\\beta/g, 'beta')
-    .replace(/\\theta/g, 'theta').replace(/\\pi/g, 'pi')
-    .replace(/\\Delta/g, 'Delta').replace(/\\Sigma/g, 'Sigma')
-    .replace(/\\rightarrow/g, 'approaches').replace(/\\Rightarrow/g, 'implies')
-    .replace(/\\approx/g, 'approximately').replace(/\\neq/g, 'not equal to')
-    .replace(/\\geq/g, 'greater than or equal to').replace(/\\leq/g, 'less than or equal to')
-    .replace(/\\cdot/g, 'dot')
-    .replace(/\^\{([^}]+)\}/g, '^$1').replace(/\^(\d)/g, '^$1')
-    .replace(/_\{([^}]+)\}/g, '_$1').replace(/_(\d)/g, '_$1')
-    .replace(/[{}]/g, '')
 }
 
 function renderMarkdown(text) {
@@ -450,6 +431,7 @@ async function sendStream(msg) {
     }
   } catch (err) {
     console.error('Stream error:', err)
+    error.value = 'Failed to reach AI service. Check your connection and try again.'
     const elapsed = Math.round(performance.now() - startTime)
     mindStore.messages.push({ role: 'assistant', content: `I'm sorry, I couldn't process your request. The AI service is currently unavailable. Please try again later.`, elapsed, rating: null })
   } finally {
@@ -459,6 +441,7 @@ async function sendStream(msg) {
 }
 
 async function send() {
+  error.value = ''
   if ((!input.value.trim()) || streaming.value || mindStore.processing) return
   const msg = input.value.trim()
   input.value = ''
@@ -924,7 +907,7 @@ onUnmounted(() => {
   transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
 }
 .history-sidebar.open { transform: translateX(0); }
-.history-sidebar.open + .history-overlay { display: block; }
+
 .history-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px; border-bottom: 1px solid var(--color-border);

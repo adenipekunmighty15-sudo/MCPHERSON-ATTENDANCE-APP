@@ -13,7 +13,7 @@ onErrorCaptured((err, instance, info) => {
   errorInfo.value = info
 
   const toast = useToastStore()
-  if (toast.show) toast.show(err?.message || 'An unexpected error occurred', 'error')
+  toast.show(err?.message || 'An unexpected error occurred', 'error')
 
   if (isDev) {
     console.warn('ErrorBoundary caught:', err, info)

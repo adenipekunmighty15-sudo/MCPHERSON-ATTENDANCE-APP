@@ -214,47 +214,49 @@ function checkScreen() {
 
 const pageTitle = computed(() => route.meta?.title || 'Dashboard')
 
-const navGroups = [
-  {
-    label: 'Core',
-    items: [
-      { path: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
-      { path: '/attendance', label: 'Attendance', icon: 'ClipboardCheck' },
-      { path: '/timetable', label: 'Schedule', icon: 'Calendar' },
-      { path: '/courses', label: 'Courses', icon: 'BookOpen' },
-    ],
-  },
-  {
-    label: 'Connect',
-    items: [
-      { path: '/messages', label: 'Messages', icon: 'MessageCircle', badge: 'unread' },
-      { path: '/chat', label: 'AI Council', icon: 'MessageSquare' },
-    ],
-  },
-  {
-    label: 'Learning',
-    items: [
-      { path: '/study-hub', label: 'Study Hub', icon: 'Library' },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { path: '/profile', label: 'Profile', icon: 'User' },
-      { path: '/settings', label: 'Settings', icon: 'Settings' },
-    ],
-  },
-]
-
-if (['admin', 'super_admin'].includes(authStore.user?.role)) {
-  navGroups.splice(3, 0, {
-    label: 'Admin Portal',
-    items: [
-      { path: '/admin/portal/dashboard', label: 'Console', icon: 'Shield' },
-      { path: '/admin/portal/university-admin', label: 'University Admin', icon: 'Landmark' },
-    ],
-  })
-}
+const navGroups = computed(() => {
+  const groups = [
+    {
+      label: 'Core',
+      items: [
+        { path: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
+        { path: '/attendance', label: 'Attendance', icon: 'ClipboardCheck' },
+        { path: '/timetable', label: 'Schedule', icon: 'Calendar' },
+        { path: '/courses', label: 'Courses', icon: 'BookOpen' },
+      ],
+    },
+    {
+      label: 'Connect',
+      items: [
+        { path: '/messages', label: 'Messages', icon: 'MessageCircle', badge: 'unread' },
+        { path: '/chat', label: 'AI Council', icon: 'MessageSquare' },
+      ],
+    },
+    {
+      label: 'Learning',
+      items: [
+        { path: '/study-hub', label: 'Study Hub', icon: 'Library' },
+      ],
+    },
+    {
+      label: 'Account',
+      items: [
+        { path: '/profile', label: 'Profile', icon: 'User' },
+        { path: '/settings', label: 'Settings', icon: 'Settings' },
+      ],
+    },
+  ]
+  if (['admin', 'super_admin'].includes(authStore.user?.role)) {
+    groups.splice(3, 0, {
+      label: 'Admin Portal',
+      items: [
+        { path: '/admin/portal/dashboard', label: 'Console', icon: 'Shield' },
+        { path: '/admin/portal/university-admin', label: 'University Admin', icon: 'Landmark' },
+      ],
+    })
+  }
+  return groups
+})
 
 const pillNavItems = [
   { path: '/', label: 'Home', icon: 'LayoutDashboard' },
