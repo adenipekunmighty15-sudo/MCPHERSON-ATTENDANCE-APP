@@ -226,62 +226,6 @@ async function routeToSupabase(method, url, data) {
   if (!userId && method === 'POST' && trimmed === 'study-materials') return createStudyMaterialLocally(data, null)
 
   const routes = [
-    { test: /^courses$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('courses').select('*').order('id', { ascending: true })
-      if (error) throw error
-      return data
-    }},
-    { test: /^courses$/, method: 'POST', handler: async () => {
-      const { data: result, error } = await supabase.from('courses').insert({ ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8) }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^timetable(?:\?.*)?$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('timetable').select('*').order('created_at', { ascending: true })
-      if (error) throw error
-      return data
-    }},
-    { test: /^timetable$/, method: 'POST', handler: async () => {
-      const { data: result, error } = await supabase.from('timetable').insert({ ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8), user_id: userId, created_at: new Date().toISOString() }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^timetable\/(.+)$/, method: 'DELETE', handler: async (m) => {
-      const { error } = await supabase.from('timetable').delete().eq('id', m[1])
-      if (error) throw error
-      return { success: true }
-    }},
-    { test: /^attendance$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('attendance').select('*').order('timestamp', { ascending: true })
-      if (error) throw error
-      return data
-    }},
-    { test: /^attendance$/, method: 'POST', handler: async () => {
-      const mapped = { course_id: data.courseId, course_name: data.courseName, status: data.status, method: data.method, location: data.location, session_id: data.sessionId, location_lat: data.locationLat, location_lng: data.locationLng, date: new Date().toISOString().split('T')[0] }
-      const { data: result, error } = await supabase.from('attendance').insert({ ...mapped, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8), user_id: userId, timestamp: new Date().toISOString() }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^sessions\/active$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('live_sessions').select('*').eq('status', 'active')
-      if (error) throw error
-      return data
-    }},
-    { test: /^sessions\/start$/, method: 'POST', handler: async () => {
-      const { data: result, error } = await supabase.from('live_sessions').insert({ ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8), created_at: new Date().toISOString() }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^sessions\/end\/(.+)$/, method: 'POST', handler: async (m) => {
-      const { data: result, error } = await supabase.from('live_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', m[1]).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^sessions\/(.+)\/attendees$/, method: 'GET', handler: async (m) => {
-      const { data, error } = await supabase.from('session_attendees').select('*').eq('session_id', m[1])
-      if (error) throw error
-      return data
-    }},
     { test: /^study-materials$/, method: 'GET', handler: async () => {
       if (!userId) return readLocalStudyMaterials()
       const { data, error } = await supabase.from('study_materials').select('*').eq('created_by', userId).order('created_at', { ascending: false })
@@ -314,31 +258,6 @@ async function routeToSupabase(method, url, data) {
       const { error } = await supabase.from('study_materials').delete().eq('id', m[1]).eq('created_by', userId)
       if (error) throw error
       return { success: true }
-    }},
-    { test: /^library\/resources$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('library_resources').select('*').order('downloads', { ascending: false })
-      if (error) throw error
-      return data
-    }},
-    { test: /^library\/resources$/, method: 'POST', handler: async () => {
-      const { data: result, error } = await supabase.from('library_resources').insert({ ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8), downloads: 0, uploaded_by: userId, uploaded_at: new Date().toISOString() }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^auth\/face$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('users').select('face_descriptor').eq('id', userId).single()
-      if (error) throw error
-      return { descriptor: data?.face_descriptor || '' }
-    }},
-    { test: /^auth\/face$/, method: 'PUT', handler: async () => {
-      const { error } = await supabase.from('users').update({ face_descriptor: data?.descriptor || '' }).eq('id', userId)
-      if (error) throw error
-      return { success: true }
-    }},
-    { test: /^auth\/profile$/, method: 'PUT', handler: async () => {
-      const { data: result, error } = await supabase.from('users').update({ name: data?.name, department: data?.department }).eq('id', userId).select()
-      if (error) throw error
-      return result?.[0]
     }},
     { test: /^notifications$/, method: 'GET', handler: async () => {
       const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false })
