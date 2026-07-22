@@ -273,7 +273,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useMindStore } from '../stores/mind'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseConfigured } from '../lib/supabase'
 import api from '../lib/api'
 import { sanitizeHtml } from '../lib/sanitize.js'
 import 'katex/dist/katex.min.css'
@@ -501,9 +501,10 @@ async function sendStream(msg) {
   abortController = new AbortController()
 
   try {
+    if (!supabaseConfigured || !supabase) throw new Error('Supabase not configured')
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token || null
-    if (!token) throw new Error('No auth token')
+    if (!token) throw new Error('No auth token — please sign in again')
 
     const history = mindStore.messages.slice(-6).map(m => ({ role: m.role, content: m.content }))
     const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')
@@ -606,7 +607,7 @@ case 'done':
     const elapsed = Math.round(performance.now() - startTime)
     mindStore.messages.push({
       role: 'assistant',
-      content: `I'm sorry, I couldn't process your request. The AI service is currently unavailable. Please try again later.`,
+      content: `I'm sorry, I couldn't process your request. The AI service is currently unavailable. Please try again later. (${err.message})`,
       elapsed, rating: null,
     })
     lastElapsed.value = elapsed
