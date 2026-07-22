@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen p-4 md:p-6 relative overflow-hidden bg-[var(--color-bg)]">
-    <div class="max-w-4xl mx-auto relative z-10 space-y-6">
-      <div class="animate-slide-up">
-        <h1 class="h2 text-[var(--color-text-primary)]">Settings</h1>
-        <p class="text-[var(--color-text-secondary)] mt-1 text-body-sm">Manage your account settings and preferences</p>
+  <div class="min-h-screen relative overflow-hidden bg-[var(--color-bg)]">
+    <div class="page page-wide">
+      <div class="content-header">
+        <h1 class="h2">Settings</h1>
+        <p>Manage your account settings and preferences</p>
       </div>
 
       <div v-if="loading" class="space-y-4 animate-fade-in">
@@ -79,7 +79,7 @@
           </section>
 
           <!-- Danger Zone -->
-          <section class="card card-hover p-6 space-y-4 border-[var(--color-error)]/30" style="border-color:rgba(204,0,0,0.3)">
+          <section class="card p-6 space-y-4" style="border-color:var(--color-error);border-width:1.5px">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl card flex items-center justify-center" style="background:var(--color-error)/12;color:var(--color-error)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M3.07 8.05A10 10 0 0 0 12 22a10 10 0 0 0 8.93-5.95M9.09 3.58A10 10 0 0 1 12 2a10 10 0 0 1 8.2 4.5"/><path d="M22 2 2 22"/></svg>

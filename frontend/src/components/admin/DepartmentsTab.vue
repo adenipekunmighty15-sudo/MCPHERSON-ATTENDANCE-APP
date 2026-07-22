@@ -101,9 +101,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -115,13 +115,11 @@ const form = ref({ name: '', code: '', faculty_id: '', description: '', hod_id: 
 async function fetchItems() {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (facultyFilter.value) params.set('faculty_id', facultyFilter.value)
-    const qs = params.toString() ? '?' + params.toString() : ''
-    const res = await fetch(`${API}/departments${qs}`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading departments: ' + e.message) }
+    const params = {}
+    if (facultyFilter.value) params.faculty_id = facultyFilter.value
+    const { data } = await api.get('/admin/departments', { params })
+    items.value = data
+  } catch (e) { alert('Error loading departments: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -145,13 +143,14 @@ function closeModal() {
 async function save() {
   try {
     const body = { ...form.value }
-    const url = editingId.value ? `${API}/departments/${editingId.value}` : `${API}/departments`
-    const method = editingId.value ? 'PUT' : 'POST'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    if (editingId.value) {
+      await api.put(`/admin/departments/${editingId.value}`, body)
+    } else {
+      await api.post('/admin/departments', body)
+    }
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving department: ' + e.message) }
+  } catch (e) { alert('Error saving department: ' + (e.response?.data?.message || e.message)) }
 }
 
 function confirmDelete(item) {
@@ -161,10 +160,9 @@ function confirmDelete(item) {
 
 async function deleteItem(id) {
   try {
-    const res = await fetch(`${API}/departments/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Delete failed')
+    await api.delete(`/admin/departments/${id}`)
     await fetchItems()
-  } catch (e) { alert('Error deleting department: ' + e.message) }
+  } catch (e) { alert('Error deleting department: ' + (e.response?.data?.message || e.message)) }
 }
 
 watch(facultyFilter, () => { fetchItems() })

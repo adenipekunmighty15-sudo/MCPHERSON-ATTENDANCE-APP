@@ -1,4 +1,4 @@
--- JUPEB Attendance Requirements Migration (idempotent)
+-- University Attendance Requirements Migration (idempotent)
 -- Each step wrapped in DO block so failures don't block others
 
 -- 1. Add clock_in/out columns (IF NOT EXISTS)
@@ -30,9 +30,9 @@ FOR EACH ROW
 EXECUTE FUNCTION calculate_attendance_duration();
 
 -- 3. Create/replace eligibility view
-DROP VIEW IF EXISTS jupeb_eligibility_status;
+DROP VIEW IF EXISTS exam_eligibility_status;
 
-CREATE VIEW jupeb_eligibility_status AS
+CREATE VIEW exam_eligibility_status AS
 SELECT 
     user_id,
     course_id,

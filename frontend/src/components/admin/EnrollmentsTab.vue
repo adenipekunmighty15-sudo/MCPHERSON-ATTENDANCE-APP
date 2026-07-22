@@ -134,9 +134,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -159,14 +159,12 @@ function enrollmentStatusClass(status) {
 async function fetchItems() {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (courseFilter.value) params.set('course_id', courseFilter.value)
-    if (semesterFilter.value) params.set('semester_id', semesterFilter.value)
-    const qs = params.toString() ? '?' + params.toString() : ''
-    const res = await fetch(`${API}/enrollments${qs}`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading enrollments: ' + e.message) }
+    const params = {}
+    if (courseFilter.value) params.course_id = courseFilter.value
+    if (semesterFilter.value) params.semester_id = semesterFilter.value
+    const { data } = await api.get('/admin/enrollments', { params })
+    items.value = data
+  } catch (e) { alert('Error loading enrollments: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -201,24 +199,24 @@ function closeGradeModal() {
 async function save() {
   try {
     const body = { ...form.value }
-    const url = editingId.value ? `${API}/enrollments/${editingId.value}` : `${API}/enrollments`
-    const method = editingId.value ? 'PUT' : 'POST'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    if (editingId.value) {
+      await api.put(`/admin/enrollments/${editingId.value}`, body)
+    } else {
+      await api.post('/admin/enrollments', body)
+    }
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving enrollment: ' + e.message) }
+  } catch (e) { alert('Error saving enrollment: ' + (e.response?.data?.message || e.message)) }
 }
 
 async function saveGrade() {
   try {
     const body = { ...gradeForm.value }
     if (body.grade_point !== '') body.grade_point = Number(body.grade_point)
-    const res = await fetch(`${API}/enrollments/${gradeEditingId.value}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    await api.put(`/admin/enrollments/${gradeEditingId.value}`, body)
     closeGradeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving grade: ' + e.message) }
+  } catch (e) { alert('Error saving grade: ' + (e.response?.data?.message || e.message)) }
 }
 
 function confirmDelete(item) {
@@ -228,10 +226,9 @@ function confirmDelete(item) {
 
 async function deleteItem(id) {
   try {
-    const res = await fetch(`${API}/enrollments/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Delete failed')
+    await api.delete(`/admin/enrollments/${id}`)
     await fetchItems()
-  } catch (e) { alert('Error deleting enrollment: ' + e.message) }
+  } catch (e) { alert('Error deleting enrollment: ' + (e.response?.data?.message || e.message)) }
 }
 
 watch([courseFilter, semesterFilter], () => { fetchItems() })

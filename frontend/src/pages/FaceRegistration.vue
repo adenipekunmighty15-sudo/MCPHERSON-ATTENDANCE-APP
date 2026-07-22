@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-screen bg-[var(--color-bg)] p-6 font-sans text-[var(--color-text-primary)]">
-    <div class="max-w-4xl mx-auto space-y-8">
+  <div class="min-h-screen bg-[var(--color-bg)] font-sans text-[var(--color-text-primary)]">
+    <div class="page page-wide">
       
       <header class="text-center">
         <div class="w-16 h-16 bg-[var(--color-primary-soft)] border border-[var(--color-border-accent)] rounded-2xl flex items-center justify-center mx-auto mb-4">
           <ScanFace class="w-8 h-8 text-[var(--color-text-primary)]" />
         </div>
         <h1 class="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Face ID Setup</h1>
-        <p class="text-[var(--color-text-secondary)] mt-2 text-sm max-w-md mx-auto">Register your biometric profile for seamless, contactless check-ins to your JUPEB lectures.</p>
+        <p class="text-[var(--color-text-secondary)] mt-2 text-sm max-w-md mx-auto">Register your biometric profile for seamless, contactless check-ins to your University lectures.</p>
         <p v-if="hasFace" class="text-[var(--color-text-primary)] mt-1 text-xs font-medium">{{ hasFace ? 'Face profile already registered — capturing will overwrite' : '' }}</p>
       </header>
 
@@ -124,7 +124,7 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/auth/face')
     if (data?.descriptor) hasFace.value = true
-  } catch {}
+  } catch (e) { console.warn('[FaceReg] Load face failed:', e) }
 })
 
 const startCamera = async () => {

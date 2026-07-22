@@ -100,7 +100,7 @@ async function dismiss(id) {
     await api.post('/proactive/dismiss', { insightId: id })
     items.value = items.value.filter(i => i.id !== id)
     emit('update', items.value.length)
-  } catch {}
+  } catch (e) { console.warn('[proactive] Dismiss failed:', e) }
 }
 
 async function refresh() {
@@ -109,7 +109,7 @@ async function refresh() {
     const { data } = await api.post('/proactive/refresh')
     items.value = data.insights || []
     emit('update', items.value.length)
-  } catch {}
+  } catch (e) { console.warn('[proactive] Refresh failed:', e) }
   setTimeout(() => { refreshing.value = false }, 1000)
 }
 

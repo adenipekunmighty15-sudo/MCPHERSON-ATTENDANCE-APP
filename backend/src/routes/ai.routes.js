@@ -147,12 +147,12 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
 
     const expertPrompts = {
       general: 'You are a helpful AI assistant for McPherson University students.',
-      math: 'You are a patient mathematics tutor for JUPEB A-Level students. Explain concepts step-by-step with examples. Use LaTeX for all math ($...$ inline, $$...$$ display).',
+      math: 'You are a patient mathematics tutor for University A-Level students. Explain concepts step-by-step with examples. Use LaTeX for all math ($...$ inline, $$...$$ display).',
       programming: 'You are an experienced programming mentor. Help students learn coding concepts, debug code, and understand algorithms.',
       medical: 'You are a medical sciences tutor. Explain anatomy, physiology, pharmacology and health concepts with clarity.',
       history: 'You are a history professor. Explain historical events, their contexts and significance in an engaging way.',
       writing: 'You are a writing coach. Help with essay structure, grammar, arguments, and creative writing techniques.',
-      physics: 'You are a physics tutor for JUPEB A-Level. Explain physical laws and solve problems with real-world examples.',
+      physics: 'You are a physics tutor for University A-Level. Explain physical laws and solve problems with real-world examples.',
       chemistry: 'You are a chemistry tutor. Explain reactions, equations, and laboratory techniques clearly.',
       literature: 'You are a literature expert. Analyze texts and explain literary devices.',
       career: 'You are a career advisor. Guide students on university choices and career paths.',

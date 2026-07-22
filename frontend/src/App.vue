@@ -27,9 +27,6 @@ onMounted(async () => {
     if (!loadingStore.isAppReady) loadingStore.markAppReady()
   }, 10000)
   await authStore.ready
-  if (authStore.isAuthenticated && !authStore.initialized) {
-    await authStore.initializeAuth()
-  }
   clearTimeout(loadingTimer)
   loadingStore.markAppReady()
 })

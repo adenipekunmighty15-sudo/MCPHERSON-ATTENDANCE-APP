@@ -103,9 +103,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -125,15 +125,13 @@ function statusClass(status) {
 async function fetchItems() {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (deptFilter.value) params.set('department', deptFilter.value)
-    if (levelFilter.value) params.set('level', levelFilter.value)
-    if (facultyFilter.value) params.set('faculty_id', facultyFilter.value)
-    const qs = params.toString() ? '?' + params.toString() : ''
-    const res = await fetch(`${API}/courses${qs}`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading courses: ' + e.message) }
+    const params = {}
+    if (deptFilter.value) params.department = deptFilter.value
+    if (levelFilter.value) params.level = levelFilter.value
+    if (facultyFilter.value) params.faculty_id = facultyFilter.value
+    const { data } = await api.get('/admin/courses', { params })
+    items.value = data
+  } catch (e) { alert('Error loading courses: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -152,11 +150,10 @@ async function save() {
   try {
     const body = { ...form.value }
     if (body.level) body.level = Number(body.level)
-    const res = await fetch(`${API}/courses/${editingId.value}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    await api.put(`/admin/courses/${editingId.value}`, body)
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving course: ' + e.message) }
+  } catch (e) { alert('Error saving course: ' + (e.response?.data?.message || e.message)) }
 }
 
 watch([deptFilter, levelFilter, facultyFilter], () => { fetchItems() })

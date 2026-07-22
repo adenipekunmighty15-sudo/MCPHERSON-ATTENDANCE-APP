@@ -2,7 +2,10 @@ const { Pool } = require('pg');
 const fs = require('fs');
 
 const pool = new Pool({
-  connectionString: 'postgresql://postgres.ptjxkzhqecrbarinbpfn:Mighty%401234567890%21@aws-1-eu-central-1.pooler.supabase.com:6543/postgres',
+  // The database connection URL.
+  // Set this in your environment variables.
+  // Example: "postgresql://user:password@host:port/database"
+  connectionString: process.env.DATABASE_URL,
   max: 1,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 60000,

@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   let authSubscription = null
 
   const isAuthenticated = computed(() => !!user.value)
+  const token = computed(() => session.value?.access_token || null)
 
   function friendlyAuthError(err) {
     if (err instanceof TypeError) return 'Network error — check your internet connection and try again.'
@@ -78,7 +79,9 @@ export const useAuthStore = defineStore('auth', () => {
                 provider,
               })
             } catch (e) {
-              console.warn('Backend profile creation on init failed:', e?.message)
+              if (e?.message !== 'Network Error') {
+                console.warn('Backend profile creation on init failed:', e?.message)
+              }
             }
           } else {
             localStorage.removeItem('mcu_user')
@@ -106,7 +109,9 @@ export const useAuthStore = defineStore('auth', () => {
                       provider,
                     })
                   } catch (e) {
-                    console.warn('Backend profile creation on SIGNED_IN failed:', e?.message)
+                    if (!(e instanceof TypeError) && !e?.message?.includes('Network')) {
+                      console.warn('Backend profile creation on SIGNED_IN failed:', e?.message)
+                    }
                   }
                 }
               }
@@ -130,7 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
             const parsed = JSON.parse(saved)
             if (parsed && parsed.id) user.value = parsed
           }
-        } catch { }
+        } catch (e) { console.warn('[auth] Fallback user parse failed:', e) }
       }
     } catch (err) {
       console.error('Auth init error:', err)
@@ -158,7 +163,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       const saved = localStorage.getItem('mcu_users')
       let users = []
-      try { users = saved ? JSON.parse(saved) : [] } catch { users = [] }
+      try { users = saved ? JSON.parse(saved) : [] } catch (e) { console.warn('[auth] Parse failed:', e); users = [] }
       const match = users.find(u => u.email === email && u.password === password)
       if (!match) throw new Error('Invalid email or password.')
       user.value = { id: match.id, email: match.email, name: match.name, role: match.role || 'student', department: match.department || 'Computer Science', avatar: match.name?.charAt(0)?.toUpperCase() || 'U', isGuest: false, provider: 'local' }
@@ -181,8 +186,8 @@ export const useAuthStore = defineStore('auth', () => {
         try {
           const { data, error: supaError } = await supabase.auth.signUp({ email, password, options: { data: metadata } })
           if (!supaError && data?.user?.id) {
-            try { await api.post('/auth/confirm-signup', { userId: data.user.id, email }) } catch { }
-            try { await api.post('/auth/create-user-profile', { userId: data.user.id, email, name: metadata.name || email.split('@')[0], role: metadata.role || 'student', department: metadata.department || 'Computer Science' }) } catch { }
+            try { await api.post('/auth/confirm-signup', { userId: data.user.id, email }) } catch (e) { console.warn('[auth] Signup confirm failed:', e) }
+            try { await api.post('/auth/create-user-profile', { userId: data.user.id, email, name: metadata.name || email.split('@')[0], role: metadata.role || 'student', department: metadata.department || 'Computer Science' }) } catch (e) { console.warn('[auth] Profile creation failed:', e) }
             if (data?.session) { user.value = buildUser(data); session.value = data.session; freshLogin.value = true; return data }
             return { user: buildUser(data), needsConfirmation: true }
           }
@@ -260,11 +265,11 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = null
     if (authSubscription) { authSubscription.unsubscribe(); authSubscription = null }
     localStorage.removeItem('mcu_user')
-    try { if (supabase && supabaseConfigured) await supabase.auth.signOut() } catch { }
+    try { if (supabase && supabaseConfigured) await supabase.auth.signOut() } catch (e) { console.warn('[auth] Signout error:', e) }
   }
 
   return {
-    user, session, loading, error, isAuthenticated, initialized, ready,
+    user, session, token, loading, error, isAuthenticated, initialized, ready,
     initializeAuth, signIn, signUp, signInWithOAuth, loginAsGuest, logout, freshLogin,
     resetPasswordForEmail, updatePassword, signOut: logout,
   }

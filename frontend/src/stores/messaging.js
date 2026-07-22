@@ -275,14 +275,14 @@ function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
-  } catch {}
+  } catch (e) { console.warn('[messaging] Load error:', e) }
   return null
 }
 
 function saveToStorage(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {}
+  } catch (e) { console.warn('[messaging] Save error:', e) }
 }
 
 export const useMessagingStore = defineStore('messaging', () => {

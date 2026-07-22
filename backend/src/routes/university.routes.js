@@ -389,7 +389,7 @@ router.get('/api/admin/eligibility', authenticate, requireRole('super_admin', 'a
   try {
     const { course_id, semester_id } = req.query
     let sql = `SELECT e.*, u.name AS user_name, u.admission_number, c.code AS course_code, c.title AS course_title
-               FROM public.jupeb_eligibility_status e
+               FROM public.exam_eligibility_status e
                JOIN public.users u ON u.id::text = e.user_id
                JOIN public.courses c ON c.id = e.course_id
                WHERE 1=1`

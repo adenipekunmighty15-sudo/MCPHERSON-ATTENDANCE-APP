@@ -1,19 +1,19 @@
 <template>
-  <div class="min-h-screen p-4 md:p-6 bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-    <div class="max-w-7xl mx-auto space-y-6">
+  <div class="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div class="page page-wide">
       
       <!-- Header -->
-      <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
+      <div class="content-header">
         <div>
-          <h1 class="h2 text-[var(--color-text-primary)]">Class Schedule</h1>
-          <p class="text-[var(--color-text-secondary)] mt-1 text-body-sm">Manage your weekly JUPEB timetable</p>
+          <h1 class="h2">Class Schedule</h1>
+          <p>Manage your weekly University timetable</p>
         </div>
         <div class="flex items-center gap-2 card card-hover p-1">
           <button @click="viewMode = 'timeline'" class="btn btn-primary" :class="{ active: viewMode === 'timeline' }" style="padding:8px 16px;font-size:12px;border-width:2px">Timeline</button>
           <button @click="viewMode = 'week'" class="btn btn-primary" :class="{ active: viewMode === 'week' }" style="padding:8px 16px;font-size:12px;border-width:2px">Week</button>
           <button @click="viewMode = 'month'" class="btn btn-primary" :class="{ active: viewMode === 'month' }" style="padding:8px 16px;font-size:12px;border-width:2px">Month</button>
         </div>
-      </header>
+      </div>
 
       <!-- Timeline View -->
       <div v-if="viewMode === 'timeline'" class="card card-hover p-6 animate-fade-in">
@@ -125,20 +125,20 @@ const now = new Date()
 const todayDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
 const scheduleData = [
-  { day: 'Monday', time: '08:00', course: 'JUPEB 001 Physics', room: 'Lab 1', type: 'science' },
-  { day: 'Monday', time: '14:00', course: 'JUPEB 002 Chemistry', room: 'Hall B', type: 'science' },
-  { day: 'Tuesday', time: '10:00', course: 'JUPEB 003 Biology', room: 'Lab 2', type: 'bio' },
-  { day: 'Wednesday', time: '08:00', course: 'JUPEB 001 Physics', room: 'Hall A', type: 'science' },
-  { day: 'Wednesday', time: '12:00', course: 'General Studies', room: 'Auditorium', type: 'general' },
-  { day: 'Thursday', time: '10:00', course: 'JUPEB 002 Chemistry', room: 'Lab 1', type: 'science' },
-  { day: 'Friday', time: '14:00', course: 'JUPEB 003 Biology', room: 'Lab 3', type: 'bio' }
+  { day: 'Monday', time: '08:00', course: 'PHY101 General Physics I', room: 'Lab 1', type: 'science' },
+  { day: 'Monday', time: '14:00', course: 'CHM101 General Chemistry I', room: 'Hall B', type: 'science' },
+  { day: 'Tuesday', time: '10:00', course: 'BIO101 General Biology', room: 'Lab 2', type: 'bio' },
+  { day: 'Wednesday', time: '08:00', course: 'PHY101 General Physics I', room: 'Hall A', type: 'science' },
+  { day: 'Wednesday', time: '12:00', course: 'GST101 Use of English', room: 'Auditorium', type: 'general' },
+  { day: 'Thursday', time: '10:00', course: 'CHM101 General Chemistry I', room: 'Lab 1', type: 'science' },
+  { day: 'Friday', time: '14:00', course: 'BIO101 General Biology', room: 'Lab 3', type: 'bio' }
 ]
 
 const timelineData = [
-  { time: '08:00', title: 'JUPEB 001 Physics', location: 'Lab 1', status: 'done' },
-  { time: '10:00', title: 'JUPEB 003 Biology', location: 'Lab 2', status: 'done' },
-  { time: '13:00', title: 'JUPEB 002 Chemistry', location: 'Hall B', status: 'current' },
-  { time: '15:00', title: 'General Studies', location: 'Auditorium', status: 'upcoming' },
+  { time: '08:00', title: 'PHY101 General Physics I', location: 'Lab 1', status: 'done' },
+  { time: '10:00', title: 'BIO101 General Biology', location: 'Lab 2', status: 'done' },
+  { time: '13:00', title: 'CHM101 General Chemistry I', location: 'Hall B', status: 'current' },
+  { time: '15:00', title: 'GST101 Use of English', location: 'Auditorium', status: 'upcoming' },
 ]
 
 const getClass = (day, time) => {

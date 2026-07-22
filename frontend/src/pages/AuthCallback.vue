@@ -112,7 +112,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1D4ED8 0%, #F59E0B 50%, #DC2626 100%);
+  background: var(--color-bg);
 }
 
 .callback-loader {

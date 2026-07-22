@@ -42,12 +42,12 @@
 
             <!-- Notes Tab -->
             <div v-if="activeTab === 'notes'" class="tab-content">
-              <div class="markdown-body" v-html="renderMarkdown(studyNote)"></div>
+              <div class="markdown-body" v-html="sanitizeHtml(renderMarkdown(studyNote))"></div>
             </div>
 
             <!-- Summary Tab -->
             <div v-if="activeTab === 'summary'" class="tab-content">
-              <div class="markdown-body" v-html="renderMarkdown(note.summary)"></div>
+              <div class="markdown-body" v-html="sanitizeHtml(renderMarkdown(note.summary))"></div>
             </div>
 
             <!-- Key Points Tab -->
@@ -204,6 +204,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import api from '../../lib/api'
+import { sanitizeHtml } from '../../lib/sanitize.js'
 
 const props = defineProps({ noteId: String })
 const emit = defineEmits(['close'])
@@ -349,7 +350,7 @@ async function generatePodcast() {
   try {
     const { data } = await api.post(`/study-materials/${props.noteId}/podcast`)
     if (data.url) note.value.podcastUrl = data.url
-  } catch {}
+  } catch (e) { console.warn('[NoteViewer] Podcast gen failed:', e) }
   podcastLoading.value = false
 }
 
@@ -360,7 +361,7 @@ async function generateFlashcards() {
     if (data.flashcards) {
       flashcards.value = typeof data.flashcards === 'string' ? JSON.parse(data.flashcards) : data.flashcards
     }
-  } catch {}
+  } catch (e) { console.warn('[NoteViewer] Flashcard gen failed:', e) }
   fcLoading.value = false
 }
 
@@ -389,11 +390,11 @@ onMounted(async () => {
     note.value = data
     try {
       flashcards.value = typeof data.flashcards === 'string' ? JSON.parse(data.flashcards) : (data.flashcards || [])
-    } catch { flashcards.value = [] }
+      } catch (e) { console.warn('[NoteViewer] Quiz parse failed:', e); flashcards.value = [] }
     try {
       chatHistory.value = typeof data.chatHistory === 'string' ? JSON.parse(data.chatHistory) : (data.chatHistory || [])
-    } catch { chatHistory.value = [] }
-  } catch {}
+    } catch (e) { console.warn('[NoteViewer] Chat history parse failed:', e); chatHistory.value = [] }
+  } catch (e) { console.warn('[NoteViewer] Load note failed:', e) }
   loading.value = false
 })
 </script>

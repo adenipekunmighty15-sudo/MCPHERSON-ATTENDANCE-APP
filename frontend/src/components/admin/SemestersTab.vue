@@ -131,9 +131,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -151,13 +151,11 @@ function formatDate(d) {
 async function fetchItems() {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (ayFilter.value) params.set('academic_year_id', ayFilter.value)
-    const qs = params.toString() ? '?' + params.toString() : ''
-    const res = await fetch(`${API}/semesters${qs}`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading semesters: ' + e.message) }
+    const params = {}
+    if (ayFilter.value) params.academic_year_id = ayFilter.value
+    const { data } = await api.get('/admin/semesters', { params })
+    items.value = data
+  } catch (e) { alert('Error loading semesters: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -193,13 +191,14 @@ function closeModal() {
 async function save() {
   try {
     const body = { ...form.value }
-    const url = editingId.value ? `${API}/semesters/${editingId.value}` : `${API}/semesters`
-    const method = editingId.value ? 'PUT' : 'POST'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    if (editingId.value) {
+      await api.put(`/admin/semesters/${editingId.value}`, body)
+    } else {
+      await api.post('/admin/semesters', body)
+    }
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving semester: ' + e.message) }
+  } catch (e) { alert('Error saving semester: ' + (e.response?.data?.message || e.message)) }
 }
 
 function confirmDelete(item) {
@@ -209,10 +208,9 @@ function confirmDelete(item) {
 
 async function deleteItem(id) {
   try {
-    const res = await fetch(`${API}/semesters/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Delete failed')
+    await api.delete(`/admin/semesters/${id}`)
     await fetchItems()
-  } catch (e) { alert('Error deleting semester: ' + e.message) }
+  } catch (e) { alert('Error deleting semester: ' + (e.response?.data?.message || e.message)) }
 }
 
 watch(ayFilter, () => { fetchItems() })

@@ -45,7 +45,7 @@
           <div class="badges-grid">
             <div v-for="b in badges" :key="b.id" class="badge-item" :class="{ earned: b.earned }">
               <div class="badge-icon" :style="{ background: b.color + '18', color: b.color }">
-                <span v-html="b.icon"></span>
+                <span v-html="sanitizeHtml(b.icon)"></span>
               </div>
               <span class="badge-name">{{ b.name }}</span>
             </div>
@@ -73,6 +73,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../../lib/api'
+import { sanitizeHtml } from '../../lib/sanitize.js'
 
 defineEmits(['close'])
 
@@ -120,7 +121,7 @@ onMounted(async () => {
       totalQuizzes.value = mats.reduce((a, m) => {
         const q = m.quiz
         if (Array.isArray(q)) return a + q.length
-        if (typeof q === 'string') { try { return a + JSON.parse(q).length } catch {} }
+        if (typeof q === 'string') { try { return a + JSON.parse(q).length } catch (e) { return a } }
         return a
       }, 0)
     }
@@ -133,7 +134,7 @@ onMounted(async () => {
       currentLevel.value = s.level || 1
       recentActivity.value = s.recentActivity || []
     }
-  } catch {}
+  } catch (e) { console.warn('[ProgressDashboard] Load failed:', e) }
   loading.value = false
 })
 </script>

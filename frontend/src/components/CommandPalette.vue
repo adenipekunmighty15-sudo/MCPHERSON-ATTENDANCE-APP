@@ -20,7 +20,7 @@
           @click="execute(cmd)"
           @mouseenter="selectedIndex = index"
         >
-          <span class="palette-item__icon" v-html="cmd.icon"></span>
+          <span class="palette-item__icon" v-html="sanitizeHtml(cmd.icon)"></span>
           <span class="palette-item__label">{{ cmd.label }}</span>
           <span class="palette-item__shortcut">{{ cmd.shortcut }}</span>
         </button>
@@ -35,6 +35,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { sanitizeHtml } from '../lib/sanitize.js'
 
 const props = defineProps({
   show: Boolean

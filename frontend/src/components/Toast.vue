@@ -1,6 +1,6 @@
 <template>
   <div class="toast-container">
-    <TransitionGroup name="toast-3d">
+    <TransitionGroup name="toast-slide">
       <div
         v-for="toast in toastStore.toasts"
         :key="toast.id"
@@ -33,27 +33,37 @@ const toastStore = useToastStore()
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: var(--space-4);
+  right: var(--space-4);
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
   pointer-events: none;
+  max-width: calc(100vw - var(--space-8));
+}
+
+@media (max-width: 480px) {
+  .toast-container {
+    left: var(--space-4);
+    right: var(--space-4);
+    top: var(--space-3);
+  }
 }
 
 .toast {
   pointer-events: auto;
   display: flex;
-  transform-style: preserve-3d;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 32px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
-.toast--success { background: rgba(34, 197, 94, 0.06); }
-.toast--error { background: rgba(239, 68, 68, 0.06); }
-.toast--info { background: var(--color-primary-soft); }
+.toast--success { border-color: rgba(34, 197, 94, 0.2); }
+.toast--error { border-color: rgba(239, 68, 68, 0.2); }
+.toast--info { border-color: var(--color-border-accent); }
 
 .toast__border {
   width: 4px;
@@ -67,10 +77,18 @@ const toastStore = useToastStore()
 .toast__body {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
   min-width: 280px;
   max-width: 420px;
+}
+
+@media (max-width: 480px) {
+  .toast__body {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
 }
 
 .toast__icon {
@@ -81,7 +99,7 @@ const toastStore = useToastStore()
 
 .toast__message {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text-primary);
   line-height: 1.4;
@@ -94,7 +112,7 @@ const toastStore = useToastStore()
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
@@ -103,24 +121,24 @@ const toastStore = useToastStore()
 }
 
 .toast__close:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--color-primary-soft);
   color: var(--color-text-primary);
 }
 
-.toast-3d-enter-active {
+.toast-slide-enter-active {
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
 }
 
-.toast-3d-leave-active {
+.toast-slide-leave-active {
   transition: transform 0.2s ease-in, opacity 0.2s ease;
 }
 
-.toast-3d-enter-from {
+.toast-slide-enter-from {
   transform: translateX(120%) translateZ(-20px);
   opacity: 0;
 }
 
-.toast-3d-leave-to {
+.toast-slide-leave-to {
   transform: translateX(120%) translateZ(-20px);
   opacity: 0;
 }

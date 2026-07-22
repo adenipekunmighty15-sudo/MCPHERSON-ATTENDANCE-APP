@@ -1,5 +1,5 @@
 <template>
-  <div class="live-tracking">
+  <div class="live-tracking page-wide">
     <header class="page-header">
       <h1>Live Campus Tracking</h1>
       <p class="subtitle">Real-time position monitoring with UWB geolocation and 3D mapping</p>
@@ -158,8 +158,6 @@ onUnmounted(() => {
 <style scoped>
 .live-tracking {
   padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 .page-header {

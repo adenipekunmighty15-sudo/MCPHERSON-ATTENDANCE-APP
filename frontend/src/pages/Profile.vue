@@ -1,6 +1,6 @@
 <template>
   <div class="profile-page min-h-screen bg-[var(--color-bg)]" data-tour="profile">
-    <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+    <div class="page page-wide">
       <div class="profile-cover">
         <div class="cover-gradient"></div>
         <div class="cover-actions">
@@ -38,7 +38,7 @@
         <div class="stat-item">
           <div class="stat-circle">
             <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="#E2E8F0" stroke-width="4"/>
+              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
               <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-primary)" stroke-width="4" stroke-linecap="round"
                 stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - gpa / 5)" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
             </svg>
@@ -49,7 +49,7 @@
         <div class="stat-item">
           <div class="stat-circle">
             <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="#E2E8F0" stroke-width="4"/>
+              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
               <circle cx="30" cy="30" r="26" fill="none" stroke="#10B981" stroke-width="4" stroke-linecap="round"
                 stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - attendanceRate / 100)" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
             </svg>
@@ -60,7 +60,7 @@
         <div class="stat-item">
           <div class="stat-circle">
             <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="#E2E8F0" stroke-width="4"/>
+              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
               <circle cx="30" cy="30" r="26" fill="none" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"
                 stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - Math.min(1, stats.xp / 5000))" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
             </svg>
@@ -71,7 +71,7 @@
         <div class="stat-item">
           <div class="stat-circle">
             <svg width="60" height="60" viewBox="0 0 60 60">
-              <circle cx="30" cy="30" r="26" fill="none" stroke="#E2E8F0" stroke-width="4"/>
+              <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-border)" stroke-width="4"/>
               <circle cx="30" cy="30" r="26" fill="none" stroke="#DC2626" stroke-width="4" stroke-linecap="round"
                 stroke-dasharray="163.36" :stroke-dashoffset="163.36 * (1 - Math.min(1, stats.courses / 30))" style="transform: rotate(-90deg); transform-origin: 30px 30px; transition: stroke-dashoffset 0.8s"/>
             </svg>
@@ -88,7 +88,7 @@
       <div v-if="activeTab === 'Achievements'" class="achievements-grid">
         <div v-for="a in displayAchievements" :key="a.title" class="card card-hover achievement-card p-4">
           <div class="achievement-icon" :style="{ background: a.color + '18', color: a.color }">
-            <span v-html="a.icon"></span>
+            <span v-html="sanitizeHtml(a.icon)"></span>
           </div>
           <div>
             <p class="achievement-title">{{ a.title }}</p>
@@ -164,6 +164,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useMindStore } from '../stores/mind'
 import api from '../lib/api'
+import { sanitizeHtml } from '../lib/sanitize.js'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -198,7 +199,7 @@ onMounted(async () => {
       achievements.value = achRes.value.data?.achievements || []
       activities.value = achRes.value.data?.activities || []
     }
-  } catch {}
+  } catch (e) { console.warn('[Profile] Load stats failed:', e) }
   loading.value = false
 })
 
@@ -267,8 +268,8 @@ function handleLogout() {
   border-radius: 0;
   overflow: hidden;
   margin-bottom: 60px;
-  border: 3px solid var(--nb-border-color);
-  box-shadow: var(--shadow-nb);
+  border: 3px solid var(--color-border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .cover-gradient {
@@ -304,7 +305,7 @@ function handleLogout() {
   align-items: center;
   justify-content: center;
   border: 4px solid var(--color-surface);
-  box-shadow: var(--shadow-nb), 0 0 0 3px var(--nb-border-color);
+  box-shadow: var(--shadow-md), 0 0 0 3px var(--color-border-strong);
   overflow: hidden;
 }
 .profile-avatar.clickable { cursor: pointer; }
@@ -356,7 +357,7 @@ function handleLogout() {
 
 .achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .achievement-card { display: flex; align-items: center; gap: 14px; }
-.achievement-icon { width: 44px; height: 44px; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.achievement-icon { width: 44px; height: 44px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
 .achievement-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 2px; }
 .achievement-desc { font-size: 12px; color: var(--color-text-secondary); }
 

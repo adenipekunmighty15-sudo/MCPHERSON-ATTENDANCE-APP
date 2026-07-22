@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[var(--color-bg)] p-6 font-sans text-[var(--color-text-primary)] relative overflow-hidden">
+  <div class="min-h-screen bg-[var(--color-bg)] p-4 md:p-6 font-sans text-[var(--color-text-primary)] relative overflow-hidden">
     <!-- Ambient Glow -->
     <div class="absolute inset-0 z-0 overflow-hidden mix-blend-screen pointer-events-none opacity-30">
       <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-[var(--color-primary)]/15 blur-[120px] rounded-full" />
@@ -7,14 +7,14 @@
       <div class="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] bg-[var(--color-gold)]/8 blur-[120px] rounded-full" />
     </div>
 
-    <div class="max-w-7xl mx-auto space-y-6 relative z-10">
+    <div class="page-wide space-y-6 relative z-10">
       
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 class="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] flex items-center gap-2">
             Admin Console
           </h1>
-          <p class="text-[var(--color-text-secondary)] mt-1 text-sm">Monitor JUPEB attendance thresholds and generate reports</p>
+          <p class="text-[var(--color-text-secondary)] mt-1 text-sm">Monitor University attendance thresholds and generate reports</p>
         </div>
         <div class="flex items-center gap-3">
           <button class="flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-[var(--color-primary)]/20">
@@ -72,7 +72,7 @@
       <!-- At Risk Students Table -->
       <div class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-2xl">
         <div class="p-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/50 flex justify-between items-center">
-          <h2 class="text-lg font-bold text-[var(--color-text-primary)]">At-Risk JUPEB Students</h2>
+          <h2 class="text-lg font-bold text-[var(--color-text-primary)]">At-Risk Students</h2>
           <div class="relative w-64">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)]" />
             <input type="text" placeholder="Search ID or Name..." class="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl py-1.5 pl-9 pr-4 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary)]" />
@@ -112,10 +112,10 @@
 import { Download, Users, AlertTriangle, Activity, Search } from 'lucide-vue-next'
 
 const atRiskStudents = [
-  { id: 'MCU/26/0142', name: 'Oluwaseun Adebayo', course: 'JUPEB Sciences', rate: 68 },
-  { id: 'MCU/26/0281', name: 'Ngozi Okafor', course: 'JUPEB Arts', rate: 72 },
-  { id: 'MCU/26/0093', name: 'Ibrahim Musa', course: 'JUPEB Social Sci', rate: 55 },
-  { id: 'MCU/26/0410', name: 'Chinedu Eze', course: 'JUPEB Sciences', rate: 74 },
-  { id: 'MCU/26/0112', name: 'Aisha Bello', course: 'JUPEB Arts', rate: 60 }
+  { id: 'MCU/26/0142', name: 'Oluwaseun Adebayo', course: 'University Sciences', rate: 68 },
+  { id: 'MCU/26/0281', name: 'Ngozi Okafor', course: 'University Arts', rate: 72 },
+  { id: 'MCU/26/0093', name: 'Ibrahim Musa', course: 'University Social Sci', rate: 55 },
+  { id: 'MCU/26/0410', name: 'Chinedu Eze', course: 'University Sciences', rate: 74 },
+  { id: 'MCU/26/0112', name: 'Aisha Bello', course: 'University Arts', rate: 60 }
 ]
 </script>

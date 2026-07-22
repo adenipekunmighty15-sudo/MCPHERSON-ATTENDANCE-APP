@@ -3,6 +3,9 @@
 -- Positions, Campus Buildings, Classroom Anchors
 -- ═══════════════════════════════════════════════════════════════════════
 
+-- 0. Fix existing FK if table already exists with wrong type
+DROP TABLE IF EXISTS public.classroom_anchors CASCADE;
+
 -- ── 1. REAL-TIME POSITIONS ──
 CREATE TABLE IF NOT EXISTS public.positions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.campus_buildings (
 -- ── 3. CLASSROOM UWB ANCHORS ──
 CREATE TABLE IF NOT EXISTS public.classroom_anchors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES public.venues(id) ON DELETE CASCADE,
+  venue_id TEXT REFERENCES public.venues(id) ON DELETE CASCADE,
   anchor_code VARCHAR(50) NOT NULL,
   label VARCHAR(100) NOT NULL,
   latitude DOUBLE PRECISION NOT NULL,

@@ -3,8 +3,8 @@
     'sidebar-open': sidebarOpen,
     'sidebar-hover': sidebarHover,
     'sidebar-expanded': effectiveExpanded,
-    'sidebar-pinned': sidebarPinned
-  }">
+    'is-resizing': isResizing
+  }" :style="{ '--sidebar-current': sidebarWidth + 'px' }">
     <!-- Dynamic Background -->
     <div class="layout-bg">
       <div class="bg-orb orb-1"></div>
@@ -55,11 +55,8 @@
           </div>
         </div>
         <div class="sidebar-footer-actions">
-          <button class="sidebar-toggle-btn" @click="toggleSidebar" :title="sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
           <button class="sidebar-logout" @click="handleLogout" title="Sign Out">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
       </div>
@@ -67,11 +64,17 @@
 
     <div class="sidebar-overlay" @click="sidebarOpen = false" />
 
+    <div
+      v-if="effectiveExpanded && !sidebarOpen"
+      class="sidebar-resize-handle"
+      @mousedown.prevent="startResize"
+    ><div class="resize-grip"></div></div>
+
     <div class="main-area">
       <header class="topbar">
         <div class="topbar-left">
           <button class="menu-btn" @click="sidebarOpen = !sidebarOpen" aria-label="Menu">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
           </button>
           <div class="topbar-breadcrumb">
             <span class="breadcrumb-current">{{ pageTitle }}</span>
@@ -80,7 +83,7 @@
 
         <div class="topbar-right">
           <button class="topbar-search" @click="showCommandPalette = true" title="Search (Ctrl+K)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <span class="search-placeholder">Search</span>
             <kbd class="search-kbd">Ctrl+K</kbd>
           </button>
@@ -136,36 +139,40 @@ const messagingStore = useMessagingStore()
 const sidebarOpen = ref(false)
 const sidebarHover = ref(false)
 const isLargeScreen = ref(window.innerWidth > 1280)
-const sidebarExpanded = ref(window.innerWidth > 1280)
-const sidebarPinned = ref(window.innerWidth > 1280)
+const sidebarExpanded = ref(true)
 const showCommandPalette = ref(false)
+const sidebarWidth = ref(Number(localStorage.getItem('sidebar-width')) || (window.innerWidth <= 1280 ? 240 : 280))
+const isResizing = ref(false)
 
 const effectiveExpanded = computed(() => {
   return sidebarExpanded.value || (sidebarHover.value && window.innerWidth <= 1280)
 })
 
-function toggleSidebar() {
-  const w = window.innerWidth
-  if (w > 1280) {
-    sidebarPinned.value = !sidebarPinned.value
-    sidebarExpanded.value = sidebarPinned.value
-  } else if (w > 768) {
-    sidebarExpanded.value = !sidebarExpanded.value
-  } else {
-    sidebarOpen.value = !sidebarOpen.value
-  }
+function startResize(e) {
+  isResizing.value = true
+  document.body.style.cursor = 'ew-resize'
+  document.body.style.userSelect = 'none'
+  window.addEventListener('mousemove', onResize)
+  window.addEventListener('mouseup', stopResize)
+}
+
+function onResize(e) {
+  if (!isResizing.value) return
+  const w = Math.min(480, Math.max(200, e.clientX))
+  sidebarWidth.value = w
+}
+
+function stopResize() {
+  isResizing.value = false
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  localStorage.setItem('sidebar-width', String(sidebarWidth.value))
+  window.removeEventListener('mousemove', onResize)
+  window.removeEventListener('mouseup', stopResize)
 }
 
 function checkScreen() {
-  const w = window.innerWidth
-  if (w > 1280 && !sidebarPinned.value) {
-    isLargeScreen.value = true
-    sidebarPinned.value = true
-    sidebarExpanded.value = true
-  } else if (w <= 1280) {
-    isLargeScreen.value = false
-    sidebarPinned.value = false
-  }
+  isLargeScreen.value = window.innerWidth > 1280
 }
 
 const pageTitle = computed(() => route.meta?.title || 'Dashboard')
@@ -197,6 +204,7 @@ const navGroups = [
     label: 'Admin',
     items: [
       { path: '/admin', label: 'Console', icon: 'Shield' },
+      { path: '/university-admin', label: 'University Admin', icon: 'Landmark' },
       { path: '/profile', label: 'Profile', icon: 'User' },
       { path: '/settings', label: 'Settings', icon: 'Settings' },
     ],
@@ -206,8 +214,8 @@ const navGroups = [
 const pillNavItems = [
   { path: '/', label: 'Home', icon: 'LayoutDashboard' },
   { path: '/attendance', label: 'Check In', icon: 'ClipboardCheck' },
-  { path: '/messages', label: 'Chat', icon: 'MessageCircle', badge: 'unread' },
-  { path: '/study-hub', label: 'Study', icon: 'Library' },
+  { path: '/messages', label: 'Messages', icon: 'MessageCircle', badge: 'unread' },
+  { path: '/study-hub', label: 'Study Hub', icon: 'Library' },
   { path: '/profile', label: 'Profile', icon: 'User' },
 ]
 
@@ -227,6 +235,7 @@ const icons = {
   User: markRaw({ template: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' }),
   Settings: markRaw({ template: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' }),
   MessageCircle: markRaw({ template: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>' }),
+  Landmark: markRaw({ template: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>' }),
 }
 
 function getIcon(name) {
@@ -269,6 +278,8 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('resize', checkScreen)
+  window.removeEventListener('mousemove', onResize)
+  window.removeEventListener('mouseup', stopResize)
 })
 </script>
 
@@ -296,25 +307,25 @@ onUnmounted(() => {
 .orb-1 {
   top: -15%; left: -5%;
   width: 35%; height: 35%;
-  background: radial-gradient(circle, rgba(217,119,6,0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(30, 64, 175, 0.1), transparent 70%);
   animation: orbFloat 25s ease-in-out infinite;
 }
 .orb-2 {
   bottom: -10%; right: -5%;
   width: 30%; height: 30%;
-  background: radial-gradient(circle, rgba(245,158,11,0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(217, 119, 6, 0.08), transparent 70%);
   animation: orbFloat 30s ease-in-out infinite reverse;
 }
 .orb-3 {
   top: 40%; right: 10%;
   width: 20%; height: 20%;
-  background: radial-gradient(circle, rgba(251,191,36,0.06), transparent 70%);
+  background: radial-gradient(circle, rgba(13, 81, 140, 0.06), transparent 70%);
   animation: orbFloat 20s ease-in-out infinite 5s;
 }
 .orb-4 {
   bottom: 20%; left: 15%;
   width: 15%; height: 15%;
-  background: radial-gradient(circle, rgba(180,83,9,0.05), transparent 70%);
+  background: radial-gradient(circle, rgba(92, 103, 149, 0.05), transparent 70%);
   animation: orbFloat 22s ease-in-out infinite 8s;
 }
 
@@ -337,19 +348,20 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   z-index: 100;
-  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
   overflow: hidden;
+  box-shadow: var(--shadow-md);
 }
 
-.sidebar-expanded {
-  width: var(--sidebar-width);
+.sidebar-expanded .sidebar {
+  width: var(--sidebar-current);
 }
 
 .sidebar-header {
   display: flex;
   align-items: center;
   padding: 14px;
-  min-height: 62px;
+  min-height: 64px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -373,16 +385,23 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
   opacity: 0;
-  transition: opacity 0.2s ease 0.15s;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease 0.15s, visibility 0.2s ease 0.15s;
 }
 
 .sidebar-expanded .sidebar-logo-text {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0.1s;
 }
 
 .logo-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -390,7 +409,7 @@ onUnmounted(() => {
 }
 
 .logo-sub {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--color-text-tertiary);
   letter-spacing: 0.5px;
@@ -422,26 +441,32 @@ onUnmounted(() => {
 
 .nav-group-label {
   display: block;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--color-text-quaternary);
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  padding: 10px 12px 4px;
+  padding: 12px 12px 4px;
   white-space: nowrap;
+  overflow: hidden;
   opacity: 0;
-  transition: opacity 0.15s ease 0.1s;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease 0.1s, visibility 0.15s ease 0.1s;
 }
 
 .sidebar-expanded .nav-group-label {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0.1s;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 9px 10px;
   border-radius: 8px;
   color: var(--color-text-tertiary);
   text-decoration: none;
@@ -450,24 +475,28 @@ onUnmounted(() => {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .nav-item:hover {
   background: var(--color-primary-soft);
   color: var(--color-primary);
+  transform: translateX(2px);
 }
 
 .nav-item.active {
-  background: var(--color-primary-muted);
+  background: var(--color-primary-soft);
   color: var(--color-primary);
   font-weight: 600;
 }
 
 .nav-icon {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -481,12 +510,20 @@ onUnmounted(() => {
 .nav-label {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
   opacity: 0;
-  transition: opacity 0.2s ease 0.1s;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease 0.1s, visibility 0.2s ease 0.1s;
+  flex: 1;
 }
 
 .sidebar-expanded .nav-label {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0.1s;
 }
 
 .nav-badge {
@@ -505,6 +542,7 @@ onUnmounted(() => {
   opacity: 0;
   transition: opacity 0.2s ease 0.1s;
   flex-shrink: 0;
+  margin-right: -4px;
 }
 
 .sidebar-expanded .nav-badge {
@@ -517,10 +555,11 @@ onUnmounted(() => {
   top: 50%;
   transform: translateY(-50%) scaleY(0);
   width: 3px;
-  height: 18px;
+  height: 20px;
   background: var(--color-primary);
   border-radius: 0 3px 3px 0;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 8px var(--color-primary-glow);
 }
 
 .nav-item.active .nav-active-bar {
@@ -553,15 +592,15 @@ onUnmounted(() => {
 }
 
 .sidebar-avatar {
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: 8px;
 }
@@ -571,24 +610,30 @@ onUnmounted(() => {
   flex-direction: column;
   min-width: 0;
   opacity: 0;
-  transition: opacity 0.2s ease 0.15s;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease 0.15s, visibility 0.2s ease 0.15s;
 }
 
 .sidebar-expanded .sidebar-user-info {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0.1s;
 }
 
 .sidebar-user-name {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .sidebar-user-role {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--color-text-quaternary);
   text-transform: uppercase;
@@ -596,9 +641,9 @@ onUnmounted(() => {
 }
 
 .sidebar-logout {
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -620,37 +665,69 @@ onUnmounted(() => {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.2s ease 0.1s;
 }
 
-.sidebar-expanded .sidebar-footer-actions {
-  opacity: 1;
+.sidebar:not(.sidebar-expanded) .sidebar-footer {
+  justify-content: center;
+  padding: 10px 6px;
+  gap: 0;
 }
 
-.sidebar-toggle-btn {
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
+.sidebar:not(.sidebar-expanded) .sidebar-user {
+  flex: none;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.sidebar:not(.sidebar-expanded) .sidebar-user-info,
+.sidebar:not(.sidebar-expanded) .sidebar-logout {
+  display: none;
+}
+
+
+.is-resizing .sidebar,
+.is-resizing .main-area,
+.is-resizing .sidebar-resize-handle {
+  transition-duration: 0s !important;
+}
+
+/* ==================== SIDEBAR RESIZE HANDLE ==================== */
+.sidebar-resize-handle {
+  position: fixed;
+  top: 0;
+  left: calc(var(--sidebar-current) - 3px);
+  bottom: 0;
+  width: 6px;
+  z-index: 101;
+  cursor: ew-resize;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-text-quaternary);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-.sidebar-toggle-btn:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  border-color: var(--color-border-accent);
+.sidebar-resize-handle::before {
+  content: '';
+  position: absolute;
+  inset: 0 -4px;
 }
-
-.sidebar-pinned .sidebar-toggle-btn svg {
-  transform: rotate(180deg);
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+  background: rgba(96, 165, 250, 0.15);
+}
+.resize-grip {
+  width: 2px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  opacity: 0;
+  transition: opacity 0.2s ease, height 0.2s ease;
+}
+.sidebar-resize-handle:hover .resize-grip,
+.sidebar-resize-handle:active .resize-grip {
+  opacity: 1;
+  height: 48px;
+  background: var(--color-primary);
 }
 
 /* Sidebar Overlay */
@@ -672,24 +749,6 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-/* Mobile off-canvas behavior */
-@media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-110%);
-    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
-    width: var(--sidebar-width);
-  }
-  .sidebar-open .sidebar {
-    transform: translateX(0);
-  }
-  .main-area {
-    margin-left: 0;
-  }
-  .menu-btn {
-    display: flex;
-  }
-}
-
 /* ==================== MAIN AREA ==================== */
 .main-area {
   flex: 1;
@@ -705,18 +764,18 @@ onUnmounted(() => {
   height: var(--topbar-height);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 0 20px;
-  margin: 10px 12px 0;
-  border-radius: 12px;
+  margin: 10px 14px 0;
+  border-radius: var(--radius-lg);
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--color-border-accent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--color-border);
   box-shadow: var(--glass-shadow);
   position: sticky;
   top: 10px;
-  z-index: 50;
+  z-index: 101;
 }
 
 .topbar-left {
@@ -737,7 +796,7 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   color: var(--color-text-tertiary);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 9px;
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
@@ -755,7 +814,7 @@ onUnmounted(() => {
 }
 
 .breadcrumb-current {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
@@ -772,11 +831,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
+  height: 36px;
   padding: 0 12px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 9px;
   color: var(--color-text-quaternary);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -794,27 +853,27 @@ onUnmounted(() => {
 }
 
 .search-kbd {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 2px 5px;
+  padding: 3px 6px;
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 5px;
   color: var(--color-text-quaternary);
   font-family: inherit;
 }
 
 .user-avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
   color: #fff;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  border-radius: 8px;
+  border-radius: 9px;
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -829,7 +888,7 @@ onUnmounted(() => {
 /* ==================== CONTENT ==================== */
 .content {
   flex: 1;
-  padding: 20px 24px;
+  padding: 24px 28px 32px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -875,7 +934,7 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
-    width: var(--sidebar-width) !important;
+    width: var(--sidebar-current) !important;
   }
 
   .sidebar-open .sidebar {
@@ -921,41 +980,106 @@ onUnmounted(() => {
   }
 
   .content {
-    padding: 16px;
+    padding: 18px 20px;
     padding-bottom: 90px;
   }
 
   .topbar {
     margin: 8px 8px 0;
-    padding: 0 12px;
+    padding: 0 14px;
   }
 }
 
-/* ==================== LAPTOP & DESKTOP ==================== */
-@media (min-width: 1281px) {
-  .sidebar {
-    width: var(--sidebar-width) !important;
+/* ==================== LAPTOP (1025px–1440px) ==================== */
+@media (max-width: 1440px) {
+  .content {
+    padding: 24px 28px;
   }
+  .topbar {
+    margin: 12px 14px 0;
+    padding: 0 20px;
+  }
+}
 
-  .sidebar-user-info,
-  .sidebar-footer-actions,
-  .nav-label,
+@media (max-width: 1280px) {
+  .sidebar-header {
+    padding: 16px;
+    min-height: 64px;
+  }
+  .sidebar-nav {
+    padding: 10px;
+  }
+  .nav-item {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
   .nav-group-label {
-    opacity: 1 !important;
+    font-size: 9px;
+    padding: 12px 12px 4px;
   }
-
-  .sidebar-expanded .main-area {
-    margin-left: var(--sidebar-width);
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+  }
+  .sidebar-footer {
+    padding: 12px;
+  }
+  .sidebar-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 13px;
+  }
+  .sidebar-user-name {
+    font-size: 13px;
+  }
+  .sidebar-user-role {
+    font-size: 10px;
+  }
+  .sidebar-logout {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+  .content {
+    padding: 24px 28px;
+  }
+  .topbar {
+    height: 72px;
+    margin: 12px 16px 0;
+    padding: 0 20px;
+    top: 12px;
+  }
+  .topbar-left {
+    gap: 12px;
+  }
+  .breadcrumb-current {
+    font-size: 16px;
+  }
+  .topbar-search {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  .menu-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 
 @media (min-width: 1025px) {
   .content {
-    padding: 24px 28px;
+    padding: 28px 32px;
   }
 
   .topbar {
-    margin: 12px 16px 0;
+    margin: 14px 18px 0;
     padding: 0 24px;
   }
 
@@ -966,13 +1090,13 @@ onUnmounted(() => {
 
 @media (max-width: 1024px) {
   .content {
-    padding: 16px 20px;
+    padding: 18px 22px;
   }
 }
 
 @media (max-width: 768px) {
   .content {
-    padding: 12px 14px;
+    padding: 14px 16px;
     padding-bottom: 90px;
   }
 }
@@ -984,7 +1108,7 @@ onUnmounted(() => {
   }
 
   .sidebar-expanded .main-area {
-    margin-left: var(--sidebar-width);
+    margin-left: var(--sidebar-current);
   }
 }
 
@@ -997,32 +1121,32 @@ onUnmounted(() => {
   .bottom-nav {
     display: flex;
     position: fixed;
-    bottom: 16px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--glass-bg);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid var(--color-border-accent);
-    border-radius: 14px;
-    padding: 4px 6px;
-    gap: 2px;
+    border-radius: 18px;
+    padding: 6px 8px;
+    gap: 4px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
     z-index: 1000;
     align-items: center;
     width: calc(100% - 32px);
-    max-width: 360px;
+    max-width: 420px;
   }
 
   .bottom-nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
     text-decoration: none;
     color: var(--color-text-quaternary);
-    padding: 6px 8px;
-    border-radius: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
     transition: all 0.25s var(--ease-spring);
     flex: 1;
     position: relative;
@@ -1038,8 +1162,8 @@ onUnmounted(() => {
   }
 
   .bottom-nav-icon {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     transition: transform 0.25s var(--ease-spring);
   }
 
@@ -1070,10 +1194,11 @@ onUnmounted(() => {
     justify-content: center;
     padding: 0 3px;
     line-height: 1;
+    box-shadow: 0 0 6px var(--color-primary-glow);
   }
 
   .bottom-nav-label {
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.02em;
   }

@@ -34,6 +34,7 @@ export const departments = [
   { id: 'his', name: 'History & International Studies', college: 'COHSMAS' },
   { id: 'lang', name: 'Languages (English)', college: 'COHSMAS' },
   { id: 'rels', name: 'Religion & Peace Studies', college: 'COHSMAS' },
+  { id: 'gns', name: 'General Studies', college: 'COHSMAS' },
 ]
 
 export const courses = [
@@ -45,6 +46,9 @@ export const courses = [
   { id: 'gns202', code: 'GNS 202', title: 'Entrepreneurship Studies II', cu: 2, level: 200, semester: 2, dept: 'gns', lecturer: 'Mrs. Bello', schedule: 'Thu 09:00-11:00', venue: 'CH 2' },
   { id: 'gns203', code: 'GNS 203', title: 'Peace & Conflict Studies', cu: 2, level: 200, semester: 1, dept: 'gns', lecturer: 'Dr. Adamu', schedule: 'Wed 11:00-13:00', venue: 'CH 3' },
   { id: 'gns301', code: 'GNS 301', title: 'Communication Skills', cu: 2, level: 300, semester: 1, dept: 'gns', lecturer: 'Mrs. Dikko', schedule: 'Thu 11:00-13:00', venue: 'CH 2' },
+  { id: 'gns302', code: 'GNS 302', title: 'Academic Writing', cu: 2, level: 300, semester: 2, dept: 'gns', lecturer: 'Dr. Adebayo', schedule: 'Wed 14:00-16:00', venue: 'CH 1' },
+  { id: 'gns401', code: 'GNS 401', title: 'Research Methodology', cu: 2, level: 400, semester: 1, dept: 'gns', lecturer: 'Prof. Eze', schedule: 'Tue 14:00-16:00', venue: 'CH 3' },
+  { id: 'gns402', code: 'GNS 402', title: 'Entrepreneurship & Innovation', cu: 2, level: 400, semester: 2, dept: 'gns', lecturer: 'Mrs. Bello', schedule: 'Thu 14:00-16:00', venue: 'CH 2' },
   // Computer Science
   { id: 'csc101', code: 'CSC 101', title: 'Introduction to Computer Science', cu: 3, level: 100, semester: 1, dept: 'cs', lecturer: 'Dr. Okonkwo', schedule: 'Mon 08:00-10:00', venue: 'LH 1' },
   { id: 'csc102', code: 'CSC 102', title: 'Computer Programming I', cu: 3, level: 100, semester: 2, dept: 'cs', lecturer: 'Dr. Nnamdi', schedule: 'Tue 08:00-10:00', venue: 'LAB A' },
@@ -133,6 +137,7 @@ export const courses = [
   { id: 'sta301', code: 'STA 301', title: 'Experimental Design', cu: 3, level: 300, semester: 1, dept: 'stats', lecturer: 'Prof. Yusuf', schedule: 'Mon 13:00-15:00', venue: 'LH 2' },
   { id: 'sta302', code: 'STA 302', title: 'Multivariate Analysis', cu: 3, level: 300, semester: 2, dept: 'stats', lecturer: 'Dr. Ibrahim', schedule: 'Tue 13:00-15:00', venue: 'LH 3' },
   { id: 'sta401', code: 'STA 401', title: 'Time Series Analysis', cu: 3, level: 400, semester: 1, dept: 'stats', lecturer: 'Prof. Yusuf', schedule: 'Wed 11:00-13:00', venue: 'MLT 2' },
+  { id: 'sta402', code: 'STA 402', title: 'Statistical Computing', cu: 3, level: 400, semester: 2, dept: 'stats', lecturer: 'Dr. Ibrahim', schedule: 'Thu 11:00-13:00', venue: 'MLT 1' },
   // Biochemistry
   { id: 'bch101', code: 'BCH 101', title: 'General Biology', cu: 3, level: 100, semester: 1, dept: 'bioch', lecturer: 'Dr. Adeola', schedule: 'Mon 09:00-11:00', venue: 'SCI LAB 1' },
   { id: 'bch102', code: 'BCH 102', title: 'General Chemistry', cu: 3, level: 100, semester: 2, dept: 'bioch', lecturer: 'Prof. Ogun', schedule: 'Wed 09:00-11:00', venue: 'SCI LAB 2' },
@@ -159,6 +164,8 @@ export const courses = [
   { id: 'bt202', code: 'BT 202', title: 'Recombinant DNA Technology', cu: 3, level: 200, semester: 2, dept: 'biotech', lecturer: 'Dr. Ogunleye', schedule: 'Thu 09:00-11:00', venue: 'SCI LAB 2' },
   { id: 'bt301', code: 'BT 301', title: 'Bioprocess Technology', cu: 3, level: 300, semester: 1, dept: 'biotech', lecturer: 'Dr. Fasanya', schedule: 'Mon 13:00-15:00', venue: 'SCI LAB 1' },
   { id: 'bt302', code: 'BT 302', title: 'Genomics & Proteomics', cu: 3, level: 300, semester: 2, dept: 'biotech', lecturer: 'Dr. Ogunleye', schedule: 'Tue 14:00-16:00', venue: 'SCI LAB 2' },
+  { id: 'bt401', code: 'BT 401', title: 'Advanced Biotechnology', cu: 3, level: 400, semester: 1, dept: 'biotech', lecturer: 'Prof. Ogunleye', schedule: 'Mon 09:00-11:00', venue: 'SCI LAB 1' },
+  { id: 'bt402', code: 'BT 402', title: 'Bioinformatics', cu: 3, level: 400, semester: 2, dept: 'biotech', lecturer: 'Dr. Fasanya', schedule: 'Wed 10:00-12:00', venue: 'SCI LAB 2' },
   // Industrial Chemistry
   { id: 'ic101', code: 'IC 101', title: 'General Chemistry', cu: 3, level: 100, semester: 1, dept: 'chem', lecturer: 'Prof. Ogun', schedule: 'Mon 10:00-12:00', venue: 'SCI LAB 2' },
   { id: 'ic102', code: 'IC 102', title: 'Analytical Chemistry I', cu: 3, level: 100, semester: 2, dept: 'chem', lecturer: 'Dr. Fasanya', schedule: 'Tue 08:00-10:00', venue: 'SCI LAB 2' },
@@ -167,6 +174,7 @@ export const courses = [
   { id: 'ic301', code: 'IC 301', title: 'Industrial Chemistry I', cu: 3, level: 300, semester: 1, dept: 'chem', lecturer: 'Dr. Hassan', schedule: 'Mon 14:00-16:00', venue: 'SCI LAB 1' },
   { id: 'ic302', code: 'IC 302', title: 'Polymer Chemistry', cu: 3, level: 300, semester: 2, dept: 'chem', lecturer: 'Dr. Fasanya', schedule: 'Tue 13:00-15:00', venue: 'SCI LAB 2' },
   { id: 'ic401', code: 'IC 401', title: 'Industrial Quality Control', cu: 3, level: 400, semester: 1, dept: 'chem', lecturer: 'Prof. Ogun', schedule: 'Wed 13:00-15:00', venue: 'SCI LAB 1' },
+  { id: 'ic402', code: 'IC 402', title: 'Environmental Chemistry', cu: 3, level: 400, semester: 2, dept: 'chem', lecturer: 'Dr. Hassan', schedule: 'Thu 13:00-15:00', venue: 'SCI LAB 2' },
   // Nursing
   { id: 'nur101', code: 'NUR 101', title: 'Foundations of Nursing', cu: 3, level: 100, semester: 1, dept: 'nursing', lecturer: 'Mrs. Adeyemi', schedule: 'Mon 08:00-10:00', venue: 'CLINIC 1' },
   { id: 'nur102', code: 'NUR 102', title: 'Human Anatomy & Physiology I', cu: 3, level: 100, semester: 2, dept: 'nursing', lecturer: 'Dr. Bello', schedule: 'Tue 08:00-10:00', venue: 'MLT 2' },
@@ -188,6 +196,7 @@ export const courses = [
   { id: 'ph301', code: 'PH 301', title: 'Health Promotion & Education', cu: 3, level: 300, semester: 1, dept: 'pubhealth', lecturer: 'Dr. Adekunle', schedule: 'Mon 13:00-15:00', venue: 'CH 1' },
   { id: 'ph302', code: 'PH 302', title: 'Health Policy & Management', cu: 3, level: 300, semester: 2, dept: 'pubhealth', lecturer: 'Dr. Yetunde', schedule: 'Tue 13:00-15:00', venue: 'LH 2' },
   { id: 'ph401', code: 'PH 401', title: 'International Health', cu: 3, level: 400, semester: 1, dept: 'pubhealth', lecturer: 'Dr. Adekunle', schedule: 'Wed 13:00-15:00', venue: 'CH 2' },
+  { id: 'ph402', code: 'PH 402', title: 'Health Systems Management', cu: 3, level: 400, semester: 2, dept: 'pubhealth', lecturer: 'Dr. Funmi', schedule: 'Thu 13:00-15:00', venue: 'MLT 2' },
   // Medical Laboratory Science
   { id: 'mls101', code: 'MLS 101', title: 'Intro to Medical Lab Science', cu: 3, level: 100, semester: 1, dept: 'mls', lecturer: 'Dr. Bello', schedule: 'Mon 08:00-10:00', venue: 'MLT 1' },
   { id: 'mls102', code: 'MLS 102', title: 'Human Biology', cu: 3, level: 100, semester: 2, dept: 'mls', lecturer: 'Dr. Bello', schedule: 'Tue 08:00-10:00', venue: 'SCI LAB 1' },
@@ -196,6 +205,7 @@ export const courses = [
   { id: 'mls301', code: 'MLS 301', title: 'Medical Microbiology', cu: 3, level: 300, semester: 1, dept: 'mls', lecturer: 'Dr. Nwachukwu', schedule: 'Mon 10:00-12:00', venue: 'SCI LAB 1' },
   { id: 'mls302', code: 'MLS 302', title: 'Histopathology', cu: 3, level: 300, semester: 2, dept: 'mls', lecturer: 'Dr. Bello', schedule: 'Tue 10:00-12:00', venue: 'MLT 1' },
   { id: 'mls401', code: 'MLS 401', title: 'Blood Banking', cu: 3, level: 400, semester: 1, dept: 'mls', lecturer: 'Dr. Ekwueme', schedule: 'Wed 13:00-15:00', venue: 'SCI LAB 2' },
+  { id: 'mls402', code: 'MLS 402', title: 'Clinical Immunology', cu: 3, level: 400, semester: 2, dept: 'mls', lecturer: 'Dr. Nwachukwu', schedule: 'Thu 13:00-15:00', venue: 'MLT 1' },
   // Health Information Management
   { id: 'him101', code: 'HIM 101', title: 'Health Records Management', cu: 3, level: 100, semester: 1, dept: 'him', lecturer: 'Mrs. Ojo', schedule: 'Mon 09:00-11:00', venue: 'LH 1' },
   { id: 'him102', code: 'HIM 102', title: 'Medical Terminology', cu: 3, level: 100, semester: 2, dept: 'him', lecturer: 'Mrs. Ojo', schedule: 'Tue 09:00-11:00', venue: 'LH 2' },
@@ -203,6 +213,8 @@ export const courses = [
   { id: 'him202', code: 'HIM 202', title: 'Medical Coding & Classification', cu: 3, level: 200, semester: 2, dept: 'him', lecturer: 'Mrs. Ojo', schedule: 'Thu 10:00-12:00', venue: 'LH 3' },
   { id: 'him301', code: 'HIM 301', title: 'Health Data Analytics', cu: 3, level: 300, semester: 1, dept: 'him', lecturer: 'Dr. Yetunde', schedule: 'Mon 13:00-15:00', venue: 'LAB A' },
   { id: 'him302', code: 'HIM 302', title: 'Healthcare Quality Management', cu: 3, level: 300, semester: 2, dept: 'him', lecturer: 'Mrs. Ojo', schedule: 'Tue 13:00-15:00', venue: 'MLT 2' },
+  { id: 'him401', code: 'HIM 401', title: 'Health Information Systems', cu: 3, level: 400, semester: 1, dept: 'him', lecturer: 'Dr. Yetunde', schedule: 'Mon 08:00-10:00', venue: 'MLT 1' },
+  { id: 'him402', code: 'HIM 402', title: 'Clinical Data Management', cu: 3, level: 400, semester: 2, dept: 'him', lecturer: 'Mrs. Ojo', schedule: 'Wed 09:00-11:00', venue: 'LAB A' },
   // Law
   { id: 'law101', code: 'LAW 101', title: 'Legal Methods I', cu: 4, level: 100, semester: 1, dept: 'law', lecturer: 'Prof. Okediran', schedule: 'Mon 08:00-10:00', venue: 'LAW AUD' },
   { id: 'law102', code: 'LAW 102', title: 'Nigerian Legal System', cu: 4, level: 100, semester: 2, dept: 'law', lecturer: 'Dr. Adeola', schedule: 'Tue 08:00-10:00', venue: 'LAW AUD' },
@@ -238,6 +250,17 @@ export const courses = [
   { id: 'bnk202', code: 'BNK 202', title: 'Financial Institutions', cu: 3, level: 200, semester: 2, dept: 'bnkfin', lecturer: 'Dr. Kola', schedule: 'Thu 11:00-13:00', venue: 'LH 1' },
   { id: 'bnk301', code: 'BNK 301', title: 'Investment Analysis', cu: 3, level: 300, semester: 1, dept: 'bnkfin', lecturer: 'Dr. Kola', schedule: 'Mon 14:00-16:00', venue: 'LH 2' },
   { id: 'bnk302', code: 'BNK 302', title: 'Risk Management', cu: 3, level: 300, semester: 2, dept: 'bnkfin', lecturer: 'Prof. Ahmed', schedule: 'Tue 14:00-16:00', venue: 'LH 3' },
+  { id: 'bnk401', code: 'BNK 401', title: 'Portfolio Management', cu: 3, level: 400, semester: 1, dept: 'bnkfin', lecturer: 'Prof. Ahmed', schedule: 'Mon 09:00-11:00', venue: 'LH 2' },
+  { id: 'bnk402', code: 'BNK 402', title: 'International Finance', cu: 3, level: 400, semester: 2, dept: 'bnkfin', lecturer: 'Dr. Kola', schedule: 'Wed 10:00-12:00', venue: 'LH 3' },
+  // Marketing
+  { id: 'mkt101', code: 'MKT 101', title: 'Principles of Marketing', cu: 3, level: 100, semester: 1, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Tue 09:00-11:00', venue: 'CH 3' },
+  { id: 'mkt102', code: 'MKT 102', title: 'Consumer Behavior', cu: 3, level: 100, semester: 2, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Thu 09:00-11:00', venue: 'CH 3' },
+  { id: 'mkt201', code: 'MKT 201', title: 'Marketing Research', cu: 3, level: 200, semester: 1, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Mon 10:00-12:00', venue: 'CH 2' },
+  { id: 'mkt202', code: 'MKT 202', title: 'Advertising & Promotion', cu: 3, level: 200, semester: 2, dept: 'mkt', lecturer: 'Mrs. Bello', schedule: 'Wed 10:00-12:00', venue: 'CH 3' },
+  { id: 'mkt301', code: 'MKT 301', title: 'Digital Marketing', cu: 3, level: 300, semester: 1, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Tue 14:00-16:00', venue: 'CH 2' },
+  { id: 'mkt302', code: 'MKT 302', title: 'Brand Management', cu: 3, level: 300, semester: 2, dept: 'mkt', lecturer: 'Mrs. Bello', schedule: 'Thu 14:00-16:00', venue: 'CH 3' },
+  { id: 'mkt401', code: 'MKT 401', title: 'Marketing Strategy', cu: 3, level: 400, semester: 1, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Mon 13:00-15:00', venue: 'CH 2' },
+  { id: 'mkt402', code: 'MKT 402', title: 'Global Marketing', cu: 3, level: 400, semester: 2, dept: 'mkt', lecturer: 'Mrs. Bello', schedule: 'Wed 13:00-15:00', venue: 'CH 3' },
   // Business Administration
   { id: 'bus101', code: 'BUS 101', title: 'Introduction to Business', cu: 3, level: 100, semester: 1, dept: 'busadmin', lecturer: 'Dr. Mohammed', schedule: 'Mon 08:00-10:00', venue: 'CH 1' },
   { id: 'bus102', code: 'BUS 102', title: 'Business Mathematics', cu: 3, level: 100, semester: 2, dept: 'busadmin', lecturer: 'Prof. Yusuf', schedule: 'Wed 08:00-10:00', venue: 'CH 2' },
@@ -247,13 +270,6 @@ export const courses = [
   { id: 'bus302', code: 'BUS 302', title: 'Strategic Management', cu: 3, level: 300, semester: 2, dept: 'busadmin', lecturer: 'Mrs. Bello', schedule: 'Wed 14:00-16:00', venue: 'CH 2' },
   { id: 'bus401', code: 'BUS 401', title: 'Entrepreneurship & Innovation', cu: 3, level: 400, semester: 1, dept: 'busadmin', lecturer: 'Dr. Mohammed', schedule: 'Tue 13:00-15:00', venue: 'CH 1' },
   { id: 'bus402', code: 'BUS 402', title: 'Business Policy & Strategy', cu: 3, level: 400, semester: 2, dept: 'busadmin', lecturer: 'Mrs. Bello', schedule: 'Thu 13:00-15:00', venue: 'CH 2' },
-  // Marketing
-  { id: 'mkt101', code: 'MKT 101', title: 'Principles of Marketing', cu: 3, level: 100, semester: 1, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Tue 09:00-11:00', venue: 'CH 3' },
-  { id: 'mkt102', code: 'MKT 102', title: 'Consumer Behavior', cu: 3, level: 100, semester: 2, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Thu 09:00-11:00', venue: 'CH 3' },
-  { id: 'mkt201', code: 'MKT 201', title: 'Marketing Research', cu: 3, level: 200, semester: 1, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Mon 10:00-12:00', venue: 'CH 2' },
-  { id: 'mkt202', code: 'MKT 202', title: 'Advertising & Promotion', cu: 3, level: 200, semester: 2, dept: 'mkt', lecturer: 'Mrs. Bello', schedule: 'Wed 10:00-12:00', venue: 'CH 3' },
-  { id: 'mkt301', code: 'MKT 301', title: 'Digital Marketing', cu: 3, level: 300, semester: 1, dept: 'mkt', lecturer: 'Dr. Adamu', schedule: 'Tue 14:00-16:00', venue: 'CH 2' },
-  { id: 'mkt302', code: 'MKT 302', title: 'Brand Management', cu: 3, level: 300, semester: 2, dept: 'mkt', lecturer: 'Mrs. Bello', schedule: 'Thu 14:00-16:00', venue: 'CH 3' },
   // Economics
   { id: 'eco101', code: 'ECO 101', title: 'Principles of Economics I', cu: 3, level: 100, semester: 1, dept: 'econs', lecturer: 'Prof. Ahmed', schedule: 'Mon 08:00-10:00', venue: 'CH 3' },
   { id: 'eco102', code: 'ECO 102', title: 'Principles of Economics II', cu: 3, level: 100, semester: 2, dept: 'econs', lecturer: 'Prof. Ahmed', schedule: 'Tue 08:00-10:00', venue: 'CH 1' },
@@ -262,6 +278,7 @@ export const courses = [
   { id: 'eco301', code: 'ECO 301', title: 'Econometrics I', cu: 3, level: 300, semester: 1, dept: 'econs', lecturer: 'Prof. Ahmed', schedule: 'Mon 13:00-15:00', venue: 'LH 1' },
   { id: 'eco302', code: 'ECO 302', title: 'Development Economics', cu: 3, level: 300, semester: 2, dept: 'econs', lecturer: 'Dr. Kola', schedule: 'Wed 13:00-15:00', venue: 'LH 2' },
   { id: 'eco401', code: 'ECO 401', title: 'International Economics', cu: 3, level: 400, semester: 1, dept: 'econs', lecturer: 'Prof. Ahmed', schedule: 'Tue 10:00-12:00', venue: 'LH 3' },
+  { id: 'eco402', code: 'ECO 402', title: 'Monetary Economics', cu: 3, level: 400, semester: 2, dept: 'econs', lecturer: 'Dr. Kola', schedule: 'Thu 10:00-12:00', venue: 'LH 1' },
   // International Relations
   { id: 'ir101', code: 'IR 101', title: 'Introduction to International Relations', cu: 3, level: 100, semester: 1, dept: 'ir', lecturer: 'Dr. Adewale', schedule: 'Mon 09:00-11:00', venue: 'LH 1' },
   { id: 'ir102', code: 'IR 102', title: 'World Political Geography', cu: 3, level: 100, semester: 2, dept: 'ir', lecturer: 'Dr. Adewale', schedule: 'Tue 09:00-11:00', venue: 'LH 2' },
@@ -269,6 +286,8 @@ export const courses = [
   { id: 'ir202', code: 'IR 202', title: 'Diplomatic History', cu: 3, level: 200, semester: 2, dept: 'ir', lecturer: 'Prof. Eze', schedule: 'Thu 10:00-12:00', venue: 'LH 1' },
   { id: 'ir301', code: 'IR 301', title: 'Foreign Policy Analysis', cu: 3, level: 300, semester: 1, dept: 'ir', lecturer: 'Dr. Adewale', schedule: 'Mon 13:00-15:00', venue: 'LH 2' },
   { id: 'ir302', code: 'IR 302', title: 'Conflict Resolution', cu: 3, level: 300, semester: 2, dept: 'ir', lecturer: 'Prof. Eze', schedule: 'Tue 13:00-15:00', venue: 'LH 3' },
+  { id: 'ir401', code: 'IR 401', title: 'Global Governance', cu: 3, level: 400, semester: 1, dept: 'ir', lecturer: 'Dr. Adewale', schedule: 'Mon 09:00-11:00', venue: 'LH 2' },
+  { id: 'ir402', code: 'IR 402', title: 'International Law & Diplomacy', cu: 3, level: 400, semester: 2, dept: 'ir', lecturer: 'Prof. Eze', schedule: 'Wed 10:00-12:00', venue: 'LH 3' },
   // Mass Communication
   { id: 'mac101', code: 'MAC 101', title: 'Introduction to Mass Communication', cu: 3, level: 100, semester: 1, dept: 'masscomm', lecturer: 'Dr. Obi', schedule: 'Mon 10:00-12:00', venue: 'CH 1' },
   { id: 'mac102', code: 'MAC 102', title: 'Writing for the Media', cu: 3, level: 100, semester: 2, dept: 'masscomm', lecturer: 'Mrs. Dikko', schedule: 'Tue 10:00-12:00', venue: 'CH 2' },
@@ -277,6 +296,7 @@ export const courses = [
   { id: 'mac301', code: 'MAC 301', title: 'Print & Online Journalism', cu: 3, level: 300, semester: 1, dept: 'masscomm', lecturer: 'Dr. Obi', schedule: 'Mon 14:00-16:00', venue: 'CH 2' },
   { id: 'mac302', code: 'MAC 302', title: 'Advertising & Publicity', cu: 3, level: 300, semester: 2, dept: 'masscomm', lecturer: 'Mrs. Dikko', schedule: 'Tue 14:00-16:00', venue: 'CH 3' },
   { id: 'mac401', code: 'MAC 401', title: 'Media Law & Ethics', cu: 3, level: 400, semester: 1, dept: 'masscomm', lecturer: 'Dr. Obi', schedule: 'Wed 14:00-16:00', venue: 'CH 1' },
+  { id: 'mac402', code: 'MAC 402', title: 'Development Communication', cu: 3, level: 400, semester: 2, dept: 'masscomm', lecturer: 'Mrs. Dikko', schedule: 'Thu 14:00-16:00', venue: 'CH 2' },
   // History & International Studies
   { id: 'his101', code: 'HIS 101', title: 'African History', cu: 3, level: 100, semester: 1, dept: 'his', lecturer: 'Prof. Eze', schedule: 'Mon 10:00-12:00', venue: 'LH 1' },
   { id: 'his102', code: 'HIS 102', title: 'World Civilization', cu: 3, level: 100, semester: 2, dept: 'his', lecturer: 'Prof. Eze', schedule: 'Tue 10:00-12:00', venue: 'LH 2' },
@@ -284,6 +304,8 @@ export const courses = [
   { id: 'his202', code: 'HIS 202', title: 'European History', cu: 3, level: 200, semester: 2, dept: 'his', lecturer: 'Prof. Eze', schedule: 'Thu 10:00-12:00', venue: 'LH 1' },
   { id: 'his301', code: 'HIS 301', title: 'Diplomatic History of Nigeria', cu: 3, level: 300, semester: 1, dept: 'his', lecturer: 'Dr. Adewale', schedule: 'Mon 14:00-16:00', venue: 'LH 2' },
   { id: 'his302', code: 'HIS 302', title: 'Historiography', cu: 3, level: 300, semester: 2, dept: 'his', lecturer: 'Prof. Eze', schedule: 'Tue 14:00-16:00', venue: 'LH 3' },
+  { id: 'his401', code: 'HIS 401', title: 'Contemporary African History', cu: 3, level: 400, semester: 1, dept: 'his', lecturer: 'Prof. Eze', schedule: 'Mon 09:00-11:00', venue: 'LH 1' },
+  { id: 'his402', code: 'HIS 402', title: 'Economic History of Nigeria', cu: 3, level: 400, semester: 2, dept: 'his', lecturer: 'Dr. Adewale', schedule: 'Wed 09:00-11:00', venue: 'LH 2' },
   // Languages (English)
   { id: 'eng101', code: 'ENG 101', title: 'English Grammar & Usage', cu: 3, level: 100, semester: 1, dept: 'lang', lecturer: 'Dr. Adebayo', schedule: 'Mon 11:00-13:00', venue: 'CH 2' },
   { id: 'eng102', code: 'ENG 102', title: 'Introduction to Literature', cu: 3, level: 100, semester: 2, dept: 'lang', lecturer: 'Mrs. Dikko', schedule: 'Tue 11:00-13:00', venue: 'CH 3' },
@@ -291,6 +313,8 @@ export const courses = [
   { id: 'eng202', code: 'ENG 202', title: 'African Literature', cu: 3, level: 200, semester: 2, dept: 'lang', lecturer: 'Mrs. Dikko', schedule: 'Thu 11:00-13:00', venue: 'CH 2' },
   { id: 'eng301', code: 'ENG 301', title: 'Linguistics', cu: 3, level: 300, semester: 1, dept: 'lang', lecturer: 'Dr. Adebayo', schedule: 'Mon 10:00-12:00', venue: 'CH 3' },
   { id: 'eng302', code: 'ENG 302', title: 'Creative Writing', cu: 3, level: 300, semester: 2, dept: 'lang', lecturer: 'Mrs. Dikko', schedule: 'Tue 10:00-12:00', venue: 'CH 1' },
+  { id: 'eng401', code: 'ENG 401', title: 'Literary Theory & Criticism', cu: 3, level: 400, semester: 1, dept: 'lang', lecturer: 'Dr. Adebayo', schedule: 'Mon 13:00-15:00', venue: 'CH 2' },
+  { id: 'eng402', code: 'ENG 402', title: 'English Sociolinguistics', cu: 3, level: 400, semester: 2, dept: 'lang', lecturer: 'Mrs. Dikko', schedule: 'Wed 13:00-15:00', venue: 'CH 3' },
   // Religion & Peace Studies
   { id: 'rel101', code: 'REL 101', title: 'Introduction to Religious Studies', cu: 3, level: 100, semester: 1, dept: 'rels', lecturer: 'Dr. Okoro', schedule: 'Mon 09:00-11:00', venue: 'CH 2' },
   { id: 'rel102', code: 'REL 102', title: 'Biblical Studies', cu: 3, level: 100, semester: 2, dept: 'rels', lecturer: 'Dr. Okoro', schedule: 'Tue 09:00-11:00', venue: 'CH 3' },
@@ -298,6 +322,8 @@ export const courses = [
   { id: 'rel202', code: 'REL 202', title: 'Peace Studies', cu: 3, level: 200, semester: 2, dept: 'rels', lecturer: 'Dr. Adamu', schedule: 'Thu 09:00-11:00', venue: 'CH 2' },
   { id: 'rel301', code: 'REL 301', title: 'Christian Ethics', cu: 3, level: 300, semester: 1, dept: 'rels', lecturer: 'Dr. Okoro', schedule: 'Mon 14:00-16:00', venue: 'CH 3' },
   { id: 'rel302', code: 'REL 302', title: 'Conflict Transformation', cu: 3, level: 300, semester: 2, dept: 'rels', lecturer: 'Dr. Adamu', schedule: 'Tue 14:00-16:00', venue: 'CH 1' },
+  { id: 'rel401', code: 'REL 401', title: 'Theology & Society', cu: 3, level: 400, semester: 1, dept: 'rels', lecturer: 'Dr. Okoro', schedule: 'Mon 10:00-12:00', venue: 'CH 2' },
+  { id: 'rel402', code: 'REL 402', title: 'Religious Ethics & Morality', cu: 3, level: 400, semester: 2, dept: 'rels', lecturer: 'Dr. Adamu', schedule: 'Wed 10:00-12:00', venue: 'CH 3' },
 ]
 
 export const levels = ['100', '200', '300', '400', '500']

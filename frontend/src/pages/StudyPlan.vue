@@ -1,5 +1,5 @@
 <template>
-  <div class="study-plan-page">
+  <div class="study-plan-page page-wide">
     <div class="page-header">
       <h1 class="page-title">Your Study Plan</h1>
       <p class="page-subtitle">Personalized recommendations based on your learning progress</p>
@@ -182,8 +182,6 @@ onMounted(() => {
 .study-plan-page {
   padding: 20px;
   min-height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .page-header {

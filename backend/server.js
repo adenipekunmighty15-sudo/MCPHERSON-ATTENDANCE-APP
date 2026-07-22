@@ -7,6 +7,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import { existsSync, mkdirSync } from 'fs'
 import { query } from './lib/db.js'
+import { getAvailableProviders } from './src/config/ai.js'
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason?.message || reason)

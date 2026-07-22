@@ -1,5 +1,5 @@
 <template>
-  <div class="study-group-detail-page">
+  <div class="study-group-detail-page page-wide">
     <div class="page-header">
       <button class="back-btn" @click="goBack">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -234,8 +234,6 @@ onMounted(async () => {
 .study-group-detail-page {
   padding: 20px;
   min-height: 100vh;
-  max-width: 1000px;
-  margin: 0 auto;
 }
 
 .page-header {

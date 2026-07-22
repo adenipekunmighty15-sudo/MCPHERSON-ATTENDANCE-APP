@@ -105,9 +105,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -127,13 +127,11 @@ function roleClass(role) {
 async function fetchItems() {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (roleFilter.value) params.set('role', roleFilter.value)
-    const qs = params.toString() ? '?' + params.toString() : ''
-    const res = await fetch(`${API}/users${qs}`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading users: ' + e.message) }
+    const params = {}
+    if (roleFilter.value) params.role = roleFilter.value
+    const { data } = await api.get('/admin/users', { params })
+    items.value = data
+  } catch (e) { alert('Error loading users: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -153,11 +151,10 @@ async function save() {
   try {
     const body = { ...form.value }
     if (body.level) body.level = Number(body.level)
-    const res = await fetch(`${API}/users/${editingId.value}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    await api.put(`/admin/users/${editingId.value}`, body)
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving user: ' + e.message) }
+  } catch (e) { alert('Error saving user: ' + (e.response?.data?.message || e.message)) }
 }
 
 watch(roleFilter, () => { fetchItems() })

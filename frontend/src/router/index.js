@@ -167,7 +167,7 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   if (!authStore.initialized) {
-    try { await authStore.initializeAuth() } catch { }
+    try { await authStore.initializeAuth() } catch (e) { console.warn('[Router] Auth init failed:', e) }
   }
 
   document.title = to.meta.title ? `${to.meta.title} — MCU` : 'MCU'

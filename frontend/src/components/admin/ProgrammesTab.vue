@@ -119,9 +119,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -134,14 +134,12 @@ const form = ref({ name: '', code: '', department_id: '', faculty_id: '', degree
 async function fetchItems() {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (facultyFilter.value) params.set('faculty_id', facultyFilter.value)
-    if (deptFilter.value) params.set('department_id', deptFilter.value)
-    const qs = params.toString() ? '?' + params.toString() : ''
-    const res = await fetch(`${API}/programmes${qs}`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading programmes: ' + e.message) }
+    const params = {}
+    if (facultyFilter.value) params.faculty_id = facultyFilter.value
+    if (deptFilter.value) params.department_id = deptFilter.value
+    const { data } = await api.get('/admin/programmes', { params })
+    items.value = data
+  } catch (e) { alert('Error loading programmes: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -166,13 +164,14 @@ async function save() {
   try {
     const body = { ...form.value }
     if (body.duration_years) body.duration_years = Number(body.duration_years)
-    const url = editingId.value ? `${API}/programmes/${editingId.value}` : `${API}/programmes`
-    const method = editingId.value ? 'PUT' : 'POST'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    if (editingId.value) {
+      await api.put(`/admin/programmes/${editingId.value}`, body)
+    } else {
+      await api.post('/admin/programmes', body)
+    }
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving programme: ' + e.message) }
+  } catch (e) { alert('Error saving programme: ' + (e.response?.data?.message || e.message)) }
 }
 
 function confirmDelete(item) {
@@ -182,10 +181,9 @@ function confirmDelete(item) {
 
 async function deleteItem(id) {
   try {
-    const res = await fetch(`${API}/programmes/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Delete failed')
+    await api.delete(`/admin/programmes/${id}`)
     await fetchItems()
-  } catch (e) { alert('Error deleting programme: ' + e.message) }
+  } catch (e) { alert('Error deleting programme: ' + (e.response?.data?.message || e.message)) }
 }
 
 watch([facultyFilter, deptFilter], () => { fetchItems() })

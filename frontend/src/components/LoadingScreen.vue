@@ -1,86 +1,86 @@
 <template>
-  <Transition name="fade">
-    <div v-if="loading" class="fixed inset-0 z-[99999] bg-[#F8FAFF] overflow-hidden" style="perspective: 1200px;">
-      <div class="flex h-full">
-        <aside class="hidden lg:flex w-[280px] flex-col border-r border-[rgba(0,102,255,0.08)] bg-white p-5 gap-5" style="transform-style: preserve-3d;">
-          <div class="flex items-center gap-3 px-3">
-            <div class="w-9 h-9 rounded-xl bg-[rgba(0,102,255,0.08)] skeleton-pulse"></div>
-            <div class="space-y-2">
-              <div class="w-28 h-3 rounded bg-[rgba(0,102,255,0.08)] skeleton-pulse"></div>
-              <div class="w-20 h-2 rounded bg-[rgba(0,102,255,0.05)] skeleton-pulse"></div>
+  <Transition name="fade-load">
+    <div v-if="loading" class="ls-root">
+      <div class="ls-layout">
+        <aside class="ls-sidebar">
+          <div class="ls-sidebar-header">
+            <div class="ls-logo">
+              <div class="sk-block" style="width:32px;height:32px;border-radius:10px" />
+              <div class="sk-block" style="width:80px;height:10px;border-radius:5px" />
             </div>
           </div>
-          <div class="h-10 rounded-xl bg-[rgba(0,102,255,0.05)] skeleton-pulse mx-3"></div>
-          <div class="flex-1 space-y-1 px-3">
-            <div v-for="i in 7" :key="i" class="flex items-center gap-3 px-3 py-2.5">
-              <div class="w-5 h-5 rounded-lg bg-[rgba(0,102,255,0.07)] skeleton-pulse"></div>
-              <div class="h-3 flex-1 rounded bg-[rgba(0,102,255,0.07)] skeleton-pulse" :style="{ width: (60 + (i * 5) % 31) + '%' }"></div>
+          <div class="ls-divider" />
+          <div v-for="g in 3" :key="g" class="ls-nav-group">
+            <div class="sk-block" style="width:50px;height:8px;border-radius:4px" />
+            <div v-for="i in 3" :key="'n'+g+i" class="ls-nav-item">
+              <div class="sk-block" style="width:20px;height:20px;border-radius:6px" />
+              <div class="sk-block" :style="{ width: (55+i*10)+'px', height:10, borderRadius:'5px' }" />
             </div>
           </div>
-          <div class="space-y-1 px-3">
-            <div v-for="i in 2" :key="'b'+i" class="flex items-center gap-3 px-3 py-2.5">
-              <div class="w-5 h-5 rounded-lg bg-[rgba(0,102,255,0.07)] skeleton-pulse"></div>
-              <div class="h-3 flex-1 rounded bg-[rgba(0,102,255,0.07)] skeleton-pulse"></div>
+          <div class="ls-spacer" />
+          <div class="ls-sidebar-footer">
+            <div class="ls-nav-item">
+              <div class="sk-block" style="width:20px;height:20px;border-radius:6px" />
+              <div class="sk-block" style="width:60px;height:10px;border-radius:5px" />
             </div>
           </div>
         </aside>
-        <div class="flex-1 flex flex-col min-w-0">
-          <header class="h-[72px] flex items-center justify-between px-6 border-b border-[rgba(0,102,255,0.08)] bg-white/80 backdrop-blur-md sticky top-0 z-50">
-            <div class="flex items-center gap-4">
-              <div class="w-48 h-10 rounded-xl bg-[rgba(0,102,255,0.05)] skeleton-pulse"></div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-[rgba(0,102,255,0.07)] skeleton-pulse"></div>
-              <div class="w-8 h-8 rounded-full bg-[rgba(0,102,255,0.07)] skeleton-pulse"></div>
+        <div class="ls-main">
+          <header class="ls-topbar">
+            <div class="sk-block" style="width:180px;height:14px;border-radius:7px" />
+            <div class="ls-topbar-right">
+              <div class="sk-block" style="width:36px;height:36px;border-radius:10px" />
+              <div class="sk-block" style="width:36px;height:36px;border-radius:50%" />
             </div>
           </header>
-          <main class="flex-1 overflow-y-auto p-6 lg:p-8">
-            <div class="max-w-[1280px] mx-auto space-y-8" style="transform-style: preserve-3d;">
-              <div class="space-y-2">
-                <div class="w-56 h-8 rounded-lg bg-[rgba(0,102,255,0.07)] skeleton-pulse"></div>
-                <div class="w-80 h-4 rounded bg-[rgba(0,102,255,0.05)] skeleton-pulse"></div>
+          <main class="ls-content">
+            <div class="ls-content-inner">
+              <div class="ls-page-header">
+                <div class="sk-block" style="width:200px;height:22px;border-radius:8px" />
+                <div class="sk-block" style="width:280px;height:12px;border-radius:6px" />
               </div>
-              <div class="rounded-[20px] bg-white border border-[rgba(0,102,255,0.08)] p-8" style="box-shadow: none;">
-                <div class="flex flex-col lg:flex-row gap-8">
-                  <div class="lg:w-1/3 space-y-4">
-                    <div class="w-full aspect-[1.586] rounded-2xl bg-[rgba(0,102,255,0.05)] skeleton-pulse"></div>
-                    <div class="space-y-2">
-                      <div class="w-full h-3 rounded bg-[rgba(0,102,255,0.05)] skeleton-pulse"></div>
-                      <div class="w-3/4 h-3 rounded bg-[rgba(0,102,255,0.05)] skeleton-pulse"></div>
+              <div class="ls-hero-card">
+                <div class="ls-hero-layout">
+                  <div class="ls-hero-left">
+                    <div class="sk-block ls-card-sk" style="padding-bottom:60%">
+                      <div class="sk-overlay" />
                     </div>
+                    <div class="sk-block" style="width:100%;height:10px;border-radius:5px" />
                   </div>
-                  <div class="lg:w-2/3 space-y-6">
-                    <div class="grid grid-cols-2 gap-4">
-                      <div v-for="i in 4" :key="'stat'+i" class="rounded-2xl bg-[rgba(0,102,255,0.04)] border border-[rgba(0,102,255,0.06)] p-5 skeleton-pulse">
-                        <div class="w-12 h-3 rounded bg-[rgba(0,102,255,0.07)] mb-3"></div>
-                        <div class="w-16 h-7 rounded bg-[rgba(0,102,255,0.07)]"></div>
+                  <div class="ls-hero-right">
+                    <div class="ls-metrics-grid">
+                      <div v-for="i in 4" :key="'m'+i" class="sk-block ls-metric-sk">
+                        <div class="sk-overlay" />
+                        <div class="sk-block" style="width:40px;height:10px;border-radius:5px" />
+                        <div class="sk-block" style="width:60px;height:28px;border-radius:8px" />
                       </div>
                     </div>
-                    <div class="space-y-3">
-                      <div class="w-32 h-4 rounded bg-[rgba(0,102,255,0.06)] skeleton-pulse"></div>
-                      <div v-for="i in 3" :key="'sched'+i" class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-[rgba(0,102,255,0.05)] skeleton-pulse"></div>
-                        <div class="flex-1 space-y-2">
-                          <div class="w-48 h-3 rounded bg-[rgba(0,102,255,0.06)] skeleton-pulse"></div>
-                          <div class="w-32 h-2 rounded bg-[rgba(0,102,255,0.04)] skeleton-pulse"></div>
+                    <div class="ls-timeline-sk">
+                      <div class="sk-block" style="width:100px;height:12px;border-radius:6px" />
+                      <div v-for="i in 3" :key="'t'+i" class="ls-tl-row">
+                        <div class="sk-block" style="width:40px;height:40px;border-radius:10px" />
+                        <div class="ls-tl-text">
+                          <div class="sk-block" style="width:160px;height:10px;border-radius:5px" />
+                          <div class="sk-block" style="width:100px;height:8px;border-radius:4px" />
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                <div v-for="i in 6" :key="'action'+i" class="rounded-2xl bg-white border border-[rgba(0,102,255,0.06)] p-5 flex flex-col items-center gap-3" style="box-shadow: none;">
-                  <div class="w-10 h-10 rounded-xl bg-[rgba(0,102,255,0.07)] skeleton-pulse"></div>
-                  <div class="w-16 h-3 rounded bg-[rgba(0,102,255,0.06)] skeleton-pulse"></div>
+              <div class="ls-actions">
+                <div v-for="i in 4" :key="'a'+i" class="sk-block ls-action-sk">
+                  <div class="sk-overlay" />
+                  <div class="sk-block" style="width:36px;height:36px;border-radius:10px" />
+                  <div class="sk-block" style="width:50px;height:10px;border-radius:5px" />
                 </div>
               </div>
             </div>
           </main>
         </div>
       </div>
-      <div class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/90 backdrop-blur-lg rounded-2xl px-6 py-3 border border-[rgba(0,102,255,0.1)]" style="box-shadow: none;">
-        <div v-for="i in 5" :key="'nav'+i" class="w-10 h-10 rounded-xl bg-[rgba(0,102,255,0.06)] skeleton-pulse"></div>
+      <div class="ls-bottom-nav">
+        <div v-for="i in 5" :key="'bn'+i" class="sk-block" style="width:40px;height:40px;border-radius:10px" />
       </div>
     </div>
   </Transition>
@@ -93,23 +93,236 @@ defineProps({
 </script>
 
 <style scoped>
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.5; transform: scale3d(1, 1, 1); }
-  50% { opacity: 1; transform: scale3d(1.02, 1.02, 1.02); }
+.ls-root {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: var(--color-bg);
+  overflow: hidden;
 }
 
-.skeleton-pulse {
-  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  transform-style: preserve-3d;
+.ls-layout {
+  display: flex;
+  height: 100%;
 }
 
-.fade-enter-active,
-.fade-leave-active {
+.ls-sidebar {
+  display: none;
+  width: var(--sidebar-width, 280px);
+  flex-direction: column;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: var(--space-4);
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .ls-sidebar { display: flex; }
+}
+
+.ls-sidebar-header {
+  padding: var(--space-1) var(--space-2);
+}
+
+.ls-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ls-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-2) 0;
+}
+
+.ls-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+}
+
+.ls-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+}
+
+.ls-spacer {
+  flex: 1;
+}
+
+.ls-sidebar-footer {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.ls-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ls-topbar {
+  height: var(--topbar-height, 72px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.ls-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ls-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.ls-content-inner {
+  max-width: var(--page-max-width, 1280px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.ls-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ls-hero-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  overflow: hidden;
+}
+
+.ls-hero-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+@media (min-width: 1024px) {
+  .ls-hero-layout { flex-direction: row; }
+  .ls-hero-left { width: 33.333%; }
+  .ls-hero-right { width: 66.666%; }
+}
+
+.ls-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ls-hero-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.ls-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.ls-timeline-sk {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ls-tl-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ls-tl-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.ls-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .ls-actions { grid-template-columns: repeat(4, 1fr); }
+}
+
+.ls-bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+@media (min-width: 1024px) {
+  .ls-bottom-nav { display: none; }
+}
+
+/* Skeletons */
+.sk-block {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.sk-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+  animation: skShimmerLoad 1.8s ease-in-out infinite;
+}
+
+.ls-card-sk,
+.ls-metric-sk,
+.ls-action-sk {
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes skShimmerLoad {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.fade-load-enter-active,
+.fade-load-leave-active {
   transition: opacity 0.35s ease;
 }
 
-.fade-enter-from,
-.fade-leave-to {
+.fade-load-enter-from,
+.fade-load-leave-to {
   opacity: 0;
 }
 </style>

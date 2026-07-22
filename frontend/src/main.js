@@ -2,11 +2,12 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { MotionPlugin } from 'motion-v'
 import { vConfetti } from '@neoconfetti/vue'
+import Lenis from 'lenis'
 import App from './App.vue'
 import router from './router'
-import ErrorBoundary from './components/ErrorBoundary.vue'
+import * as Components from './components'
 import './index.css'
-import './styles/design-system.css'
+
 
 // Global error handler for non-Vue errors (images, etc.)
 window.addEventListener('error', (e) => {
@@ -29,8 +30,28 @@ app.use(createPinia())
 app.use(router)
 app.use(MotionPlugin)
 app.directive('confetti', vConfetti)
-app.component('ErrorBoundary', ErrorBoundary)
+
+// Auto-register global UI components
+Object.entries(Components).forEach(([name, component]) => {
+  app.component(name, component)
+})
+
 app.mount('#root')
+
+// Initialize Lenis smooth scrolling
+const lenis = new Lenis({
+  duration: 1.2,
+  easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+  orientation: 'vertical',
+  smoothWheel: true,
+  wheelMultiplier: 1,
+})
+
+function raf(time) {
+  lenis.raf(time)
+  requestAnimationFrame(raf)
+}
+requestAnimationFrame(raf)
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

@@ -1,40 +1,42 @@
 <template>
-  <div class="min-h-screen p-4 md:p-6 bg-[var(--color-bg)]">
-    <div class="max-w-7xl mx-auto space-y-6">
+  <div class="min-h-screen bg-[var(--color-bg)]">
+    <div class="page page-wide">
       
       <!-- Header & Actions -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
+      <div class="content-header">
         <div>
-          <h1 class="h2 text-[var(--color-text-primary)]">Attendance Log</h1>
-          <p class="text-[var(--color-text-secondary)] mt-1 text-body-sm">Track, filter, and review your course attendance</p>
+          <h1 class="h2">Attendance Log</h1>
+          <p>Track, filter, and review your course attendance</p>
         </div>
         
         <div class="flex items-center gap-3">
           <!-- Check In Methods Dropdown -->
           <div class="relative">
-            <button @click="showCheckInMenu = !showCheckInMenu" class="btn btn-primary flex items-center gap-2">
+            <button @click="showCheckInMenu = !showCheckInMenu" class="checkin-btn" @mousemove="onCheckinMove($event)" ref="checkinBtnRef">
               <MapPin class="w-4 h-4" />
               <span>CHECK IN</span>
               <ChevronDown class="w-4 h-4 opacity-70" />
             </button>
-            <div v-if="showCheckInMenu" class="absolute right-0 mt-2 w-44 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl z-50 overflow-hidden">
-              <button @click="checkIn('QR Code')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)] transition-colors">
-                <span class="w-7 h-7 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center text-xs font-bold text-[var(--color-text-primary)]">QR</span>
-                QR Code
-              </button>
-              <button @click="checkIn('NFC Tap')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)] transition-colors border-t border-[var(--color-border)]">
-                <span class="w-7 h-7 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center text-xs font-bold text-[var(--color-text-primary)]">NFC</span>
-                NFC Tap
-              </button>
-              <button @click="checkIn('Face ID')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)] transition-colors border-t border-[var(--color-border)]">
-                <span class="w-7 h-7 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center text-xs font-bold text-[var(--color-text-primary)]">FD</span>
-                Face ID
-              </button>
-              <button @click="checkIn('Manual')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)] transition-colors border-t border-[var(--color-border)]">
-                <span class="w-7 h-7 rounded-lg bg-[var(--color-primary-soft)] flex items-center justify-center text-xs font-bold text-[var(--color-text-primary)]">M</span>
-                Manual Entry
-              </button>
-            </div>
+            <Transition name="dropdown">
+              <div v-if="showCheckInMenu" class="absolute right-0 mt-2 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl z-50 overflow-hidden backdrop-blur-lg">
+                <button @click="checkIn('QR Code')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200">
+                  <span class="w-7 h-7 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-xs font-bold text-white">QR</span>
+                  QR Code
+                </button>
+                <button @click="checkIn('NFC Tap')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)]">
+                  <span class="w-7 h-7 rounded-lg bg-[var(--color-secondary)] flex items-center justify-center text-xs font-bold text-white">NFC</span>
+                  NFC Tap
+                </button>
+                <button @click="checkIn('Face ID')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)]">
+                  <span class="w-7 h-7 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-xs font-bold text-white">FD</span>
+                  Face ID
+                </button>
+                <button @click="checkIn('Manual')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)]">
+                  <span class="w-7 h-7 rounded-lg bg-[var(--color-muted)] flex items-center justify-center text-xs font-bold text-white">M</span>
+                  Manual Entry
+                </button>
+              </div>
+            </Transition>
           </div>
         </div>
       </div>
@@ -82,20 +84,20 @@
         </div>
       </div>
 
-      <!-- JUPEB Eligibility Alert -->
+      <!-- University Exam Eligibility -->
       <div class="card card-hover p-4 flex items-start gap-4"
-        :class="jupebEligible ? 'border-[var(--color-success)]/30' : 'border-[var(--color-error)]/30'"
-        :style="jupebEligible ? 'border-color:rgba(0,122,51,0.3)' : 'border-color:rgba(204,0,0,0.3)'"
+        :class="examEligible ? 'border-[var(--color-success)]/30' : 'border-[var(--color-error)]/30'"
+        :style="examEligible ? 'border-color:rgba(0,122,51,0.3)' : 'border-color:rgba(204,0,0,0.3)'"
       >
         <div class="p-2 rounded-xl shrink-0 mt-0.5" style="font-size:0;background:var(--color-primary-soft);color:var(--color-primary)">
-          <ShieldAlert v-if="!jupebEligible" class="w-5 h-5" />
+          <ShieldAlert v-if="!examEligible" class="w-5 h-5" />
           <ShieldCheck v-else class="w-5 h-5" />
         </div>
         <div>
-          <h3 class="h4 text-[var(--color-text-primary)] mb-1">JUPEB Exam Eligibility</h3>
+          <h3 class="h4 text-[var(--color-text-primary)] mb-1">University Exam Eligibility</h3>
           <p class="text-body-sm text-[var(--color-text-secondary)]">
-            <span v-if="jupebEligible">You currently meet the mandatory 75% attendance threshold for the JUPEB final examinations. Keep it up!</span>
-            <span v-else class="text-[var(--color-text-primary)]">Warning: Your attendance is below the mandatory 75% threshold required for JUPEB final examinations. Immediate improvement is required to remain eligible.</span>
+            <span v-if="examEligible">You currently meet the mandatory 75% attendance threshold for the University final examinations. Keep it up!</span>
+            <span v-else class="text-[var(--color-text-primary)]">Warning: Your attendance is below the mandatory 75% threshold required for University final examinations. Immediate improvement is required to remain eligible.</span>
           </p>
         </div>
       </div>
@@ -114,12 +116,28 @@
       </div>
 
       <!-- Check-in Feedback -->
-      <div v-if="checkInError" class="card p-3 text-body-sm text-[var(--color-error)] text-center" style="border-color:rgba(204,0,0,0.3)">
-        {{ checkInError }}
+      <div v-if="checkInError" class="card p-3 text-body-sm text-[var(--color-error)] text-center animate-shake" style="border-color:rgba(204,0,0,0.3)">
+        <div class="flex items-center justify-center gap-2">
+          <AlertCircle class="w-4 h-4" />
+          <span>{{ checkInError }}</span>
+        </div>
       </div>
-      <div v-if="checkInSuccess" class="card p-3 text-body-sm text-[var(--color-success)] text-center" style="border-color:rgba(0,122,51,0.3)">
-        Checked in successfully!
-      </div>
+      <Transition name="success-pop">
+        <div v-if="checkInSuccess" class="card p-4 text-center relative overflow-hidden" style="border-color:rgba(0,122,51,0.3); background: linear-gradient(135deg, rgba(0,122,51,0.06), rgba(59,130,246,0.04));">
+          <div class="flex items-center justify-center gap-3">
+            <div class="success-checkmark">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" stroke="var(--color-success)" fill="none" class="check-circle" />
+                <path d="M8 12l2 2 4-4" class="check-path" />
+              </svg>
+            </div>
+            <div class="text-left">
+              <p class="font-semibold text-sm" style="color:var(--color-success)">Checked in successfully!</p>
+              <p class="text-xs" style="color:var(--color-text-tertiary);margin-top:2px">{{ checkInMethod }} recorded for {{ todayDate }}</p>
+            </div>
+          </div>
+        </div>
+      </Transition>
 
       <!-- Toolbar -->
       <div class="card card-hover p-4 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -356,14 +374,28 @@ const overallRate = computed(() => {
 })
 
 const showCheckInMenu = ref(false)
+const checkinBtnRef = ref(null)
+
+function onCheckinMove(e) {
+  const btn = checkinBtnRef.value
+  if (!btn) return
+  const rect = btn.getBoundingClientRect()
+  const x = ((e.clientX - rect.left) / rect.width) * 100
+  const y = ((e.clientY - rect.top) / rect.height) * 100
+  btn.style.setProperty('--mx', x + '%')
+  btn.style.setProperty('--my', y + '%')
+}
 
 const checkInError = ref('')
 const checkInSuccess = ref(false)
+const checkInMethod = ref('')
+const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
 function checkIn(method) {
   showCheckInMenu.value = false
   checkInError.value = ''
   checkInSuccess.value = false
+  checkInMethod.value = method
   if (method === 'Face ID') {
     openFaceCamera()
     return
@@ -376,7 +408,7 @@ async function doCheckIn(method) {
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   const record = {
     id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-    course: 'JUPEB 001 Physics',
+    course: 'PHY101 General Physics I',
     date: now.toISOString().slice(0, 10),
     timeIn: timeStr,
     timeOut: '-',
@@ -398,13 +430,13 @@ async function doCheckIn(method) {
       )
       locationLat = pos.coords.latitude
       locationLng = pos.coords.longitude
-    } catch {}
+    } catch (e) { console.warn('[Attendance] Geolocation failed:', e) }
   }
 
   try {
     await api.post('/attendance', {
-      courseId: 'JUPEB 001',
-      courseName: 'JUPEB 001 Physics',
+      courseId: 'PHY101',
+      courseName: 'PHY101 General Physics I',
       status: 'Present',
       method,
       locationLat,
@@ -497,8 +529,8 @@ function onClickOutside(e) {
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
 
-// JUPEB Eligibility
-const jupebEligible = computed(() => overallRate.value >= 75)
+// University Exam Eligibility
+const examEligible = computed(() => overallRate.value >= 75)
 
 // Column Definitions for TanStack Table
 const columns = [
@@ -623,5 +655,113 @@ const setFilter = (status) => {
 }
 .animate-scan {
   animation: scan 2s ease-in-out infinite;
+}
+
+/* Check-in button - primary action */
+.checkin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+}
+.checkin-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px var(--color-primary-glow);
+}
+.checkin-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+.checkin-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.25) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.checkin-btn:hover::after {
+  opacity: 1;
+}
+
+/* Dropdown transition */
+.dropdown-enter-active {
+  animation: dropIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dropdown-leave-active {
+  animation: dropOut 0.15s var(--ease-out);
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes dropOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-4px) scale(0.96); }
+}
+
+/* Success checkmark animation */
+.success-checkmark {
+  animation: checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.check-circle {
+  stroke-dasharray: 63;
+  stroke-dashoffset: 63;
+  animation: circleDraw 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+.check-path {
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+  animation: pathDraw 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+@keyframes checkPop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+@keyframes circleDraw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes pathDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Success pop transition */
+.success-pop-enter-active {
+  animation: successIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.success-pop-leave-active {
+  animation: successOut 0.2s var(--ease-out);
+}
+@keyframes successIn {
+  from { opacity: 0; transform: scale(0.9) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes successOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.9); }
+}
+
+/* Shake animation for errors */
+.animate-shake {
+  animation: shake 0.4s ease;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
 }
 </style>

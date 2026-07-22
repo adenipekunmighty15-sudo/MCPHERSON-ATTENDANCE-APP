@@ -1,5 +1,5 @@
 <template>
-  <div class="podcast-generator-page">
+  <div class="podcast-generator-page page-wide">
     <div class="page-header">
       <button class="back-btn" @click="goBack">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -189,8 +189,6 @@ onMounted(() => {
 .podcast-generator-page {
   padding: 20px;
   min-height: 100vh;
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 .page-header {

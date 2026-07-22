@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] relative overflow-hidden font-sans">
     
-    <div class="max-w-5xl mx-auto relative z-10 h-screen flex">
+    <div class="page-wide h-screen flex" style="padding:0;">
       <!-- Side navigation - Clean dark blue style -->
       <div v-if="showHistory"
         class="chat-sidebar w-56 shrink-0 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col h-full glass">
@@ -144,7 +144,7 @@
                 </button>
                 <div v-if="msg.showThinking" class="mt-2 text-[11px] text-[var(--color-text-muted)] italic leading-relaxed whitespace-pre-wrap border-l-2 border-[var(--color-border)] pl-3">{{ msg.thinking }}</div>
               </div>
-              <div class="prose-sm max-w-none leading-relaxed" v-html="renderMarkdown(msg.content)"></div>
+              <div class="prose-sm max-w-none leading-relaxed" v-html="sanitizeHtml(renderMarkdown(msg.content))"></div>
 
               <!-- Response footer (AI only) -->
               <div v-if="msg.role === 'assistant'" class="mt-3 pt-2 border-t border-[var(--color-border)]">
@@ -222,7 +222,7 @@
           </div>
 
           <div v-if="streamAnswer" class="prose-sm max-w-none leading-relaxed">
-            <span v-html="renderMarkdown(streamAnswer)"></span>
+            <span v-html="sanitizeHtml(renderMarkdown(streamAnswer))"></span>
             <span class="inline-block w-0.5 h-4 bg-[var(--color-primary)] ml-0.5 animate-pulse align-text-bottom"></span>
           </div>
         </div>
@@ -230,7 +230,7 @@
 
       <!-- Follow-up suggestions -->
       <div v-if="followUps.length > 0 && !streaming && !mindStore.processing" class="px-4 sm:px-6 pb-3 animate-in">
-        <div class="max-w-3xl mx-auto">
+        <div class="max-w-5xl mx-auto">
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-[10px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">Suggestions:</span>
             <button v-for="(q, i) in followUps" :key="i"
@@ -259,7 +259,7 @@
         @send-prompt="sendPrompt"
         @trigger-file-upload="triggerFileUpload"
         @file-selected="onFileSelect"
-        @remove-file="removeAttachedFile"
+        @remove-file="() => {}"
         @new-chat="newChat"
         @load-conversation="loadConversation"
         @delete-old-conversations="deleteOldConversations"
@@ -275,6 +275,7 @@ import { useAuthStore } from '../stores/auth'
 import { useMindStore } from '../stores/mind'
 import { supabase } from '../lib/supabase'
 import api from '../lib/api'
+import { sanitizeHtml } from '../lib/sanitize.js'
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/atom-one-dark.min.css'
 import AIChatInput from '../components/AIChatInput.vue'
@@ -532,7 +533,7 @@ async function sendStream(msg) {
               const data = JSON.parse(line.slice(6))
               if (data.content) streamAnswer.value = data.content
               if (data.answer) streamAnswer.value = data.answer
-            } catch {}
+            } catch (e) { console.warn('[Chat] Parse stream event failed:', e) }
           }
         }
         break
@@ -574,7 +575,7 @@ case 'done':
                 if (data.content) streamAnswer.value = data.content
                 break
             }
-          } catch {}
+          } catch (e) { console.warn('[Chat] Parse stream data failed:', e) }
         }
       }
       await scrollToBottom()
@@ -636,7 +637,7 @@ async function sendPrompt(text) {
 async function copyMessage(text) {
   try {
     await navigator.clipboard.writeText(text)
-  } catch {}
+  } catch (e) { console.warn('[Chat] Copy failed:', e) }
 }
 
 async function regenerateMessage(index) {
@@ -686,7 +687,7 @@ async function loadConversation(conv) {
     lastElapsed.value = null
     await nextTick()
     setTimeout(() => scrollToBottom(true), 200)
-  } catch {}
+  } catch (e) { console.warn('[Chat] Load conversation failed:', e) }
 }
 
 function newChat() {
@@ -702,7 +703,7 @@ async function deleteOldConversations() {
   try {
     await api.post('/chats/cleanup', { days: 50 })
     await fetchConversations()
-  } catch {}
+  } catch (e) { console.warn('[Chat] Cleanup failed:', e) }
 }
 
 function formatDate(dateStr) {

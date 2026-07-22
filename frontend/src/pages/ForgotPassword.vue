@@ -1,6 +1,6 @@
 <template>
-  <div class="page-container" style="display:flex;align-items:center;justify-content:center;min-height:60vh;">
-    <div class="card" style="max-width:460px;width:100%;padding:40px;text-align:center;">
+  <div class="page-wide" style="display:flex;align-items:center;justify-content:center;min-height:80vh;padding:24px;">
+    <div class="card" style="max-width:480px;width:100%;padding:40px;text-align:center;">
       <div class="fp-icon-wrapper">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>

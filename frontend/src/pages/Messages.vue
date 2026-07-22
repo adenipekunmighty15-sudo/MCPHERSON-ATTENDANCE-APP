@@ -177,9 +177,36 @@
                 <div v-if="msg.type === 'system'" class="msg-system-bubble">{{ msg.content }}</div>
 
                 <!-- Normal message -->
-                <div v-else class="msg-bubble-wrap" :data-msg-id="msg.id" @mouseenter="hoveredMsg = msg.id" @mouseleave="hoveredMsg = null">
+                <div v-else class="msg-bubble-wrap msg-animate" :style="getMsgAnimationDelay(gi * 5 + msgIndex(msg))" :data-msg-id="msg.id" @mouseenter="hoveredMsg = msg.id" @mouseleave="hoveredMsg = null">
                   <div class="msg-bubble" :class="{ 'has-reactions': hasActiveReactions(msg) }" @click="handleMsgClick(msg, $event)" @contextmenu.prevent="openContextMenu(msg, $event)">
-                    <div class="msg-text">{{ msg.content }}</div>
+                    <!-- Voice message -->
+                    <div v-if="msg.type === 'voice'" class="msg-voice" @click.stop>
+                      <button class="voice-play-btn" @click="playVoice(msg)">
+                        <svg v-if="playingVoice !== msg.id" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                      </button>
+                      <div class="voice-waveform">
+                        <span v-for="n in 24" :key="n" class="vw-bar" :style="{ height: Math.sin(n * 0.5) * 10 + 6 + 'px', opacity: playingVoice === msg.id ? 1 : 0.5 }"></span>
+                      </div>
+                      <span class="voice-duration">{{ msg.content.replace('🎤 Voice (', '').replace(')', '') }}</span>
+                    </div>
+
+                    <!-- File/Image message -->
+                    <div v-else-if="msg.type === 'file'" class="msg-file" @click.stop>
+                      <template v-if="isImageFile(msg.content)">
+                        <img :src="getFileUrl(msg.content)" class="msg-thumb" @load="onImgLoad" @click="openPreview(getFileUrl(msg.content))" alt="attachment" />
+                      </template>
+                      <template v-else>
+                        <div class="file-attach" @click="openPreview(getFileUrl(msg.content))">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                          <span class="file-name">{{ msg.content.replace('📎 ', '') }}</span>
+                        </div>
+                      </template>
+                    </div>
+
+                    <!-- Text message -->
+                    <div v-else class="msg-text" v-html="sanitizeHtml(linkify(msg.content))"></div>
+
                     <div class="msg-meta">
                       <span class="msg-time">{{ formatTime(msg.timestamp) }}</span>
                       <span v-if="msg.senderId === 'me'" class="msg-status" :style="{ color: store.getStatusColor(msg.status) }">
@@ -244,9 +271,20 @@
           <button v-if="messageText.trim()" class="mia-send-btn" @click="sendMsg" title="Send">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           </button>
-          <button v-else class="mia-btn" title="Voice message">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          <button v-else class="mia-btn" :class="{ recording: isRecording }" @mousedown="startRecording" @mouseup="stopRecording" @mouseleave="stopRecording" @touchstart.prevent="startRecording" @touchend="stopRecording" title="Hold to record voice">
+            <svg v-if="!isRecording" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
           </button>
+        </div>
+
+        <!-- Recording indicator -->
+        <div v-if="isRecording" class="recording-bar">
+          <span class="recording-dot"></span>
+          <span class="recording-timer">{{ recordingTimer }}</span>
+          <div class="recording-wave">
+            <span v-for="n in 20" :key="n" class="rw-bar" :style="{ height: Math.random() * 24 + 4 + 'px' }"></span>
+          </div>
+          <span class="recording-label">Release to send</span>
         </div>
 
         <!-- Emoji Picker -->
@@ -255,6 +293,24 @@
         </div>
       </template>
     </div>
+
+    <!-- Media Preview Modal -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="previewUrl" class="media-preview-overlay" @click="previewUrl = ''">
+          <div class="media-preview-container" @click.stop>
+            <button class="media-preview-close" @click="previewUrl = ''">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+            <img v-if="previewUrl.match(/\.(png|jpe?g|gif|webp|svg)/i)" :src="previewUrl" class="media-preview-img" alt="preview" />
+            <div v-else class="media-preview-file">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <p>{{ previewUrl.replace(/^.*[\\/]/, '') }}</p>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- ===== NEW CHAT OVERLAY ===== -->
     <Transition name="slide">
@@ -299,6 +355,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useMessagingStore } from '../stores/messaging'
 import { useAuthStore } from '../stores/auth'
+import { sanitizeHtml } from '../lib/sanitize.js'
 
 const store = useMessagingStore()
 const authStore = useAuthStore()
@@ -317,6 +374,106 @@ const shouldAutoScroll = ref(true)
 
 const commonEmojis = ['😊', '😂', '❤️', '🔥', '👍', '🎉', '😍', '🤔', '🙏', '👋', '✨', '💯', '😭', '🥺', '🤩', '😤', '💀', '👀']
 const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '🎉']
+
+// Voice recording
+const isRecording = ref(false)
+const recordingTimer = ref('0:00')
+let mediaRecorder = null
+let audioChunks = []
+let recordingInterval = null
+let recordingStartTime = null
+
+// Media preview
+const previewUrl = ref('')
+
+// Message animations (staggered delay applied via style binding)
+
+// Voice playback
+const playingVoice = ref(null)
+let voiceAudio = null
+
+function playVoice(msg) {
+  if (playingVoice.value === msg.id) {
+    voiceAudio?.pause()
+    playingVoice.value = null
+    return
+  }
+  voiceAudio?.pause()
+  playingVoice.value = msg.id
+  const duration = parseInt(msg.content.match(/\((\d+):(\d+)\)/)?.[1] || '0') * 60 + parseInt(msg.content.match(/\((\d+):(\d+)\)/)?.[2] || '3')
+  setTimeout(() => { playingVoice.value = null }, duration * 1000)
+}
+
+function msgIndex(msg) {
+  const msgs = store.activeMessages
+  return msgs.indexOf(msg)
+}
+
+function onImgLoad() {
+  // trigger reflow for smooth image display
+}
+
+function linkify(text) {
+  if (!text) return ''
+  const urlRegex = /(https?:\/\/[^\s<]+)/g
+  return text.replace(urlRegex, (url) => {
+    const display = url.length > 50 ? url.slice(0, 47) + '...' : url
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="msg-link" @click.stop>${display}</a>`
+  })
+}
+
+function isImageFile(content) {
+  return /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(content)
+}
+
+function getFileUrl(content) {
+  const match = content.match(/📎 (.+)/)
+  return match ? match[1] : ''
+}
+
+function openPreview(url) {
+  previewUrl.value = url
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+    audioChunks = []
+    isRecording.value = true
+    recordingStartTime = Date.now()
+    recordingTimer.value = '0:00'
+
+    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data)
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' })
+      store.sendMessage(`🎤 Voice (${recordingTimer.value})`, 'voice')
+      stream.getTracks().forEach(t => t.stop())
+      isRecording.value = false
+    }
+
+    mediaRecorder.start()
+    recordingInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000)
+      recordingTimer.value = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
+      if (elapsed >= 30) stopRecording()
+    }, 200)
+  } catch {
+    console.warn('[Messages] Mic access denied')
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop()
+    clearInterval(recordingInterval)
+  }
+  isRecording.value = false
+}
+
+function getMsgAnimationDelay(index) {
+  return { '--msg-delay': `${index * 0.04}s` }
+}
 
 const filterTabs = computed(() => [
   { key: 'all', label: 'All', count: store.conversations.length },
@@ -1894,6 +2051,290 @@ onMounted(() => {
   padding: 24px;
   color: var(--color-text-tertiary);
   font-size: 13px;
+}
+
+/* ── VOICE RECORDING ── */
+.recording-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--color-surface-elevated);
+  border-top: 1px solid var(--color-border);
+  animation: slideUp 0.2s ease;
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.recording-timer {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  min-width: 36px;
+}
+
+.recording-wave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+}
+
+.rw-bar {
+  flex: 1;
+  background: var(--color-primary);
+  border-radius: 2px;
+  opacity: 0.6;
+  animation: wave 0.5s ease-in-out infinite alternate;
+}
+
+.rw-bar:nth-child(odd) { animation-delay: 0.1s; }
+.rw-bar:nth-child(3n) { animation-delay: 0.2s; }
+.rw-bar:nth-child(4n+1) { animation-delay: 0.3s; }
+
+.recording-label {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.mia-btn.recording {
+  background: #ef4444 !important;
+  color: white !important;
+  animation: pulse-btn 1s ease-in-out infinite;
+}
+
+/* ── VOICE MESSAGE ── */
+.msg-voice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.voice-play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.voice-play-btn:hover {
+  background: var(--color-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.voice-waveform {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+}
+
+.vw-bar {
+  flex: 1;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: opacity 0.3s ease;
+}
+
+.voice-duration {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+  min-width: 32px;
+}
+
+/* ── FILE / IMAGE ATTACHMENTS ── */
+.msg-file {
+  margin: 2px 0;
+}
+
+.msg-thumb {
+  max-width: 200px;
+  max-height: 160px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: block;
+  object-fit: cover;
+}
+
+.msg-thumb:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.file-attach {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-secondary);
+}
+
+.file-attach:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.file-name {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+/* ── LINK STYLING ── */
+:deep(.msg-link) {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+
+:deep(.msg-link:hover) {
+  opacity: 0.8;
+}
+
+/* ── MEDIA PREVIEW MODAL ── */
+.media-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease;
+}
+
+.media-preview-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-preview-close {
+  position: absolute;
+  top: -40px;
+  right: -8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  z-index: 1;
+}
+
+.media-preview-close:hover { opacity: 1; }
+
+.media-preview-img {
+  max-width: 90vw;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  object-fit: contain;
+}
+
+.media-preview-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  padding: 32px;
+}
+
+.media-preview-file p {
+  font-size: 14px;
+  max-width: 300px;
+  text-align: center;
+  word-break: break-all;
+}
+
+/* ── MESSAGE ENTRANCE ANIMATION ── */
+.msg-animate {
+  animation: msgEnter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: var(--msg-delay, 0s);
+}
+
+@keyframes msgEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes pulse-btn {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes wave {
+  from { height: 4px; }
+  to { height: 28px; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
 /* ── TRANSITIONS ── */

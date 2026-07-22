@@ -96,9 +96,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -115,13 +115,11 @@ function roleBadgeClass(role) {
 async function fetchItems() {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (lecturerFilter.value) params.set('lecturer_id', lecturerFilter.value)
-    const qs = params.toString() ? '?' + params.toString() : ''
-    const res = await fetch(`${API}/lecturer-courses${qs}`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading lecturer courses: ' + e.message) }
+    const params = {}
+    if (lecturerFilter.value) params.lecturer_id = lecturerFilter.value
+    const { data } = await api.get('/admin/lecturer-courses', { params })
+    items.value = data
+  } catch (e) { alert('Error loading lecturer courses: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -137,11 +135,10 @@ function closeModal() {
 async function save() {
   try {
     const body = { ...form.value }
-    const res = await fetch(`${API}/lecturer-courses`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    await api.post('/admin/lecturer-courses', body)
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error assigning lecturer: ' + e.message) }
+  } catch (e) { alert('Error assigning lecturer: ' + (e.response?.data?.message || e.message)) }
 }
 
 function confirmDelete(item) {
@@ -151,10 +148,9 @@ function confirmDelete(item) {
 
 async function deleteItem(id) {
   try {
-    const res = await fetch(`${API}/lecturer-courses/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Delete failed')
+    await api.delete(`/admin/lecturer-courses/${id}`)
     await fetchItems()
-  } catch (e) { alert('Error deleting assignment: ' + e.message) }
+  } catch (e) { alert('Error deleting assignment: ' + (e.response?.data?.message || e.message)) }
 }
 
 watch(lecturerFilter, () => { fetchItems() })

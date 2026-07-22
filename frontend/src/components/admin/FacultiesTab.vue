@@ -98,9 +98,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../lib/api'
 
 const authStore = useAuthStore()
-const API = '/api/admin'
 
 const items = ref([])
 const loading = ref(false)
@@ -117,10 +117,9 @@ function formatDate(d) {
 async function fetchItems() {
   loading.value = true
   try {
-    const res = await fetch(`${API}/faculties`, { headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Failed to fetch')
-    items.value = await res.json()
-  } catch (e) { alert('Error loading faculties: ' + e.message) }
+    const { data } = await api.get('/admin/faculties')
+    items.value = data
+  } catch (e) { alert('Error loading faculties: ' + (e.response?.data?.message || e.message)) }
   finally { loading.value = false }
 }
 
@@ -144,13 +143,14 @@ function closeModal() {
 async function save() {
   try {
     const body = { ...form.value }
-    const url = editingId.value ? `${API}/faculties/${editingId.value}` : `${API}/faculties`
-    const method = editingId.value ? 'PUT' : 'POST'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }, body: JSON.stringify(body) })
-    if (!res.ok) throw new Error('Save failed')
+    if (editingId.value) {
+      await api.put(`/admin/faculties/${editingId.value}`, body)
+    } else {
+      await api.post('/admin/faculties', body)
+    }
     closeModal()
     await fetchItems()
-  } catch (e) { alert('Error saving faculty: ' + e.message) }
+  } catch (e) { alert('Error saving faculty: ' + (e.response?.data?.message || e.message)) }
 }
 
 function confirmDelete(item) {
@@ -160,10 +160,9 @@ function confirmDelete(item) {
 
 async function deleteItem(id) {
   try {
-    const res = await fetch(`${API}/faculties/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authStore.token}` } })
-    if (!res.ok) throw new Error('Delete failed')
+    await api.delete(`/admin/faculties/${id}`)
     await fetchItems()
-  } catch (e) { alert('Error deleting faculty: ' + e.message) }
+  } catch (e) { alert('Error deleting faculty: ' + (e.response?.data?.message || e.message)) }
 }
 
 onMounted(fetchItems)

@@ -6,7 +6,7 @@
       <div class="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] bg-[var(--color-gold)]/8 blur-[100px] rounded-full" />
     </div>
 
-    <div class="max-w-7xl mx-auto relative z-10 space-y-6">
+    <div class="page-wide space-y-6" style="padding:var(--page-padding);">
       <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] flex items-center gap-3">

@@ -1,10 +1,11 @@
 <template>
   <div class="min-h-screen w-full flex items-stretch relative overflow-hidden font-sans" :class="themeClass">
-    <!-- Glass-morphism background with decorative orbs -->
+    <!-- Glass-morphism background with decorative 3D animated orbs -->
     <div class="absolute inset-0 z-0 overflow-hidden">
-      <div class="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-[var(--color-primary)]/8 via-[var(--color-accent)]/5 to-transparent rounded-full blur-[120px]" />
-      <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-[var(--color-primary-light)]/6 via-[var(--color-primary)]/4 to-transparent rounded-full blur-[100px]" />
-      <div class="absolute top-1/3 left-1/4 w-64 h-64 bg-gradient-to-r from-[var(--color-accent)]/3 to-transparent rounded-full blur-[80px]" />
+      <div class="login-orb orb-1" />
+      <div class="login-orb orb-2" />
+      <div class="login-orb orb-3" />
+      <div class="login-orb orb-4" />
     </div>
 
     <!-- Left Panel - Brand -->
@@ -148,13 +149,13 @@
               <!-- OAuth - Google-inspired liquid glass buttons -->
               <div class="grid grid-cols-2 gap-3">
                 <button type="button" @click="handleOAuth('google')"
-                  class="flex items-center justify-center gap-2.5 card border-[var(--color-border)] hover:border-[var(--color-primary)]/30 hover:shadow-lg text-[var(--color-text-primary)] py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.97] text-sm font-medium"
+                  class="flex items-center justify-center gap-2.5 border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 hover:shadow-lg text-[var(--color-text-primary)] py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.97] text-sm font-medium bg-[var(--color-surface)]"
                 >
                   <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                   <span>Google</span>
                 </button>
                 <button type="button" @click="handleGuest"
-                  class="flex items-center justify-center gap-2.5 card border-[var(--color-border)] hover:border-[var(--color-primary)]/30 hover:shadow-lg text-[var(--color-text-primary)] py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.97] text-sm font-medium"
+                  class="flex items-center justify-center gap-2.5 border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 hover:shadow-lg text-[var(--color-text-primary)] py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.97] text-sm font-medium bg-[var(--color-surface)]"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   <span>Guest</span>
@@ -194,7 +195,7 @@ async function handleLogin() {
   try {
     await authStore.signIn(email.value, password.value)
     router.push('/')
-  } catch {}
+  } catch (e) { console.warn('[Login] Sign in failed:', e) }
 }
 
 async function handleOAuth(provider) {
@@ -209,7 +210,7 @@ async function handleGuest() {
   try {
     await authStore.loginAsGuest()
     router.push('/')
-  } catch {}
+  } catch (e) { console.warn('[Login] Guest login failed:', e) }
 }
 
 // Theme detection
@@ -294,6 +295,66 @@ const themeClass = computed(() => {
 [data-theme="dark"] .clip-corner,
 .dark .clip-corner {
   opacity: 0.08;
+}
+
+/* Animated background orbs */
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  will-change: transform;
+  animation: loginOrbFloat 20s ease-in-out infinite;
+}
+.orb-1 {
+  top: -15%; right: -10%;
+  width: 35%; height: 35%;
+  background: radial-gradient(circle, rgba(11,79,140,0.12), transparent 70%);
+  animation-duration: 22s;
+}
+.orb-2 {
+  bottom: -15%; left: -8%;
+  width: 30%; height: 30%;
+  background: radial-gradient(circle, rgba(96,165,250,0.10), transparent 70%);
+  animation-duration: 26s;
+  animation-delay: -4s;
+}
+.orb-3 {
+  top: 40%; left: 20%;
+  width: 25%; height: 25%;
+  background: radial-gradient(circle, rgba(11,79,140,0.08), transparent 70%);
+  animation-duration: 18s;
+  animation-delay: -8s;
+}
+.orb-4 {
+  top: 60%; right: 15%;
+  width: 20%; height: 20%;
+  background: radial-gradient(circle, rgba(96,165,250,0.06), transparent 70%);
+  animation-duration: 24s;
+  animation-delay: -12s;
+}
+@keyframes loginOrbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.1); }
+  50% { transform: translate(-20px, 25px) scale(0.9); }
+  75% { transform: translate(15px, -15px) scale(1.05); }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .login-orb { filter: blur(60px); }
+  .orb-1 { width: 50%; height: 25%; top: -10%; right: -20%; }
+  .orb-2 { width: 40%; height: 20%; bottom: -10%; left: -15%; }
+  .orb-3 { width: 35%; height: 15%; top: 30%; left: 10%; }
+  .orb-4 { display: none; }
+  .login-gradient-text { font-size: var(--text-2xl); }
+  .feature-pill { font-size: 9px; padding: 4px 10px; }
+}
+
+@media (max-width: 480px) {
+  .login-gradient-text { font-size: var(--text-xl); }
+  .feature-pill { display: none; }
+  .login-input { font-size: 13px; padding: 10px 0 10px 32px; }
+  .clip-corner { display: none; }
 }
 
 /* Autofill override */

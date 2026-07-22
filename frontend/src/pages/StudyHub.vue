@@ -1,171 +1,168 @@
 <template>
-  <div class="study-hub">
-    <div class="study-bg">
-      <div class="bg-orb orb-1"></div>
-      <div class="bg-orb orb-2"></div>
-      <div class="bg-orb orb-3"></div>
+  <PageContent>
+    <PageHeader title="Study Hub" subtitle="Your personal learning command center">
+      <template #actions>
+        <Button @click="showCreateModal = true" variant="primary">
+          <Plus class="w-4 h-4 mr-2" />
+          New Note
+        </Button>
+      </template>
+    </PageHeader>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <Card v-for="s in stats" :key="s.label" class="flex items-center gap-4 p-4">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center" :style="{ background: s.color + '15', color: s.color }">
+          <span v-html="sanitizeHtml(s.icon)"></span>
+        </div>
+        <div>
+          <div class="text-xl font-bold" :style="{ color: s.color }">{{ s.value }}</div>
+          <div class="text-xs text-gray-500">{{ s.label }}</div>
+        </div>
+      </Card>
     </div>
 
-    <div class="study-content">
-      <div class="study-header">
-        <div class="header-left">
-          <h1 class="study-title">Study Hub</h1>
-          <p class="study-subtitle">Your personal learning command center</p>
-        </div>
-        <button class="create-btn" @click="showCreateModal = true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          <span>New Note</span>
-        </button>
-      </div>
-
-      <div class="stats-row">
-        <div class="stat-card" v-for="s in stats" :key="s.label">
-          <div class="stat-icon" :style="{ background: s.color + '15', color: s.color }">
-            <span v-html="s.icon"></span>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value" :style="{ color: s.color }">{{ s.value }}</span>
-            <span class="stat-label">{{ s.label }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="study-layout">
-        <aside class="folder-sidebar card card-hover">
-          <div class="sidebar-section" style="margin-bottom: 20px;">
-            <div class="sidebar-section-header">
-              <span class="sidebar-section-title">TurboLearn AI</span>
-            </div>
-            <router-link to="/study-dashboard" class="folder-item">
-              <span class="folder-dot" style="background: var(--color-primary)"></span>
-              <span class="folder-name">Study Dashboard</span>
-            </router-link>
-            <router-link to="/study-groups" class="folder-item">
-              <span class="folder-dot" style="background: #3B82F6"></span>
-              <span class="folder-name">Study Groups</span>
-            </router-link>
-            <router-link to="/study-plan" class="folder-item">
-              <span class="folder-dot" style="background: #818CF8"></span>
-              <span class="folder-name">Spaced Repetition Plan</span>
-            </router-link>
-          </div>
-
-          <div class="sidebar-section">
-            <div class="sidebar-section-header">
-              <span class="sidebar-section-title">Folders</span>
-              <button class="icon-btn" @click="showNewFolderInput = !showNewFolderInput" title="New Folder">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-              </button>
-            </div>
-
-            <div v-if="showNewFolderInput" class="new-folder-row">
-              <input v-model="newFolderName" class="new-folder-input" placeholder="Folder name..." @keydown.enter="createFolder" />
-              <button class="icon-btn" @click="createFolder" :disabled="!newFolderName.trim()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m20 6-11 11-5-5"/></svg>
-              </button>
-            </div>
-
-            <button class="folder-item" :class="{ active: !selectedFolder }" @click="selectedFolder = null">
-              <span class="folder-dot" style="background: var(--color-primary)"></span>
-              <span class="folder-name">All Notes</span>
-              <span class="folder-count">{{ materials.length }}</span>
-            </button>
-
-            <button class="folder-item" :class="{ active: selectedFolder === '__uncategorized__' }" @click="selectedFolder = '__uncategorized__'">
-              <span class="folder-dot" style="background: #888"></span>
-              <span class="folder-name">Uncategorized</span>
-              <span class="folder-count">{{ materials.filter(m => !m.folderId).length }}</span>
-            </button>
-
-            <button v-for="f in folders" :key="f.id" class="folder-item"
-              :class="{ active: selectedFolder === f.id }" @click="selectedFolder = f.id">
-              <span class="folder-dot" :style="{ background: f.color }"></span>
-              <span class="folder-name">{{ f.name }}</span>
-              <span class="folder-count">{{ materials.filter(m => m.folderId === f.id).length }}</span>
-            </button>
-          </div>
-        </aside>
-
-        <div class="notes-area">
-          <div class="search-bar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input v-model="searchQuery" placeholder="Search notes..." class="search-input" />
-            <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-
-          <div v-if="loading" class="notes-grid">
-            <div v-for="n in 6" :key="'skel-'+n" class="note-card-skeleton">
-              <div class="skeleton-bar" style="width:60%;height:14px"></div>
-              <div class="skeleton-bar" style="width:80%;height:10px;margin-top:8px"></div>
-              <div class="skeleton-bar" style="width:40%;height:10px;margin-top:6px"></div>
-            </div>
-          </div>
-
-          <div v-else-if="filteredMaterials.length === 0" class="empty-state">
-            <div class="empty-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--color-text-tertiary)">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-              </svg>
-            </div>
-            <h3 class="empty-title">{{ searchQuery ? 'No results found' : 'No study notes yet' }}</h3>
-            <p class="empty-desc">{{ searchQuery ? 'Try a different search term' : 'Create your first note from a lecture, PDF, or YouTube video' }}</p>
-            <button v-if="!searchQuery" class="create-btn" @click="showCreateModal = true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-              Create Note
-            </button>
-          </div>
-
-          <div v-else class="notes-grid">
-            <div v-for="m in filteredMaterials" :key="m.id" class="note-card card card-hover" @click="openNote(m.id)">
-              <div class="note-card-header">
-                <span class="note-source-badge" :class="'source-' + getSourceType(m)">
-                  {{ getSourceLabel(m) }}
-                </span>
-                <button class="note-menu-btn" @click.stop="toggleNoteMenu(m.id, $event)" title="Options">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                </button>
-              </div>
-              <h3 class="note-title">{{ m.title }}</h3>
-              <p class="note-excerpt">{{ getExcerpt(m) }}</p>
-              <div class="note-footer">
-                <span class="note-date">{{ formatDate(m.createdAt) }}</span>
-                <div class="note-badges">
-                  <span v-if="m.flashcardCount" class="note-badge fc">{{ m.flashcardCount }} cards</span>
-                  <span v-if="getQuizCount(m)" class="note-badge qz">{{ getQuizCount(m) }} Q</span>
+    <div class="flex flex-col md:flex-row gap-6">
+      <aside class="w-full md:w-64">
+        <Card class="sticky top-20">
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold mb-2">TurboLearn AI</h3>
+                <div class="flex flex-col gap-1">
+                    <Button as="router-link" to="/study-dashboard" variant="ghost" class="justify-start">
+                        <LayoutDashboard class="w-4 h-4 mr-2" /> Study Dashboard
+                    </Button>
+                    <Button as="router-link" to="/study-groups" variant="ghost" class="justify-start">
+                        <Users class="w-4 h-4 mr-2" /> Study Groups
+                    </Button>
+                     <Button as="router-link" to="/study-plan" variant="ghost" class="justify-start">
+                        <CalendarCheck class="w-4 h-4 mr-2" /> Spaced Repetition
+                    </Button>
                 </div>
-              </div>
             </div>
-          </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-semibold">Folders</h3>
+                    <Button @click="showNewFolderInput = !showNewFolderInput" size="sm" variant="ghost">
+                        <Plus class="w-4 h-4" />
+                    </Button>
+                </div>
+                <div v-if="showNewFolderInput" class="flex gap-2 mb-2">
+                    <Input v-model="newFolderName" placeholder="Folder name..." @keydown.enter="createFolder" />
+                    <Button @click="createFolder" :disabled="!newFolderName.trim()" size="sm">
+                        <Check class="w-4 h-4" />
+                    </Button>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <Button @click="selectedFolder = null" variant="ghost" class="justify-start" :class="{ 'bg-primary-soft': !selectedFolder }">
+                       <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                       All Notes
+                       <Badge variant="soft" class="ml-auto">{{ materials.length }}</Badge>
+                    </Button>
+                     <Button @click="selectedFolder = '__uncategorized__'" variant="ghost" class="justify-start" :class="{ 'bg-primary-soft': selectedFolder === '__uncategorized__' }">
+                        <span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>
+                        Uncategorized
+                        <Badge variant="soft" class="ml-auto">{{ materials.filter(m => !m.folderId).length }}</Badge>
+                    </Button>
+                    <Button v-for="f in folders" :key="f.id" @click="selectedFolder = f.id" variant="ghost" class="justify-start" :class="{ 'bg-primary-soft': selectedFolder === f.id }">
+                        <span class="w-2 h-2 rounded-full mr-2" :style="{ background: f.color }"></span>
+                        {{ f.name }}
+                        <Badge variant="soft" class="ml-auto">{{ materials.filter(m => m.folderId === f.id).length }}</Badge>
+                    </Button>
+                </div>
+            </div>
+        </Card>
+      </aside>
+
+      <div class="flex-1">
+        <Input v-model="searchQuery" placeholder="Search notes..." class="mb-4">
+            <template #prepend>
+                <Search class="w-5 h-5 text-gray-400" />
+            </template>
+        </Input>
+
+        <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <SkeletonLoader v-for="n in 6" :key="'skel-'+n" class="h-48" />
+        </div>
+
+        <EmptyState v-else-if="filteredMaterials.length === 0"
+            :title="searchQuery ? 'No results found' : 'No study notes yet'"
+            :description="searchQuery ? 'Try a different search term' : 'Create your first note from a lecture, PDF, or YouTube video'">
+             <template #actions>
+                 <Button v-if="!searchQuery" @click="showCreateModal = true" variant="primary">
+                    <Plus class="w-4 h-4 mr-2" />
+                    Create Note
+                </Button>
+             </template>
+        </EmptyState>
+
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card v-for="m in filteredMaterials" :key="m.id" @click="openNote(m.id)" class="cursor-pointer note-card" :style="{ borderLeft: '3px solid ' + getNoteColor(m) }">
+            <template #header>
+                <div class="flex justify-between items-center">
+                    <Badge :variant="getSourceType(m) === 'youtube' ? 'danger' : (getSourceType(m) === 'document' ? 'purple' : 'primary')">
+                        {{ getSourceLabel(m) }}
+                    </Badge>
+                     <Button @click.stop="toggleNoteMenu(m.id, $event)" size="sm" variant="ghost">
+                        <MoreVertical class="w-4 h-4" />
+                    </Button>
+                </div>
+            </template>
+            <h3 class="font-bold mb-2">{{ m.title }}</h3>
+            <p class="text-sm text-gray-500 mb-4">{{ getExcerpt(m) }}</p>
+            <template #footer>
+                <div class="flex justify-between items-center text-xs text-gray-400">
+                    <span>{{ formatDate(m.createdAt) }}</span>
+                    <div class="flex gap-2">
+                         <Badge v-if="m.flashcardCount" variant="blue" size="sm">{{ m.flashcardCount }} cards</Badge>
+                        <Badge v-if="getQuizCount(m)" variant="indigo" size="sm">{{ getQuizCount(m) }} Q</Badge>
+                    </div>
+                </div>
+            </template>
+          </Card>
         </div>
       </div>
     </div>
 
-    <CreateNoteModal v-if="showCreateModal" @close="showCreateModal = false" @created="onNoteCreated" />
-    <NoteViewer v-if="viewingNoteId" :noteId="viewingNoteId" @close="viewingNoteId = null" />
+    <Modal v-model="showCreateModal" title="Create New Note">
+        <CreateNoteModal @close="showCreateModal = false" @created="onNoteCreated" />
+    </Modal>
+    
+    <Modal v-model="viewingNoteId" :title="viewingNote?.title || 'View Note'" size="3xl">
+        <NoteViewer v-if="viewingNoteId" :noteId="viewingNoteId" @close="viewingNoteId = null" />
+    </Modal>
 
-    <Teleport to="body">
-      <div v-if="contextMenu.show" class="ctx-menu card card-hover"
-        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }" @click.stop>
-        <button class="ctx-item" @click="moveToFolder(contextMenu.noteId)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          Move to Folder
-        </button>
-        <button class="ctx-item ctx-danger" @click="deleteNote(contextMenu.noteId)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          Delete
-        </button>
-      </div>
-    </Teleport>
-  </div>
+    <div v-if="contextMenu.show" class="fixed z-50" :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }">
+        <Card class="p-2">
+            <Button @click="moveToFolder(contextMenu.noteId)" variant="ghost" class="w-full justify-start">
+                <Folder class="w-4 h-4 mr-2" /> Move to Folder
+            </Button>
+            <Button @click="deleteNote(contextMenu.noteId)" variant="ghost" class="w-full justify-start text-red-500 hover:text-red-500">
+                <Trash class="w-4 h-4 mr-2" /> Delete
+            </Button>
+        </Card>
+    </div>
+
+  </PageContent>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Plus, Search, MoreVertical, Folder, Trash, LayoutDashboard, Users, CalendarCheck, Check } from 'lucide-vue-next'
 import api from '../lib/api'
+import { sanitizeHtml } from '../lib/sanitize.js'
 import CreateNoteModal from '../components/study/CreateNoteModal.vue'
 import NoteViewer from '../components/study/NoteViewer.vue'
+
+import PageContent from '@/components/layout/PageContent.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import Card from '@/components/ui/Card.vue'
+import Button from '@/components/ui/Button.vue'
+import Badge from '@/components/ui/Badge.vue'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import Input from '@/components/ui/Input.vue'
+import Modal from '@/components/ui/Modal.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 
 const loading = ref(true)
 const materials = ref([])
@@ -199,6 +196,10 @@ const filteredMaterials = computed(() => {
   return list
 })
 
+const viewingNote = computed(() => {
+    return materials.value.find(m => m.id === viewingNoteId.value)
+})
+
 function getQuizCount(m) {
   const q = m.quiz
   if (Array.isArray(q)) return q.length
@@ -211,6 +212,13 @@ function getSourceType(m) {
   if (src.includes('youtube.com') || src.includes('youtu.be')) return 'youtube'
   if (src.length > 500) return 'document'
   return 'text'
+}
+
+function getNoteColor(m) {
+  const type = getSourceType(m)
+  if (type === 'youtube') return '#EF4444'
+  if (type === 'document') return '#8B5CF6'
+  return 'var(--color-primary)'
 }
 
 function getSourceLabel(m) {
@@ -242,7 +250,8 @@ function closeContextMenu() { contextMenu.value.show = false }
 
 async function moveToFolder(noteId) {
   closeContextMenu()
-  const choice = window.prompt('Move to folder:\n' + folders.value.map((f, i) => `${i + 1}. ${f.name}`).join('\n') + '\n\nEnter number (or empty for uncategorized):')
+  const folderList = folders.value.map((f, i) => `${i + 1}. ${f.name}`).join('\n')
+  const choice = window.prompt('Move to folder:\n' + folderList + '\n\nEnter number (or empty for uncategorized):')
   if (choice === null) return
   const idx = parseInt(choice) - 1
   const folderId = idx >= 0 && idx < folders.value.length ? folders.value[idx].id : null
@@ -250,7 +259,7 @@ async function moveToFolder(noteId) {
     await api.put(`/study-materials/${noteId}/folder`, { folderId })
     const m = materials.value.find(x => x.id === noteId)
     if (m) m.folderId = folderId
-  } catch {}
+  } catch (e) { console.warn('[StudyHub] Move folder failed:', e) }
 }
 
 async function deleteNote(noteId) {
@@ -259,7 +268,7 @@ async function deleteNote(noteId) {
   try {
     await api.delete(`/study-materials/${noteId}`)
     materials.value = materials.value.filter(m => m.id !== noteId)
-  } catch {}
+  } catch (e) { console.warn('[StudyHub] Delete failed:', e) }
 }
 
 async function createFolder() {
@@ -269,7 +278,7 @@ async function createFolder() {
     folders.value.push(data)
     newFolderName.value = ''
     showNewFolderInput.value = false
-  } catch {}
+  } catch (e) { console.warn('[StudyHub] Create folder failed:', e) }
 }
 
 function onNoteCreated(note) {
@@ -305,146 +314,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.study-hub { position: relative; min-height: 100vh; }
-.study-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-.study-bg .bg-orb { position: absolute; border-radius: 50%; filter: blur(120px); }
-.orb-1 { top: -10%; left: -5%; width: 30%; height: 30%; background: rgba(59,130,246,0.08); }
-.orb-2 { top: 40%; right: -8%; width: 25%; height: 25%; background: rgba(99,102,241,0.06); }
-.orb-3 { bottom: -5%; left: 30%; width: 20%; height: 20%; background: rgba(96,165,250,0.05); }
-.study-content { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
-
-.study-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-.study-title { font-size: 24px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.02em; }
-.study-subtitle { font-size: 13px; color: var(--color-text-tertiary); margin-top: 2px; }
-.create-btn {
-  display: flex; align-items: center; gap: 8px; padding: 10px 18px;
-  background: var(--color-primary); color: #fff; border: none; border-radius: 10px;
-  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
-}
-.create-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
-.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-.stat-card {
-  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
-  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
-  transition: all 0.2s ease;
-}
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-.stat-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.stat-value { font-size: 18px; font-weight: 800; line-height: 1.1; }
-.stat-label { font-size: 11px; color: var(--color-text-tertiary); }
-.stat-info { display: flex; flex-direction: column; }
-
-.study-layout { display: flex; gap: 20px; }
-.folder-sidebar {
-  width: 220px; flex-shrink: 0; padding: 16px; border-radius: 14px;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  height: fit-content; position: sticky; top: 80px;
-}
-.sidebar-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.sidebar-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-tertiary); }
-.icon-btn {
-  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-  background: none; border: 1px solid var(--color-border); border-radius: 6px;
-  color: var(--color-text-tertiary); cursor: pointer; transition: all 0.15s ease;
-}
-.icon-btn:hover { background: var(--color-primary-soft); color: var(--color-primary); border-color: var(--color-border-accent); }
-
-.new-folder-row { display: flex; gap: 6px; margin-bottom: 8px; }
-.new-folder-input {
-  flex: 1; padding: 6px 10px; background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border); border-radius: 6px;
-  font-size: 12px; color: var(--color-text-primary); outline: none;
-}
-.new-folder-input:focus { border-color: var(--color-border-accent); }
-
-.folder-item {
-  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
-  background: none; border: none; border-radius: 8px; cursor: pointer;
-  transition: all 0.15s ease; text-align: left;
-}
-.folder-item:hover { background: var(--color-primary-soft); }
-.folder-item.active { background: var(--color-primary-muted); }
-.folder-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.folder-name { flex: 1; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.folder-count { font-size: 10px; font-weight: 600; color: var(--color-text-tertiary); background: var(--color-surface-elevated); padding: 1px 6px; border-radius: 4px; }
-
-.notes-area { flex: 1; min-width: 0; }
-.search-bar {
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: 10px; margin-bottom: 16px; transition: border-color 0.2s;
-}
-.search-bar:focus-within { border-color: var(--color-border-accent); }
-.search-input { flex: 1; background: none; border: none; outline: none; font-size: 13px; color: var(--color-text-primary); }
-.search-input::placeholder { color: var(--color-text-tertiary); }
-.search-clear { background: none; border: none; color: var(--color-text-tertiary); cursor: pointer; display: flex; padding: 2px; }
-
-.notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
 .note-card {
-  padding: 16px; border-radius: 14px; background: var(--color-surface);
-  border: 1px solid var(--color-border); cursor: pointer; transition: all 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.note-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: var(--color-border-accent); }
-.note-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.note-source-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 6px; }
-.source-youtube { background: rgba(255,0,0,0.1); color: #FF0000; }
-.source-document { background: rgba(139,92,246,0.12); color: #8B5CF6; }
-.source-text { background: var(--color-primary-soft); color: var(--color-primary); }
-.note-menu-btn {
-  background: none; border: none; color: var(--color-text-tertiary); cursor: pointer;
-  padding: 4px; border-radius: 4px; opacity: 0; transition: all 0.15s;
-}
-.note-card:hover .note-menu-btn { opacity: 1; }
-.note-menu-btn:hover { background: var(--color-primary-soft); }
-.note-title {
-  font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.note-excerpt {
-  font-size: 12px; color: var(--color-text-tertiary); line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-  overflow: hidden; margin-bottom: 12px;
-}
-.note-footer { display: flex; align-items: center; justify-content: space-between; }
-.note-date { font-size: 10px; color: var(--color-text-tertiary); }
-.note-badges { display: flex; gap: 6px; }
-.note-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
-.note-badge.fc { background: rgba(96,165,250,0.1); color: #60A5FA; }
-.note-badge.qz { background: rgba(129,140,248,0.1); color: #818CF8; }
-
-.note-card-skeleton { padding: 16px; border-radius: 14px; background: var(--color-surface); border: 1px solid var(--color-border); }
-.skeleton-bar {
-  border-radius: 6px;
-  background: linear-gradient(90deg, var(--color-surface-elevated) 25%, var(--color-border) 50%, var(--color-surface-elevated) 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite;
-}
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }
-.empty-icon { margin-bottom: 16px; opacity: 0.4; }
-.empty-title { font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px; }
-.empty-desc { font-size: 13px; color: var(--color-text-tertiary); margin-bottom: 20px; max-width: 300px; }
-
-.ctx-menu {
-  position: fixed; z-index: 9999; padding: 6px; border-radius: 10px;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12); min-width: 160px;
-}
-.ctx-item {
-  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px;
-  background: none; border: none; border-radius: 6px; font-size: 12px; font-weight: 500;
-  color: var(--color-text-secondary); cursor: pointer; transition: background 0.15s;
-}
-.ctx-item:hover { background: var(--color-primary-soft); }
-.ctx-danger { color: var(--color-error); }
-.ctx-danger:hover { background: var(--color-error-soft); }
-
-@media (max-width: 768px) {
-  .stats-row { grid-template-columns: repeat(2, 1fr); }
-  .study-layout { flex-direction: column; }
-  .folder-sidebar { width: 100%; position: static; }
-  .notes-grid { grid-template-columns: 1fr; }
+.note-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
 }
 </style>
-

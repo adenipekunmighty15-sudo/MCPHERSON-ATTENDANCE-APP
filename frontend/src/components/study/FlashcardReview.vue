@@ -147,9 +147,9 @@ onMounted(async () => {
     const { data } = await api.get(`/study-materials/${props.materialId}`)
     try {
       cards.value = typeof data.flashcards === 'string' ? JSON.parse(data.flashcards) : (data.flashcards || [])
-    } catch { cards.value = [] }
+    } catch (e) { console.warn('[Flashcard] Parse failed:', e); cards.value = [] }
     cards.value = [...cards.value].sort(() => Math.random() - 0.5)
-  } catch {}
+  } catch (e) { console.warn('[Flashcard] Load failed:', e) }
   loading.value = false
 })
 </script>
