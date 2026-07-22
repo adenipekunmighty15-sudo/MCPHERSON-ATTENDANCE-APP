@@ -238,15 +238,23 @@ const navGroups = [
     ],
   },
   {
-    label: 'Admin',
+    label: 'Account',
     items: [
-      { path: '/admin', label: 'Console', icon: 'Shield' },
-      { path: '/university-admin', label: 'University Admin', icon: 'Landmark' },
       { path: '/profile', label: 'Profile', icon: 'User' },
       { path: '/settings', label: 'Settings', icon: 'Settings' },
     ],
   },
 ]
+
+if (['admin', 'super_admin'].includes(authStore.user?.role)) {
+  navGroups.splice(3, 0, {
+    label: 'Admin Portal',
+    items: [
+      { path: '/admin/portal/dashboard', label: 'Console', icon: 'Shield' },
+      { path: '/admin/portal/university-admin', label: 'University Admin', icon: 'Landmark' },
+    ],
+  })
+}
 
 const pillNavItems = [
   { path: '/', label: 'Home', icon: 'LayoutDashboard' },

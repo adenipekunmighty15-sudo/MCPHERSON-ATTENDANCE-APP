@@ -1,6 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
+const roles = ['admin', 'super_admin']
+
+function requireAdmin(to, from, next) {
+  const authStore = useAuthStore()
+  if (!authStore.isAuthenticated) return next('/admin/portal/login')
+  if (!roles.includes(authStore.user?.role)) return next('/')
+  next()
+}
+
 const routes = [
   {
     path: '/auth/callback',
@@ -80,18 +89,6 @@ const routes = [
         meta: { title: 'Face Registration', icon: 'ScanFace' },
       },
       {
-        path: 'admin',
-        name: 'Admin',
-        component: () => import('../pages/AdminDashboard.vue'),
-        meta: { title: 'Admin Console', icon: 'ShieldAlert' },
-      },
-      {
-        path: 'university-admin',
-        name: 'UniversityAdmin',
-        component: () => import('../pages/UniversityAdmin.vue'),
-        meta: { title: 'University Admin', icon: 'Landmark' },
-      },
-      {
         path: 'live-tracking',
         name: 'LiveTracking',
         component: () => import('../pages/LiveTracking.vue'),
@@ -142,6 +139,31 @@ const routes = [
     ],
   },
   {
+    path: '/admin/portal/login',
+    name: 'AdminLogin',
+    component: () => import('../pages/AdminLogin.vue'),
+    meta: { guest: true, title: 'Admin Sign In' },
+  },
+  {
+    path: '/admin/portal',
+    component: () => import('../layouts/AdminLayout.vue'),
+    beforeEnter: requireAdmin,
+    children: [
+      {
+        path: 'dashboard',
+        name: 'AdminDashboard',
+        component: () => import('../pages/AdminDashboard.vue'),
+        meta: { title: 'Dashboard' },
+      },
+      {
+        path: 'university-admin',
+        name: 'AdminUniversityAdmin',
+        component: () => import('../pages/UniversityAdmin.vue'),
+        meta: { title: 'University Admin' },
+      },
+    ],
+  },
+  {
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: () => import('../pages/ForgotPassword.vue'),
@@ -163,6 +185,8 @@ const router = createRouter({
   },
 })
 
+const adminPaths = ['/admin/portal']
+
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
@@ -173,7 +197,10 @@ router.beforeEach(async (to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} — MCU` : 'MCU'
 
   if (to.meta.auth && !authStore.isAuthenticated) return next('/login')
-  if (to.meta.guest && authStore.isAuthenticated) return next('/')
+  if (to.meta.guest && authStore.isAuthenticated) {
+    if (adminPaths.some(p => to.path.startsWith(p))) return next('/admin/portal/dashboard')
+    return next('/')
+  }
   next()
 })
 
