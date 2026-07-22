@@ -1,14 +1,5 @@
 <template>
-  <AppShell>
-    <template #nav>
-      <nav class="dk-nav">
-        <a v-for="item in navItems" :key="item.label" :href="item.href" class="dk-nav__item" :class="{ 'dk-nav__item--active': item.active }">
-          <span class="dk-nav__icon" v-html="item.icon"></span>
-          <span>{{ item.label }}</span>
-        </a>
-      </nav>
-    </template>
-
+  <AppShell :navItems="navItems">
     <div class="ra-att">
       <div class="ra-att__top">
         <div>
@@ -68,11 +59,11 @@ import BaseCard from '../components/BaseCard.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 
 const navItems = [
-  { label: 'Dashboard', href: '#', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
-  { label: 'Attendance', href: '#', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>', active: true },
-  { label: 'Timetable', href: '#', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' },
-  { label: 'Courses', href: '#', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>' },
-  { label: 'Chat', href: '#', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' },
+  { label: 'Dashboard', href: '#' },
+  { label: 'Attendance', href: '#', active: true },
+  { label: 'Timetable', href: '#' },
+  { label: 'Courses', href: '#' },
+  { label: 'Chat', href: '#' },
 ]
 
 const courseFilter = ref('')
