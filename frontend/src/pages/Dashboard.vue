@@ -18,6 +18,8 @@
     <template v-else>
       <MetricsRow :metrics="metrics" />
 
+      <SessionAttendance v-if="showSession" />
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 stagger-1">
         <div class="lg:col-span-1">
           <StudentIdCard />
@@ -183,6 +185,7 @@ import { ClipboardCheck, BookOpen, Trophy, MapPin, Calendar, MessageSquare, Chec
 import StudentIdCard from '../components/dashboard/StudentIdCard.vue'
 import DashboardHeader from '../components/dashboard/DashboardHeader.vue'
 import MetricsRow from '../components/dashboard/MetricsRow.vue'
+import SessionAttendance from '../components/dashboard/SessionAttendance.vue'
 
 import PageContent from '@/components/layout/PageContent.vue'
 import Card from '@/components/ui/Card.vue'
@@ -212,6 +215,7 @@ const metrics = [
 
 const currentClass = computed(() => schedule.find(s => s.status === 'current') || null)
 const nextClass = computed(() => schedule.find(s => s.status === 'upcoming') || schedule.find(s => s.status === 'current') || null)
+const showSession = computed(() => true)
 
 
 /* ── COURSES / SCHEDULE ── */
