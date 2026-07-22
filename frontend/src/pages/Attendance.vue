@@ -5,8 +5,9 @@
       <!-- Header & Actions -->
       <div class="content-header">
         <div>
+          <span class="eyebrow">Attendance</span>
           <h1 class="h2">Attendance Log</h1>
-          <p>Track, filter, and review your course attendance</p>
+          <p class="text-body-sm text-[var(--color-text-secondary)] mt-1">Track, filter, and review your course attendance</p>
         </div>
         
         <div class="flex items-center gap-3">
@@ -43,62 +44,58 @@
 
       <!-- Stats Overview -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 animate-stagger">
-        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-primary-soft);color:var(--color-primary)">
-            <Target class="w-6 h-6" />
+        <!-- Overall Rate -->
+        <div class="card card-hover p-5 card-lift-soft">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:var(--color-primary-soft);color:var(--color-primary)">
+                <Target class="w-5 h-5" />
+              </div>
+              <div>
+                <p class="caption">Overall Rate</p>
+                <p class="h3 text-[var(--color-text-primary)]">{{ overallRate }}%</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold" 
+              :class="examEligible ? 'bg-[var(--color-success)]/10 text-[var(--color-success)]' : 'bg-[var(--color-error)]/10 text-[var(--color-error)]'">
+              <component :is="examEligible ? ShieldCheck : ShieldAlert" class="w-3 h-3" />
+              <span>{{ examEligible ? 'Eligible' : 'At Risk' }}</span>
+            </div>
           </div>
-          <div>
-            <p class="caption">Overall Rate</p>
-            <p class="h3 text-[var(--color-text-primary)]">{{ overallRate }}%</p>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: overallRate + '%', background: overallRate >= 75 ? 'var(--color-success)' : overallRate >= 50 ? 'var(--color-warning)' : 'var(--color-error)' }"></div>
           </div>
-        </div>
-        
-        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-success)/12;color:var(--color-success)">
-            <CheckCircle2 class="w-6 h-6" />
-          </div>
-          <div>
-            <p class="caption">Present</p>
-            <p class="h3 text-[var(--color-text-primary)]">{{ summary.present }}</p>
-          </div>
-        </div>
-
-        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-warning)/12;color:var(--color-warning)">
-            <Clock class="w-6 h-6" />
-          </div>
-          <div>
-            <p class="caption">Late</p>
-            <p class="h3 text-[var(--color-text-primary)]">{{ summary.late }}</p>
-          </div>
+          <p class="text-[11px] text-[var(--color-text-tertiary)] mt-2">75% required for exams</p>
         </div>
 
-        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-error)/12;color:var(--color-error)">
-            <XCircle class="w-6 h-6" />
+        <!-- Present -->
+        <div class="card card-hover p-5 card-lift-soft">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background:rgba(0,200,83,0.1);color:var(--color-success)">
+            <CheckCircle2 class="w-5 h-5" />
           </div>
-          <div>
-            <p class="caption">Absent</p>
-            <p class="h3 text-[var(--color-text-primary)]">{{ summary.absent }}</p>
-          </div>
+          <p class="caption">Present</p>
+          <p class="h3 text-[var(--color-text-primary)]">{{ summary.present }}</p>
+          <p class="text-[11px] text-[var(--color-text-tertiary)] mt-1">{{ summary.total > 0 ? Math.round(summary.present / summary.total * 100) : 0 }}% of sessions</p>
         </div>
-      </div>
 
-      <!-- University Exam Eligibility -->
-      <div class="card card-hover p-4 flex items-start gap-4 eligibility-card"
-        :class="examEligible ? 'border-[var(--color-success)]/30' : 'border-[var(--color-error)]/30'"
-        :style="examEligible ? 'border-color:rgba(0,122,51,0.3)' : 'border-color:rgba(204,0,0,0.3)'"
-      >
-        <div class="p-2 rounded-xl shrink-0 mt-0.5" style="font-size:0;background:var(--color-primary-soft);color:var(--color-primary)">
-          <ShieldAlert v-if="!examEligible" class="w-5 h-5" />
-          <ShieldCheck v-else class="w-5 h-5" />
+        <!-- Late -->
+        <div class="card card-hover p-5 card-lift-soft">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background:rgba(255,193,7,0.1);color:var(--color-warning)">
+            <Clock class="w-5 h-5" />
+          </div>
+          <p class="caption">Late</p>
+          <p class="h3 text-[var(--color-text-primary)]">{{ summary.late }}</p>
+          <p class="text-[11px] text-[var(--color-text-tertiary)] mt-1">{{ summary.total > 0 ? Math.round(summary.late / summary.total * 100) : 0 }}% of sessions</p>
         </div>
-        <div>
-          <h3 class="h4 text-[var(--color-text-primary)] mb-1">University Exam Eligibility</h3>
-          <p class="text-body-sm text-[var(--color-text-secondary)]">
-            <span v-if="examEligible">You currently meet the mandatory 75% attendance threshold for the University final examinations. Keep it up!</span>
-            <span v-else class="text-[var(--color-text-primary)]">Warning: Your attendance is below the mandatory 75% threshold required for University final examinations. Immediate improvement is required to remain eligible.</span>
-          </p>
+
+        <!-- Absent -->
+        <div class="card card-hover p-5 card-lift-soft">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background:rgba(244,67,54,0.1);color:var(--color-error)">
+            <XCircle class="w-5 h-5" />
+          </div>
+          <p class="caption">Absent</p>
+          <p class="h3 text-[var(--color-text-primary)]">{{ summary.absent }}</p>
+          <p class="text-[11px] text-[var(--color-text-tertiary)] mt-1">{{ summary.total > 0 ? Math.round(summary.absent / summary.total * 100) : 0 }}% of sessions</p>
         </div>
       </div>
 
@@ -116,14 +113,14 @@
       </div>
 
       <!-- Check-in Feedback -->
-      <div v-if="checkInError" class="card p-3 text-body-sm text-[var(--color-error)] text-center animate-shake" style="border-color:rgba(204,0,0,0.3)">
+      <div v-if="checkInError" class="card p-3 text-body-sm text-[var(--color-error)] text-center animate-shake" style="border-color:rgba(204,0,0,0.3)" aria-live="polite" aria-atomic="true">
         <div class="flex items-center justify-center gap-2">
           <AlertCircle class="w-4 h-4" />
           <span>{{ checkInError }}</span>
         </div>
       </div>
       <Transition name="success-pop">
-        <div v-if="checkInSuccess" class="card p-4 text-center relative overflow-hidden" style="border-color:rgba(0,122,51,0.3); background: linear-gradient(135deg, rgba(0,122,51,0.06), rgba(59,130,246,0.04));">
+        <div v-if="checkInSuccess" class="card p-4 text-center relative overflow-hidden" style="border-color:rgba(0,122,51,0.3); background: linear-gradient(135deg, rgba(0,122,51,0.06), rgba(59,130,246,0.04));" aria-live="polite" aria-atomic="true">
           <div class="flex items-center justify-center gap-3">
             <div class="success-checkmark">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -154,16 +151,16 @@
 
         <!-- Filters -->
         <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          <button @click="setFilter('All')" :class="[filterStatus === 'All' ? 'bg-[var(--color-primary-soft)] text-[var(--color-text-primary)] border border-[var(--color-border-accent)]' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap">
+          <button @click="setFilter('All')" :class="[filterStatus === 'All' ? 'bg-[var(--color-primary-soft)] text-[var(--color-text-primary)] border border-[var(--color-border-accent)]' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-4 py-1.5 text-xs font-semibold rounded-full transition-colors whitespace-nowrap">
             All
           </button>
-          <button @click="setFilter('Present')" :class="[filterStatus === 'Present' ? 'bg-[var(--color-primary-soft)] text-[var(--color-text-primary)] border border-[var(--color-success)]/30' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap">
+          <button @click="setFilter('Present')" :class="[filterStatus === 'Present' ? 'bg-[var(--color-primary-soft)] text-[var(--color-text-primary)] border border-[var(--color-success)]/30' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-4 py-1.5 text-xs font-semibold rounded-full transition-colors whitespace-nowrap">
             Present
           </button>
-          <button @click="setFilter('Late')" :class="[filterStatus === 'Late' ? 'bg-[var(--color-gold-soft)] text-[var(--color-text-primary)] border border-[var(--color-warning)]/30' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap">
+          <button @click="setFilter('Late')" :class="[filterStatus === 'Late' ? 'bg-[var(--color-gold-soft)] text-[var(--color-text-primary)] border border-[var(--color-warning)]/30' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-4 py-1.5 text-xs font-semibold rounded-full transition-colors whitespace-nowrap">
             Late
           </button>
-          <button @click="setFilter('Absent')" :class="[filterStatus === 'Absent' ? 'bg-[var(--color-error-soft)] text-[var(--color-text-primary)] border border-[var(--color-error)]/30' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap">
+          <button @click="setFilter('Absent')" :class="[filterStatus === 'Absent' ? 'bg-[var(--color-error-soft)] text-[var(--color-text-primary)] border border-[var(--color-error)]/30' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]']" class="px-4 py-1.5 text-xs font-semibold rounded-full transition-colors whitespace-nowrap">
             Absent
           </button>
         </div>
@@ -182,11 +179,11 @@
                 <th 
                   v-for="header in headerGroup.headers" 
                   :key="header.id"
-                  @click="header.column.getToggleSortingHandler()?.($event)"
+                  :aria-sort="header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : 'none'"
                   class="p-4 text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider whitespace-nowrap select-none group"
                   :class="{ 'cursor-pointer hover:text-white transition-colors': header.column.getCanSort() }"
                 >
-                  <div class="flex items-center gap-1.5">
+                  <button @click="header.column.getToggleSortingHandler()?.($event)" class="flex items-center gap-1.5 w-full text-left" :class="{ 'cursor-pointer': header.column.getCanSort() }">
                     <FlexRender 
                       v-if="!header.isPlaceholder"
                       :render="header.column.columnDef.header"
@@ -198,7 +195,7 @@
                       <ChevronDown v-else-if="header.column.getIsSorted() === 'desc'" class="w-3 h-3 -mt-1" />
                       <ArrowUpDown v-else-if="header.column.getCanSort()" class="w-3 h-3" />
                     </span>
-                  </div>
+                  </button>
                 </th>
               </tr>
             </thead>
@@ -278,7 +275,7 @@
       </div>
 
       <!-- Face ID Camera Modal -->
-      <div v-if="showCamera" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" @click.self="closeCamera">
+      <div v-if="showCamera" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" @click.self="closeCamera" role="dialog" aria-modal="true" aria-label="Face ID Verification" aria-describedby="face-desc">
         <div class="card card-hover p-6 w-full max-w-md animate-scale-in">
           <div class="flex items-center justify-between mb-4">
             <h3 class="h4 text-[var(--color-text-primary)]">Face ID Verification</h3>
@@ -299,7 +296,7 @@
               <Loader2 class="w-8 h-8 animate-spin text-[var(--color-primary)]" />
             </div>
           </div>
-          <p class="text-body-sm text-[var(--color-text-tertiary)] text-center mb-4">Look directly into the camera and hold still</p>
+          <p id="face-desc" class="text-body-sm text-[var(--color-text-tertiary)] text-center mb-4">Look directly into the camera and hold still</p>
           <div class="flex gap-3">
             <button @click="closeCamera" class="btn btn-secondary flex-1">Cancel</button>
             <button @click="verifyFaceAndCheckIn" :disabled="faceVerifying || !cameraReady" class="btn btn-primary flex-1 flex items-center justify-center gap-2">
@@ -631,7 +628,7 @@ const table = useVueTable({
   getPaginationRowModel: getPaginationRowModel(),
   state: {
     get sorting() { return sorting.value },
-    get globalFilter() { return `${globalFilter.value}_${filterStatus.value}` }, // Force dependency updates
+    get globalFilter() { return `${globalFilter.value}_${filterStatus.value}` },
   },
   onSortingChange: updaterOrValue => {
     sorting.value = typeof updaterOrValue === 'function' ? updaterOrValue(sorting.value) : updaterOrValue
@@ -649,6 +646,31 @@ const setFilter = (status) => {
 </script>
 
 <style scoped>
+/* Eyebrow text */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-text-quaternary);
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Progress bar */
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--color-surface-elevated);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @keyframes scan {
   0%, 100% { top: 10%; }
   50% { top: 90%; }
@@ -832,14 +854,6 @@ th {
 }
 th:hover {
   background: var(--color-primary-muted) !important;
-}
-
-/* Eligibility card enhancement */
-.eligibility-card {
-  transition: all 0.3s var(--ease-out);
-}
-.eligibility-card:hover {
-  transform: translateX(4px);
 }
 
 /* Check-in method dropdown items */

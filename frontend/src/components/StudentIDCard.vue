@@ -1,7 +1,13 @@
 <template>
   <div ref="cardRef" class="card-wrapper" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
-    <div class="card-inner" :class="{ 'is-flipped': flipped }" :style="innerStyles" @click="flipped = !flipped">
-      <div class="card-face card-front">
+    <div
+      class="card-inner"
+      :class="{ 'is-flipped': flipped }"
+      :style="innerStyles"
+      role="group"
+      aria-label="Student identification card"
+    >
+      <div class="card-face card-front" :aria-hidden="flipped">
         <div class="card-3d-shine" :style="shineStyles" />
         <div class="card-front-bg">
           <div class="card-top-stripe">
@@ -12,41 +18,47 @@
               <span class="card-uni-name">McPherson University</span>
               <span class="card-doc-type">Student Identity Card</span>
             </div>
+            <div class="status-pill">
+              <span class="status-dot"></span>
+              <span>Active</span>
+            </div>
           </div>
           <div class="card-body">
             <div class="card-photo-section">
-              <div v-if="displayFace" class="card-photo-img"><img :src="displayFace" alt="Student" /></div>
-              <div v-else class="card-photo-placeholder">{{ initials }}</div>
+              <div v-if="displayFace" class="card-photo-img"><img :src="displayFace" :alt="`${student.name} photo`" /></div>
+              <div v-else class="card-photo-placeholder" :aria-label="initials">{{ initials }}</div>
             </div>
             <div class="card-info-section">
-              <div class="info-row">
-                <span class="info-label">NAME</span>
-                <span class="info-value">{{ student.name }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">MATRIC NO</span>
-                <span class="info-value">{{ student.matricNo }}</span>
-              </div>
-              <div class="info-row info-row-duo">
-                <div class="info-half">
-                  <span class="info-label">DEPARTMENT</span>
-                  <span class="info-value">{{ student.department }}</span>
+              <dl class="card-dl">
+                <div class="dl-row">
+                  <dt>NAME</dt>
+                  <dd>{{ student.name }}</dd>
                 </div>
-                <div class="info-half">
-                  <span class="info-label">LEVEL</span>
-                  <span class="info-value">{{ student.level }}</span>
+                <div class="dl-row">
+                  <dt>MATRIC NO</dt>
+                  <dd>{{ student.matricNo }}</dd>
                 </div>
-              </div>
-              <div class="info-row info-row-duo">
-                <div class="info-half">
-                  <span class="info-label">VALID UNTIL</span>
-                  <span class="info-value">{{ student.validUntil }}</span>
+                <div class="dl-row dl-row-duo">
+                  <div class="dl-cell">
+                    <dt>DEPARTMENT</dt>
+                    <dd>{{ student.department }}</dd>
+                  </div>
+                  <div class="dl-cell">
+                    <dt>LEVEL</dt>
+                    <dd>{{ student.level }}</dd>
+                  </div>
                 </div>
-                <div class="info-half">
-                  <span class="info-label">STATUS</span>
-                  <span class="info-value status-active">Active</span>
+                <div class="dl-row dl-row-duo">
+                  <div class="dl-cell">
+                    <dt>VALID UNTIL</dt>
+                    <dd>{{ student.validUntil }}</dd>
+                  </div>
+                  <div class="dl-cell">
+                    <dt>STATUS</dt>
+                    <dd class="status-active">Active</dd>
+                  </div>
                 </div>
-              </div>
+              </dl>
             </div>
           </div>
           <div class="card-traits">
@@ -72,12 +84,19 @@
             <span>www.mcu.edu.ng</span>
           </div>
         </div>
-        <div class="card-3d-edge" @click.stop="flipped = true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-        </div>
+        <button
+          class="card-flip-btn"
+          role="button"
+          aria-label="Flip card"
+          @click.stop="flipped = !flipped"
+          @keydown.enter.prevent="flipped = !flipped"
+          @keydown.space.prevent="flipped = !flipped"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
       </div>
 
-      <div class="card-face card-back">
+      <div class="card-face card-back" :aria-hidden="!flipped">
         <div class="card-3d-shine" :style="shineStyles" />
         <div class="card-back-bg">
           <div class="card-back-top">
@@ -111,9 +130,16 @@
             </div>
           </div>
         </div>
-        <div class="card-3d-backside" @click.stop="flipped = false">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-        </div>
+        <button
+          class="card-flip-btn"
+          role="button"
+          aria-label="Flip card"
+          @click.stop="flipped = !flipped"
+          @keydown.enter.prevent="flipped = !flipped"
+          @keydown.space.prevent="flipped = !flipped"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -150,10 +176,12 @@ const isHovering = ref(false)
 const localFace = ref('')
 let observer = null
 
+const prefersReducedMotion = ref(false)
+
 const displayFace = computed(() => props.faceImage || props.photo || localFace.value)
 
 function handleMouseMove(e) {
-  if (!cardRef.value) return
+  if (!cardRef.value || prefersReducedMotion.value) return
   isHovering.value = true
   const rect = cardRef.value.getBoundingClientRect()
   const x = e.clientX - rect.left
@@ -209,6 +237,7 @@ async function fetchFaceImage() {
 }
 
 onMounted(() => {
+  prefersReducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   fetchFaceImage()
   if (props.autoFlip && cardRef.value) {
     observer = new IntersectionObserver((entries) => {
@@ -232,7 +261,7 @@ onUnmounted(() => {
 .card-wrapper {
   width: 100%;
   max-width: 440px;
-  cursor: pointer;
+  padding-bottom: 48px;
   -webkit-tap-highlight-color: transparent;
   perspective: 1200px;
 }
@@ -263,61 +292,12 @@ onUnmounted(() => {
   border-radius: 20px;
   mix-blend-mode: overlay;
 }
-.card-3d-edge {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: rgba(30,58,95,0.5);
-  backdrop-filter: blur(8px);
-  color: #FFFFFF;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.25);
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 3;
-}
-.card-3d-edge:hover {
-  background: rgba(30,58,95,0.6);
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.4);
-}
-.card-3d-backside {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 14px;
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(8px);
-  color: #FFFFFF;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.2);
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 3;
-}
-.card-3d-backside:hover {
-  background: rgba(255,255,255,0.25);
-  transform: translateX(-50%) translateY(-2px);
-  border-color: rgba(255,255,255,0.35);
-}
 .card-front-bg {
   width: 100%;
   height: 100%;
   background: linear-gradient(145deg, #1e3a5f 0%, #1a4a7a 40%, #0f2b4c 100%);
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
   padding: 12px;
   box-sizing: border-box;
 }
@@ -328,7 +308,25 @@ onUnmounted(() => {
   padding-bottom: 8px;
   border-bottom: 2px solid rgba(255,255,255,0.3);
 }
-
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(134, 239, 172, 0.15);
+  border: 1px solid rgba(134, 239, 172, 0.3);
+  font-size: 9px;
+  font-weight: 700;
+  color: #86EFAC;
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #86EFAC;
+}
 .card-title-area {
   display: flex;
   flex-direction: column;
@@ -392,32 +390,39 @@ onUnmounted(() => {
   justify-content: center;
   gap: 4px;
 }
-.info-row {
+.card-dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dl-row {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
-.info-row-duo {
-  flex-direction: row;
+.dl-row-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-.info-half {
-  flex: 1;
+.dl-cell {
   display: flex;
   flex-direction: column;
 }
-.info-label {
+.dl-row dt {
   font-size: 8px;
   font-weight: 700;
   color: rgba(255,255,255,0.5);
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
-.info-value {
+.dl-row dd {
   font-size: 12px;
   font-weight: 700;
   color: #FFFFFF;
   line-height: 1.3;
+  margin: 0;
 }
 .status-active {
   color: #86EFAC;
@@ -455,6 +460,34 @@ onUnmounted(() => {
   color: rgba(255,255,255,0.5);
   padding-top: 6px;
   border-top: 1px solid rgba(255,255,255,0.15);
+}
+.card-flip-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 5;
+  border: none;
+  outline: none;
+  transition: all 0.2s;
+}
+.card-flip-btn:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+}
+.card-flip-btn:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.6);
+  outline-offset: 2px;
 }
 .card-back-bg {
   width: 100%;
@@ -545,12 +578,17 @@ onUnmounted(() => {
   letter-spacing: 0.5px;
   margin-top: 4px !important;
 }
+@media (prefers-reduced-motion: reduce) {
+  .card-inner { transition: none !important; }
+  .card-3d-shine { display: none; }
+  .card-wrapper { perspective: none; }
+}
 @media (max-width: 480px) {
   .card-wrapper { max-width: 100%; }
   .card-inner { aspect-ratio: 440 / 280; min-height: 200px; }
   .card-uni-name { font-size: 12px; }
-  .info-value { font-size: 11px; }
-  .card-photo-placeholder, .card-photo-img { width: 64px; height: 64px; }
-  .card-photo-section { width: 76px; }
+  .card-dl dd { font-size: 11px; }
+  .card-photo-placeholder, .card-photo-img { width: 60px; height: 60px; }
+  .card-photo-section { width: 72px; }
 }
 </style>

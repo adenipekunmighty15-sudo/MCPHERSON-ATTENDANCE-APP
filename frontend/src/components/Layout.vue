@@ -5,6 +5,9 @@
     'sidebar-expanded': effectiveExpanded,
     'is-resizing': isResizing
   }" :style="{ '--sidebar-current': sidebarWidth + 'px' }">
+    <!-- Skip link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Dynamic Background -->
     <div class="layout-bg">
       <div class="bg-orb orb-1"></div>
@@ -25,10 +28,19 @@
             <span class="logo-sub">Portal</span>
           </div>
         </router-link>
+          <button
+            class="sidebar-collapse-btn"
+            @click.stop="sidebarExpanded = !sidebarExpanded"
+            :aria-label="sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'"
+            :aria-pressed="sidebarExpanded.toString()"
+            title="Toggle sidebar"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m13 9-3 3 3 3"/></svg>
+          </button>
       </div>
 
       <nav class="sidebar-nav">
-        <div v-for="(group, gi) in navGroups" :key="gi" class="nav-group">
+        <div v-for="(group, gi) in navGroups" :key="gi" class="nav-group" role="group" :aria-label="group.label">
           <span class="nav-group-label">{{ group.label }}</span>
           <router-link
             v-for="item in group.items"
@@ -36,11 +48,12 @@
             :to="item.path"
             class="nav-item"
             :class="{ active: isActive(item.path) }"
+            :aria-current="isActive(item.path) ? 'page' : undefined"
             @click="sidebarOpen = false"
           >
             <component :is="getIcon(item.icon)" class="nav-icon" />
             <span class="nav-label">{{ item.label }}</span>
-            <span v-if="item.badge === 'unread' && messagingStore.unreadTotal > 0" class="nav-badge">{{ messagingStore.unreadTotal > 9 ? '9+' : messagingStore.unreadTotal }}</span>
+            <span v-if="item.badge === 'unread' && messagingStore.unreadTotal > 0" class="nav-badge" aria-live="polite" aria-atomic="true">{{ messagingStore.unreadTotal > 9 ? '9+' : messagingStore.unreadTotal }}</span>
             <div class="nav-active-bar" />
           </router-link>
         </div>
@@ -73,12 +86,20 @@
     <div class="main-area">
       <header class="topbar">
         <div class="topbar-left">
-          <button class="menu-btn" @click="sidebarOpen = !sidebarOpen" aria-label="Menu">
+          <button class="menu-btn" @click="sidebarOpen = !sidebarOpen" :aria-expanded="sidebarOpen" :aria-label="sidebarOpen ? 'Close menu' : 'Open menu'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
           </button>
-          <div class="topbar-breadcrumb">
-            <span class="breadcrumb-current">{{ pageTitle }}</span>
-          </div>
+          <nav aria-label="Breadcrumb">
+            <ol class="breadcrumb-list">
+              <li class="breadcrumb-item">
+                <router-link to="/" class="breadcrumb-link">Home</router-link>
+                <span class="breadcrumb-sep" aria-hidden="true">/</span>
+              </li>
+              <li class="breadcrumb-item">
+                <span class="breadcrumb-current" aria-current="page">{{ pageTitle }}</span>
+              </li>
+            </ol>
+          </nav>
         </div>
 
         <div class="topbar-right">
@@ -91,10 +112,13 @@
           <router-link to="/profile" class="user-avatar" title="Profile">
             {{ authStore.user?.name?.charAt(0) || 'U' }}
           </router-link>
+          <button class="topbar-logout" @click="handleLogout" title="Sign Out" aria-label="Sign Out">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
         </div>
       </header>
 
-      <main class="content">
+      <main id="main-content" class="content" tabindex="-1">
         <router-view v-slot="{ Component, route: r }">
           <transition name="page" mode="out-in">
             <component :is="Component" :key="r.path" />
@@ -106,19 +130,32 @@
     <CommandPalette v-if="showCommandPalette" @close="showCommandPalette = false" />
 
     <nav class="bottom-nav">
-      <router-link
-        v-for="item in pillNavItems"
-        :key="item.path"
-        :to="item.path"
-        class="bottom-nav-item"
-        :class="{ active: isActive(item.path) }"
-      >
-        <span class="bn-icon-wrap">
-          <component :is="getIcon(item.icon)" class="bottom-nav-icon" />
-          <span v-if="item.badge === 'unread' && messagingStore.unreadTotal > 0" class="bn-badge">{{ messagingStore.unreadTotal > 9 ? '9+' : messagingStore.unreadTotal }}</span>
-        </span>
-        <span class="bottom-nav-label">{{ item.label }}</span>
-      </router-link>
+      <template v-for="item in pillNavItems" :key="item.path">
+        <router-link
+          v-if="item.path !== '#logout'"
+          :to="item.path"
+          class="bottom-nav-item"
+          :class="{ active: isActive(item.path) }"
+          :aria-current="isActive(item.path) ? 'page' : undefined"
+        >
+          <span class="bn-icon-wrap">
+            <component :is="getIcon(item.icon)" class="bottom-nav-icon" />
+            <span v-if="item.badge === 'unread' && messagingStore.unreadTotal > 0" class="bn-badge" aria-live="polite" aria-atomic="true">{{ messagingStore.unreadTotal > 9 ? '9+' : messagingStore.unreadTotal }}</span>
+          </span>
+          <span class="bottom-nav-label">{{ item.label }}</span>
+        </router-link>
+        <button
+          v-else
+          @click="handleLogout"
+          class="bottom-nav-item"
+          aria-label="Sign Out"
+        >
+          <span class="bn-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </span>
+          <span class="bottom-nav-label">Logout</span>
+        </button>
+      </template>
     </nav>
   </div>
 </template>
@@ -141,7 +178,7 @@ const sidebarHover = ref(false)
 const isLargeScreen = ref(window.innerWidth > 1280)
 const sidebarExpanded = ref(true)
 const showCommandPalette = ref(false)
-const sidebarWidth = ref(Number(localStorage.getItem('sidebar-width')) || (window.innerWidth <= 1280 ? 240 : 280))
+const sidebarWidth = ref(Number(localStorage.getItem('sidebar-width')) || (window.innerWidth <= 1280 ? 240 : 264))
 const isResizing = ref(false)
 
 const effectiveExpanded = computed(() => {
@@ -217,6 +254,7 @@ const pillNavItems = [
   { path: '/messages', label: 'Messages', icon: 'MessageCircle', badge: 'unread' },
   { path: '/study-hub', label: 'Study Hub', icon: 'Library' },
   { path: '/profile', label: 'Profile', icon: 'User' },
+  { path: '#logout', label: 'Logout', icon: 'LogOut' },
 ]
 
 function isActive(path) {
@@ -286,8 +324,28 @@ onUnmounted(() => {
 <style scoped>
 .layout {
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-bg);
+  position: relative;
+}
+
+/* ==================== SKIP LINK ==================== */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  z-index: 10000;
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 0;
 }
 
 /* ==================== BACKGROUND ==================== */
@@ -363,6 +421,35 @@ onUnmounted(() => {
   padding: 14px;
   min-height: 64px;
   border-bottom: 1px solid var(--color-border);
+  gap: 4px;
+}
+
+.sidebar-collapse-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-quaternary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.sidebar-expanded .sidebar-collapse-btn {
+  opacity: 1;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: var(--color-border-accent);
 }
 
 .sidebar-logo {
@@ -468,6 +555,7 @@ onUnmounted(() => {
   gap: 10px;
   padding: 9px 10px;
   border-radius: 8px;
+  min-height: 44px;
   color: var(--color-text-tertiary);
   text-decoration: none;
   font-size: 13px;
@@ -670,7 +758,7 @@ onUnmounted(() => {
 .sidebar:not(.sidebar-expanded) .sidebar-footer {
   justify-content: center;
   padding: 10px 6px;
-  gap: 0;
+  gap: 4px;
 }
 
 .sidebar:not(.sidebar-expanded) .sidebar-user {
@@ -680,8 +768,7 @@ onUnmounted(() => {
   gap: 0;
 }
 
-.sidebar:not(.sidebar-expanded) .sidebar-user-info,
-.sidebar:not(.sidebar-expanded) .sidebar-logout {
+.sidebar:not(.sidebar-expanded) .sidebar-user-info {
   display: none;
 }
 
@@ -755,7 +842,7 @@ onUnmounted(() => {
   margin-left: var(--sidebar-collapsed);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   transition: margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -807,10 +894,38 @@ onUnmounted(() => {
   border-color: var(--color-border-accent);
 }
 
-.topbar-breadcrumb {
+.topbar-breadcrumb,
+.breadcrumb-list {
   display: flex;
   align-items: center;
   gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breadcrumb-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--color-primary);
+}
+
+.breadcrumb-sep {
+  font-size: 13px;
+  color: var(--color-border-strong);
+  font-weight: 300;
 }
 
 .breadcrumb-current {
@@ -885,6 +1000,28 @@ onUnmounted(() => {
   box-shadow: 0 0 20px var(--color-primary-glow);
 }
 
+.topbar-logout {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text-quaternary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.topbar-logout:hover {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+  border-color: transparent;
+}
+
 /* ==================== CONTENT ==================== */
 .content {
   flex: 1;
@@ -927,6 +1064,22 @@ onUnmounted(() => {
   to {
     opacity: 0;
     transform: translateY(-8px) scale(0.98);
+  }
+}
+
+/* ==================== REDUCED MOTION ==================== */
+@media (prefers-reduced-motion: reduce) {
+  .layout *,
+  .layout *::before,
+  .layout *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .sidebar,
+  .main-area,
+  .sidebar-resize-handle {
+    transition-duration: 0s !important;
   }
 }
 
@@ -1099,6 +1252,23 @@ onUnmounted(() => {
     padding: 14px 16px;
     padding-bottom: 90px;
   }
+
+  .menu-btn,
+  .user-avatar,
+  .topbar-logout,
+  .topbar-search {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .bottom-nav-item {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .sidebar-collapse-btn {
+    display: none;
+  }
 }
 
 /* ==================== DESKTOP (generic) ==================== */
@@ -1168,6 +1338,7 @@ onUnmounted(() => {
     text-decoration: none;
     color: var(--color-text-quaternary);
     padding: 8px 10px;
+    min-height: 44px;
     border-radius: 12px;
     transition: all 0.25s var(--ease-spring);
     flex: 1;
