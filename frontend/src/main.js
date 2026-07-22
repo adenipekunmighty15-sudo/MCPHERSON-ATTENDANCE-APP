@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import * as Components from './components'
 import './index.css'
+import './design-kit/tokens.css'
 
 
 // Global error handler for non-Vue errors (images, etc.)

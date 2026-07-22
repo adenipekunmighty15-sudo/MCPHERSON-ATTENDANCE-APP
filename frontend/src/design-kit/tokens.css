@@ -1,0 +1,87 @@
+/* ─── Design Kit Tokens ────────────────────────────────
+   Ink-navy / parchment / brass palette
+   Fraunces (display) / Inter (sans) / IBM Plex Mono
+   Layers on top of existing token system — import in main.js
+   ─────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,50&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ── Ink-navy scale (replaces generic --color-primary) ── */
+  --color-ink-900: #0B1A33;
+  --color-ink-800: #0F1E3D;
+  --color-ink-700: #162240;
+  --color-ink-600: #1F2D4A;
+  --color-ink-500: #3D4A5E;
+  --color-ink-400: #68758E;
+  --color-ink-300: #96A0B5;
+  --color-ink-200: #C8CED9;
+  --color-ink-100: #E2E6ED;
+  --color-ink-50:  #F4F6FA;
+
+  /* ── Parchment scale (replaces surface/tints) ── */
+  --color-parchment-900: #E8E2D8;
+  --color-parchment-800: #EDE8DF;
+  --color-parchment-700: #F2EDE6;
+  --color-parchment-600: #F5F1EB;
+  --color-parchment-500: #F8F5F0;
+  --color-parchment-400: #FBF9F6;
+  --color-parchment-300: #FDFCFA;
+  --color-parchment-200: #FEFEFD;
+  --color-parchment-100: #FFFFFF;
+
+  /* ── Brass (replaces --color-accent) ── */
+  --color-brass:      #B8860B;
+  --color-brass-hover:#9A7209;
+  --color-brass-soft: rgba(184, 134, 11, 0.1);
+  --color-brass-glow: rgba(184, 134, 11, 0.2);
+
+  /* ── Semantic aliases (backward compat with existing tokens) ── */
+  --color-bg:           var(--color-parchment-500);
+  --color-bg-alt:       var(--color-parchment-600);
+  --color-surface:      var(--color-parchment-100);
+  --color-surface-alt:  var(--color-parchment-300);
+  --color-border:       var(--color-ink-100);
+  --color-border-muted: var(--color-parchment-800);
+  --color-text:         var(--color-ink-900);
+  --color-text-muted:   var(--color-ink-400);
+
+  /* ── Typography ── */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    'IBM Plex Mono', 'JetBrains Mono', monospace;
+
+  /* ── Design kit extras ── */
+  --seal-size: 80px;
+  --sidebar-width-kit: 260px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink-900: #F0F4FA;
+    --color-ink-800: #BAC8DA;
+    --color-ink-700: #8DA2B7;
+    --color-ink-600: #60748F;
+    --color-ink-500: #3D4A5E;
+    --color-ink-400: #26405E;
+    --color-ink-300: #1B2A47;
+    --color-ink-200: #14203B;
+    --color-ink-100: #0F1A30;
+    --color-ink-50:  #080F1E;
+
+    --color-parchment-900: #1A1510;
+    --color-parchment-800: #1F1A14;
+    --color-parchment-700: #252018;
+    --color-parchment-600: #2A251D;
+    --color-parchment-500: #302B22;
+    --color-parchment-400: #383228;
+    --color-parchment-300: #403A2F;
+    --color-parchment-200: #484236;
+    --color-parchment-100: #504A3D;
+
+    --color-brass:      #E8B83A;
+    --color-brass-hover:#F0C64A;
+    --color-brass-soft: rgba(232, 184, 58, 0.12);
+    --color-brass-glow: rgba(232, 184, 58, 0.2);
+  }
+}
