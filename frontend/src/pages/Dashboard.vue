@@ -83,21 +83,8 @@
 
         <!-- RIGHT: Student ID + Quick Actions -->
         <div class="space-y-5">
-          <!-- Student ID Card (dark navy) -->
-          <div class="rounded-xl p-6" style="background: #0F1E3D; box-shadow: 0 8px 24px rgba(15,30,61,0.15);">
-            <div class="text-[10px] font-semibold mb-3 tracking-wider" style="color: rgba(255,255,255,0.5); font-family: 'Inter', system-ui, sans-serif;">{{ student.matricNo }}</div>
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold" style="background: #2563EB; color: #FFFFFF; font-family: 'Fraunces', Georgia, serif;">{{ initials }}</div>
-              <div>
-                <div class="text-base font-bold" style="color: #FFFFFF; font-family: 'Inter', system-ui, sans-serif;">{{ student.name }}</div>
-                <div class="text-xs mt-0.5" style="color: rgba(255,255,255,0.6); font-family: 'Inter', system-ui, sans-serif;">{{ student.program }} &middot; {{ student.level }}</div>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: rgba(34,197,94,0.15); color: #22C55E; font-family: 'Inter', system-ui, sans-serif;">Active</span>
-              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: rgba(37,99,235,0.15); color: #60A5FA; font-family: 'Inter', system-ui, sans-serif;">Eligible</span>
-            </div>
-          </div>
+          <!-- Student ID Card (from component) -->
+          <StudentIDCard :student="student" />
 
           <!-- Quick Actions -->
           <div class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
@@ -146,6 +133,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
+import StudentIDCard from '../components/StudentIDCard.vue'
 import { ClipboardCheck, Trophy, TrendingUp, Clock, BookOpen, MessageSquare, Library, Calendar } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -190,11 +178,9 @@ const student = computed(() => ({
   matricNo: authStore.user?.matricNo || '2023/0451',
   program: 'Computer Science',
   level: '200 Level',
+  department: 'Computer Science',
+  validUntil: '2027/08/31',
 }))
-
-const initials = computed(() => {
-  return student.value.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-})
 
 const stats = [
   { icon: ClipboardCheck, iconBg: 'rgba(37,99,235,0.1)', iconColor: '#2563EB', value: '87%', label: 'Overall Attendance', delta: 'of 24 classes', deltaColor: '#68758E' },
