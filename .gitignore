@@ -12,6 +12,7 @@ backend/node_modules/
 backend/.env
 backend/uploads/
 backend/*.log
+backend/data/users.json
 
 # Root
 .env
