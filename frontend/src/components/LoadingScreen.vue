@@ -325,4 +325,27 @@ defineProps({
 .fade-load-leave-to {
   opacity: 0;
 }
+
+/* Loading screen entrance animation */
+.ls-root {
+  animation: lsFadeIn 0.3s var(--ease-out) both;
+}
+@keyframes lsFadeIn {
+  from { opacity: 0; transform: scale(0.99); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Pulsing glow on skeleton blocks for enhanced shimmer */
+.sk-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  animation: skPulse 2s ease-in-out infinite;
+}
+@keyframes skPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
 </style>
+

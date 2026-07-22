@@ -74,11 +74,11 @@
     </div>
 
     <!-- Course Cards Grid -->
-    <div v-if="filteredCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-stagger">
+    <div v-if="filteredCourses.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-courses">
       <div
         v-for="course in filteredCourses"
         :key="course.id"
-        class="card card-hover p-5 course-card cursor-pointer"
+        class="card card-hover p-5 course-card cursor-pointer card-lift-soft"
         @click="openDetail(course)"
       >
         <div>
@@ -126,7 +126,7 @@
 
     <!-- Course Detail Modal -->
     <div v-if="selectedCourse"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in modal-backdrop"
       @click.self="selectedCourse = null"
     >
       <div class="card card-hover p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
@@ -199,7 +199,7 @@
 
     <!-- Add Course Modal -->
     <div v-if="showAddModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in modal-backdrop"
       @click.self="showAddModal = false"
     >
       <div class="card card-hover p-6 max-w-lg w-full animate-scale-in">
@@ -481,6 +481,51 @@ onMounted(fetchCourses)
   border-radius: 999px;
   font-weight: 700;
   letter-spacing: 0.3px;
+}
+
+/* Stagger entrance for course cards */
+.stagger-courses > * {
+  animation: fadeInUp 0.35s var(--ease-out) both;
+}
+.stagger-courses > *:nth-child(1) { animation-delay: 0s; }
+.stagger-courses > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger-courses > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger-courses > *:nth-child(4) { animation-delay: 0.18s; }
+.stagger-courses > *:nth-child(5) { animation-delay: 0.24s; }
+.stagger-courses > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-courses > *:nth-child(7) { animation-delay: 0.36s; }
+.stagger-courses > *:nth-child(8) { animation-delay: 0.42s; }
+.stagger-courses > *:nth-child(9) { animation-delay: 0.48s; }
+.stagger-courses > *:nth-child(10) { animation-delay: 0.54s; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal backdrop enhancement */
+.modal-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 0.3s ease;
+}
+
+/* Filter bar inline entrance */
+.content-header {
+  animation: fadeInUp 0.3s var(--ease-out) both;
+}
+
+/* Progress bar glow */
+.progress-glow {
+  position: relative;
+  overflow: hidden;
+}
+.progress-glow::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+  animation: shimmerSlide 2s ease-in-out infinite;
 }
 
 @media (max-width: 768px) {

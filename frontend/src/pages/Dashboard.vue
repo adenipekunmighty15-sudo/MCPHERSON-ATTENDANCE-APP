@@ -1,6 +1,13 @@
 <template>
-  <PageContent>
-    <PageHeader :streak="streak" :todayDate="todayDate" />
+  <PageContent class="dash-root">
+    <div class="dash-particles" aria-hidden="true">
+      <div class="particle p1"></div>
+      <div class="particle p2"></div>
+      <div class="particle p3"></div>
+      <div class="particle p4"></div>
+      <div class="particle p5"></div>
+    </div>
+    <DashboardHeader :streak="streak" :todayDate="todayDate" />
 
     <template v-if="loading">
       <div class="grid grid-cols-1 gap-6">
@@ -11,13 +18,13 @@
     <template v-else>
       <MetricsRow :metrics="metrics" />
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 stagger-1">
         <div class="lg:col-span-1">
           <StudentIdCard />
         </div>
         
         <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card v-if="currentClass" class="bg-primary-soft border-primary-muted">
+          <Card v-if="currentClass" class="bg-primary-soft border-primary-muted card-lift-soft">
             <template #header>
               <Badge variant="primary" class="live-badge">
                 <span class="live-dot"></span>
@@ -34,7 +41,7 @@
             </template>
           </Card>
 
-          <Card v-else>
+          <Card v-else class="card-lift-soft">
              <template #header>
                 <Badge>
                     <Calendar class="w-4 h-4" />
@@ -52,50 +59,8 @@
         </div>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-            <template #header>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold">Attendance Rate</span>
-                    <span class="text-lg font-bold text-primary">{{ attendancePct }}%</span>
-                </div>
-            </template>
-            <div class="flex items-center justify-center">
-                <svg width="100" height="56" viewBox="0 0 100 56">
-                    <path d="M6 50 A44 44 0 0 1 94 50" fill="none" stroke="var(--color-border)" stroke-width="6" stroke-linecap="round"/>
-                    <path d="M6 50 A44 44 0 0 1 94 50" fill="none" stroke="url(#arcGrad)" stroke-width="6" stroke-linecap="round"
-                        stroke-dasharray="138" :stroke-dashoffset="138 * (1 - attendancePct / 100)" />
-                </svg>
-            </div>
-            <template #footer>
-                <div class="flex justify-between text-sm">
-                    <span>Streak: <strong>{{ streak }}d</strong></span>
-                    <span>Missed: <strong>{{ missedClasses }}</strong></span>
-                </div>
-            </template>
-        </Card>
-
-        <Card>
-            <template #header>
-                <span class="text-sm font-semibold">This Semester</span>
-            </template>
-            <div class="grid grid-cols-3 gap-4 text-center">
-                <div>
-                    <CountUp :to="totalClasses" class="text-4xl font-bold" />
-                    <span class="text-xs text-gray-500">Classes</span>
-                </div>
-                <div>
-                    <CountUp :to="attendedClasses" class="text-4xl font-bold text-success" />
-                    <span class="text-xs text-gray-500">Attended</span>
-                </div>
-                <div>
-                    <CountUp :to="gpa" :decimals="2" class="text-4xl font-bold text-primary" />
-                    <span class="text-xs text-gray-500">GPA</span>
-                </div>
-            </div>
-        </Card>
-
-        <Card>
+      <div class="grid grid-cols-1 gap-4 stagger-2">
+        <Card class="card-lift-soft">
             <template #header>
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-semibold">Enrolled Courses</span>
@@ -110,9 +75,9 @@
         </Card>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 stagger-3">
         <div class="lg:col-span-3">
-          <Card>
+          <Card class="card-lift-soft">
             <template #header>
                 <div class="flex justify-between items-center">
                     <h2 class="text-lg font-bold">My Courses</h2>
@@ -122,7 +87,7 @@
                 </div>
             </template>
             <div class="flex flex-col gap-4">
-                <div v-for="c in enrolledCourses" :key="c.code" class="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer" @click="$router.push('/courses')">
+                <div v-for="c in enrolledCourses" :key="c.code" class="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer my-course-item" @click="$router.push('/courses')">
                     <div class="w-12 h-12 rounded-lg flex items-center justify-center" :style="{ backgroundColor: c.color + '14', color: c.color }">
                         <BookOpen class="w-6 h-6" />
                     </div>
@@ -140,13 +105,19 @@
         </div>
 
         <div class="lg:col-span-2">
-            <Card>
+            <Card class="card-lift-soft">
                 <template #header>
                     <div class="flex justify-between items-center">
                         <h2 class="text-lg font-bold flex items-center gap-2">
                             <Calendar class="w-5 h-5" /> Today
                         </h2>
-                        <span class="text-sm text-gray-500">{{ todayDate }}</span>
+                        <div class="flex items-center gap-3">
+                            <div v-if="countdown && nextUpcoming" class="countdown-chip" :title="'Next: ' + nextUpcoming.label">
+                                <Timer class="w-3.5 h-3.5" />
+                                <span class="countdown-value">{{ countdown }}</span>
+                            </div>
+                            <span class="text-sm text-gray-500">{{ todayDate }}</span>
+                        </div>
                     </div>
                 </template>
 
@@ -161,7 +132,7 @@
                              <div class="p-3 rounded-lg" :class="item.status === 'current' ? 'bg-primary-soft' : ''">
                                 <div class="flex justify-between items-center">
                                     <span class="font-semibold">{{ item.title }}</span>
-                                    <Badge v-if="item.status === 'current'" variant="primary" size="sm">Now</Badge>
+                                    <Badge v-if="item.status === 'current'" variant="primary" size="sm" class="now-badge">Now</Badge>
                                     <CheckCircle v-else-if="item.status === 'done'" class="w-5 h-5 text-success" />
                                 </div>
                                 <p class="text-sm text-gray-500 flex items-center gap-1">
@@ -179,19 +150,19 @@
                 </div>
                 
                 <div class="grid grid-cols-4 gap-2 mt-4">
-                    <Button as="router-link" to="/attendance" variant="ghost" class="flex flex-col h-auto">
+                    <Button as="router-link" to="/attendance" variant="ghost" class="flex flex-col h-auto quick-action-btn">
                         <MapPin class="w-6 h-6" />
                         <span class="text-xs mt-1">Check In</span>
                     </Button>
-                    <Button as="router-link" to="/chat" variant="ghost" class="flex flex-col h-auto">
+                    <Button as="router-link" to="/chat" variant="ghost" class="flex flex-col h-auto quick-action-btn">
                         <MessageSquare class="w-6 h-6" />
                         <span class="text-xs mt-1">AI Chat</span>
                     </Button>
-                    <Button as="router-link" to="/study-hub" variant="ghost" class="flex flex-col h-auto">
+                    <Button as="router-link" to="/study-hub" variant="ghost" class="flex flex-col h-auto quick-action-btn">
                         <Library class="w-6 h-6" />
                         <span class="text-xs mt-1">Study</span>
                     </Button>
-                    <Button as="router-link" to="/timetable" variant="ghost" class="flex flex-col h-auto">
+                    <Button as="router-link" to="/timetable" variant="ghost" class="flex flex-col h-auto quick-action-btn">
                         <Calendar class="w-6 h-6" />
                         <span class="text-xs mt-1">Schedule</span>
                     </Button>
@@ -201,29 +172,19 @@
       </div>
     </template>
 
-    <svg width="0" height="0" class="hidden">
-      <defs>
-        <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#1E40AF" />
-          <stop offset="50%" stop-color="#3B82F6" />
-          <stop offset="100%" stop-color="#93C5FD" />
-        </linearGradient>
-      </defs>
-    </svg>
+
   </PageContent>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { ClipboardCheck, BookOpen, Trophy, MapPin, Calendar, MessageSquare, CheckCircle, TrendingUp, ArrowRight, Library, Sun, Cloud, Moon, Star } from 'lucide-vue-next'
-import CountUp from '../components/CountUp.vue'
+import { ClipboardCheck, BookOpen, Trophy, MapPin, Calendar, MessageSquare, CheckCircle, TrendingUp, ArrowRight, Library, Sun, Cloud, Moon, Star, Timer } from 'lucide-vue-next'
 import StudentIdCard from '../components/dashboard/StudentIdCard.vue'
 import DashboardHeader from '../components/dashboard/DashboardHeader.vue'
 import MetricsRow from '../components/dashboard/MetricsRow.vue'
 
 import PageContent from '@/components/layout/PageContent.vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import Badge from '@/components/ui/Badge.vue'
@@ -241,16 +202,12 @@ const todayDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'lon
 /* ── STATS ── */
 const streak = 3
 const attendancePct = 87
-const missedClasses = 2
-const totalClasses = 24
 const attendedClasses = 21
-const gpa = 3.72
 
 const metrics = [
   { label: 'Attendance', value: attendancePct, suffix: '%', icon: ClipboardCheck, color: 'var(--color-primary)', trend: '' },
   { label: 'Streak', value: streak, suffix: 'd', icon: TrendingUp, color: 'var(--color-accent)', trend: '+1 this week' },
   { label: 'Attended', value: attendedClasses, suffix: '', icon: Trophy, color: 'var(--color-primary)', trend: '' },
-  { label: 'GPA', value: gpa, suffix: '', icon: BookOpen, color: 'var(--color-muted)', trend: '' },
 ]
 
 const currentClass = computed(() => schedule.find(s => s.status === 'current') || null)
@@ -283,10 +240,39 @@ const getTimelineDotClass = (status) => {
     }
 }
 
+/* ── LIVE COUNTDOWN TIMER ── */
+const countdown = ref('')
+const nextUpcoming = computed(() => {
+  const upcoming = schedule.find(s => s.status === 'upcoming')
+  if (!upcoming) return null
+  const [h, m] = upcoming.time.split(':').map(Number)
+  const d = new Date()
+  d.setHours(h, m, 0, 0)
+  if (d < new Date()) d.setDate(d.getDate() + 1)
+  return { label: upcoming.title, time: upcoming.time, target: d }
+})
+
+let countdownInterval = null
+function updateCountdown() {
+  if (!nextUpcoming.value) { countdown.value = ''; return }
+  const diff = nextUpcoming.value.target - new Date()
+  if (diff <= 0) { countdown.value = 'Starting now!'; return }
+  const h = Math.floor(diff / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  const s = Math.floor((diff % 60000) / 1000)
+  countdown.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
 onMounted(() => {
+  updateCountdown()
+  countdownInterval = setInterval(updateCountdown, 1000)
   setTimeout(() => {
     loading.value = false
   }, 500)
+})
+
+onBeforeUnmount(() => {
+  if (countdownInterval) clearInterval(countdownInterval)
 })
 </script>
 
@@ -314,5 +300,125 @@ onMounted(() => {
 @keyframes pulse-dot {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(0.8); opacity: 0.5; }
+}
+
+/* Course list item hover enhancement */
+.my-course-item {
+  transition: all 0.2s var(--ease-out);
+}
+.my-course-item:hover {
+  transform: translateX(4px);
+  background: var(--color-primary-soft) !important;
+}
+
+/* Quick action hover lift */
+.quick-action-btn {
+  transition: all 0.2s var(--ease-spring);
+}
+.quick-action-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary) !important;
+}
+
+/* Now badge enhanced glow */
+.now-badge {
+  animation: nowGlow 2s ease-in-out infinite;
+}
+@keyframes nowGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+  50% { box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.2); }
+}
+
+/* Stagger coordination — reset parent's flex to allow animations */
+.stagger-1, .stagger-2, .stagger-3 {
+  animation: none;
+}
+.stagger-1 > *,
+.stagger-2 > *,
+.stagger-3 > * {
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+
+/* ── FLOATING PARTICLES ── */
+.dash-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: particleFloat 8s ease-in-out infinite;
+}
+.p1 { left: 10%; top: 20%; width: 8px; height: 8px; background: var(--color-primary-soft); animation-delay: 0s; }
+.p2 { left: 25%; top: 60%; width: 5px; height: 5px; background: var(--color-accent-soft); animation-delay: 1.5s; }
+.p3 { left: 70%; top: 30%; width: 7px; height: 7px; background: var(--color-primary-soft); animation-delay: 3s; }
+.p4 { left: 85%; top: 70%; width: 4px; height: 4px; background: var(--color-accent-soft); animation-delay: 4.5s; }
+.p5 { left: 50%; top: 10%; width: 6px; height: 6px; background: var(--color-primary-soft); animation-delay: 6s; }
+@keyframes particleFloat {
+  0% { opacity: 0; transform: translateY(0) scale(0); }
+  20% { opacity: 0.6; transform: translateY(-20px) scale(1); }
+  80% { opacity: 0.4; transform: translateY(-60px) scale(0.8); }
+  100% { opacity: 0; transform: translateY(-80px) scale(0); }
+}
+
+/* ── COUNTDOWN CHIP ── */
+.countdown-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, var(--color-primary-soft), var(--color-accent-soft));
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  white-space: nowrap;
+  animation: countPulse 2s ease-in-out infinite;
+  letter-spacing: 0.3px;
+}
+.countdown-value {
+  font-family: var(--font-mono);
+  min-width: 55px;
+  text-align: center;
+}
+@keyframes countPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(15, 30, 61, 0.1); }
+  50% { box-shadow: 0 0 8px 2px rgba(15, 30, 61, 0.06); }
+}
+
+/* ── ATTENDANCE ARC GLOW ── */
+.attendance-arc {
+  filter: drop-shadow(0 0 6px var(--color-primary-glow));
+  animation: arcFadeIn 1s var(--ease-out) both;
+}
+@keyframes arcFadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── SMALLER CARDS ── */
+.stagger-2 > * {
+  padding: var(--card-padding-sm) !important;
+}
+.stagger-2 .text-4xl {
+  font-size: var(--text-2xl) !important;
+}
+.stagger-2 svg[width="100"] {
+  transform: scale(0.7);
+}
+.stagger-2 .badge {
+  font-size: 10px;
+  padding: 1px 6px;
+}
+.stagger-2 .flex-wrap {
+  gap: 4px;
 }
 </style>

@@ -19,19 +19,19 @@
             </button>
             <Transition name="dropdown">
               <div v-if="showCheckInMenu" class="absolute right-0 mt-2 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl z-50 overflow-hidden backdrop-blur-lg">
-                <button @click="checkIn('QR Code')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200">
+                <button @click="checkIn('QR Code')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 dropdown-item">
                   <span class="w-7 h-7 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-xs font-bold text-white">QR</span>
                   QR Code
                 </button>
-                <button @click="checkIn('NFC Tap')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)]">
+                <button @click="checkIn('NFC Tap')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)] dropdown-item">
                   <span class="w-7 h-7 rounded-lg bg-[var(--color-secondary)] flex items-center justify-center text-xs font-bold text-white">NFC</span>
                   NFC Tap
                 </button>
-                <button @click="checkIn('Face ID')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)]">
+                <button @click="checkIn('Face ID')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)] dropdown-item">
                   <span class="w-7 h-7 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-xs font-bold text-white">FD</span>
                   Face ID
                 </button>
-                <button @click="checkIn('Manual')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)]">
+                <button @click="checkIn('Manual')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-primary-soft)] transition-all duration-200 border-t border-[var(--color-border)] dropdown-item">
                   <span class="w-7 h-7 rounded-lg bg-[var(--color-muted)] flex items-center justify-center text-xs font-bold text-white">M</span>
                   Manual Entry
                 </button>
@@ -43,7 +43,7 @@
 
       <!-- Stats Overview -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 animate-stagger">
-        <div class="card card-hover p-5 flex items-center gap-4">
+        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-primary-soft);color:var(--color-primary)">
             <Target class="w-6 h-6" />
           </div>
@@ -53,7 +53,7 @@
           </div>
         </div>
         
-        <div class="card card-hover p-5 flex items-center gap-4">
+        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-success)/12;color:var(--color-success)">
             <CheckCircle2 class="w-6 h-6" />
           </div>
@@ -63,7 +63,7 @@
           </div>
         </div>
 
-        <div class="card card-hover p-5 flex items-center gap-4">
+        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-warning)/12;color:var(--color-warning)">
             <Clock class="w-6 h-6" />
           </div>
@@ -73,7 +73,7 @@
           </div>
         </div>
 
-        <div class="card card-hover p-5 flex items-center gap-4">
+        <div class="card card-hover p-5 flex items-center gap-4 card-lift-soft">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:var(--color-error)/12;color:var(--color-error)">
             <XCircle class="w-6 h-6" />
           </div>
@@ -85,7 +85,7 @@
       </div>
 
       <!-- University Exam Eligibility -->
-      <div class="card card-hover p-4 flex items-start gap-4"
+      <div class="card card-hover p-4 flex items-start gap-4 eligibility-card"
         :class="examEligible ? 'border-[var(--color-success)]/30' : 'border-[var(--color-error)]/30'"
         :style="examEligible ? 'border-color:rgba(0,122,51,0.3)' : 'border-color:rgba(204,0,0,0.3)'"
       >
@@ -245,14 +245,14 @@
             <button 
               @click="table.setPageIndex(0)" 
               :disabled="!table.getCanPreviousPage()"
-              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors pagination-btn"
             >
               <ChevronsLeft class="w-4 h-4" />
             </button>
             <button 
               @click="table.previousPage()" 
               :disabled="!table.getCanPreviousPage()"
-              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors pagination-btn"
             >
               <ChevronLeft class="w-4 h-4" />
             </button>
@@ -262,14 +262,14 @@
             <button 
               @click="table.nextPage()" 
               :disabled="!table.getCanNextPage()"
-              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors pagination-btn"
             >
               <ChevronRight class="w-4 h-4" />
             </button>
             <button 
               @click="table.setPageIndex(table.getPageCount() - 1)" 
               :disabled="!table.getCanNextPage()"
-              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors pagination-btn"
             >
               <ChevronsRight class="w-4 h-4" />
             </button>
@@ -763,5 +763,92 @@ const setFilter = (status) => {
   40% { transform: translateX(6px); }
   60% { transform: translateX(-4px); }
   80% { transform: translateX(4px); }
+}
+
+/* Enhanced row hover */
+tbody tr {
+  transition: all 0.15s ease;
+  position: relative;
+}
+tbody tr:hover {
+  background: var(--color-primary-soft) !important;
+  transform: scale(1.002);
+}
+tbody tr::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-primary);
+  transform: scaleY(0);
+  transition: transform 0.2s var(--ease-out);
+  border-radius: 0 3px 3px 0;
+}
+tbody tr:hover::after {
+  transform: scaleY(1);
+}
+
+/* Status badge pulse */
+.badge-success,
+.badge-warning,
+.badge-error,
+.badge-neutral {
+  position: relative;
+}
+.badge-success::before { background: var(--color-success); animation: statusPulse 2s ease-in-out infinite; }
+.badge-warning::before { background: var(--color-warning); }
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Pagination button enhanced hover */
+.pagination-btn {
+  transition: all 0.2s var(--ease-spring);
+}
+.pagination-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Stagger entrance for stats */
+.animate-stagger > * {
+  animation: fadeInUp 0.35s var(--ease-out) both;
+}
+.animate-stagger > *:nth-child(1) { animation-delay: 0s; }
+.animate-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.animate-stagger > *:nth-child(3) { animation-delay: 0.16s; }
+.animate-stagger > *:nth-child(4) { animation-delay: 0.24s; }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Table header sort hint */
+th {
+  transition: background 0.2s ease;
+}
+th:hover {
+  background: var(--color-primary-muted) !important;
+}
+
+/* Eligibility card enhancement */
+.eligibility-card {
+  transition: all 0.3s var(--ease-out);
+}
+.eligibility-card:hover {
+  transform: translateX(4px);
+}
+
+/* Check-in method dropdown items */
+.dropdown-item {
+  transition: all 0.2s var(--ease-out);
+  position: relative;
+}
+.dropdown-item:hover {
+  background: var(--color-primary-soft) !important;
+  transform: translateX(4px);
 }
 </style>

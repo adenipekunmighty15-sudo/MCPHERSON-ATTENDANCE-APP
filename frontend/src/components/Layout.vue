@@ -1112,6 +1112,28 @@ onUnmounted(() => {
   }
 }
 
+/* ==================== NAV ENHANCEMENTS ==================== */
+.nav-item.active .nav-active-bar {
+  box-shadow: 0 0 12px var(--color-primary-glow), 0 0 24px var(--color-primary-glow);
+}
+.nav-item {
+  position: relative;
+}
+.nav-badge {
+  animation: navBadgePulse 2s ease-in-out infinite;
+}
+@keyframes navBadgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3); }
+  50% { box-shadow: 0 0 6px 2px rgba(255,255,255,0.15); }
+}
+
+/* Content area scrollbar */
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 999px; }
+.content::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary); }
+.content { scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent; }
+
 /* ==================== BOTTOM NAV ==================== */
 .bottom-nav {
   display: none;

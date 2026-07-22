@@ -378,4 +378,123 @@ function handleLogout() {
 @media (max-width: 768px) {
   .details-grid { grid-template-columns: 1fr; }
 }
+
+/* Profile section entrance */
+.profile-page > .page > * {
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+.profile-cover { animation-delay: 0s; }
+.profile-info-section { animation-delay: 0.1s; }
+.stats-row { animation-delay: 0.15s; }
+.profile-tabs { animation-delay: 0.2s; }
+.achievements-grid { animation-delay: 0.25s; }
+.activity-feed { animation-delay: 0.25s; }
+.details-grid { animation-delay: 0.25s; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Avatar glow on hover */
+.profile-avatar {
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
+}
+.profile-avatar:hover:not(.clickable) {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg), 0 0 0 3px var(--color-border-strong), 0 0 30px var(--color-primary-glow);
+}
+
+/* Avatar ring pulse for online status */
+.status-badge {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(27, 122, 61, 0.5); }
+  50% { box-shadow: 0 0 8px 4px rgba(27, 122, 61, 0.2); }
+}
+
+/* Stat circle entrance */
+.stats-row .stat-item {
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+.stats-row .stat-item:nth-child(1) { animation-delay: 0.1s; }
+.stats-row .stat-item:nth-child(2) { animation-delay: 0.18s; }
+.stats-row .stat-item:nth-child(3) { animation-delay: 0.26s; }
+.stats-row .stat-item:nth-child(4) { animation-delay: 0.34s; }
+
+/* Achievement card hover */
+.achievement-card {
+  transition: all 0.25s var(--ease-spring);
+}
+.achievement-card:hover {
+  transform: translateX(6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-accent);
+}
+
+/* Achievement icon scale on hover */
+.achievement-card:hover .achievement-icon {
+  transform: scale(1.1);
+}
+.achievement-icon {
+  transition: transform 0.25s var(--ease-spring);
+}
+
+/* Activity item hover */
+.activity-item {
+  transition: all 0.2s var(--ease-out);
+  border-radius: var(--radius-sm);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.activity-item:hover {
+  background: var(--color-primary-soft);
+  transform: translateX(4px);
+}
+
+/* Activity dot pulse */
+.activity-dot {
+  animation: activityPulse 2s ease-in-out infinite;
+}
+@keyframes activityPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+
+/* Tab button active enhancement */
+.profile-tabs .btn.active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 30, 61, 0.2);
+}
+
+/* Details card hover */
+.details-card {
+  transition: all 0.25s var(--ease-out);
+}
+.details-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-accent);
+}
+
+/* Cover gradient subtle animation */
+.cover-gradient {
+  animation: gradientShift 8s ease-in-out infinite;
+  background-size: 200% 200%;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Tag badge subtle glow */
+.badge {
+  transition: all 0.2s var(--ease-out);
+}
+.badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
 </style>

@@ -10,7 +10,7 @@
     </PageHeader>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <Card v-for="s in stats" :key="s.label" class="flex items-center gap-4 p-4">
+      <Card v-for="s in stats" :key="s.label" class="flex items-center gap-4 p-4 stats-card">
         <div class="w-10 h-10 rounded-lg flex items-center justify-center" :style="{ background: s.color + '15', color: s.color }">
           <span v-html="sanitizeHtml(s.icon)"></span>
         </div>
@@ -23,7 +23,7 @@
 
     <div class="flex flex-col md:flex-row gap-6">
       <aside class="w-full md:w-64">
-        <Card class="sticky top-20">
+        <Card class="sticky top-20 sticky-card">
             <div class="mb-4">
                 <h3 class="text-sm font-semibold mb-2">TurboLearn AI</h3>
                 <div class="flex flex-col gap-1">
@@ -64,7 +64,7 @@
                         Uncategorized
                         <Badge variant="soft" class="ml-auto">{{ materials.filter(m => !m.folderId).length }}</Badge>
                     </Button>
-                    <Button v-for="f in folders" :key="f.id" @click="selectedFolder = f.id" variant="ghost" class="justify-start" :class="{ 'bg-primary-soft': selectedFolder === f.id }">
+                    <Button v-for="f in folders" :key="f.id" @click="selectedFolder = f.id" variant="ghost" class="justify-start folder-item" :class="{ 'bg-primary-soft': selectedFolder === f.id }">
                         <span class="w-2 h-2 rounded-full mr-2" :style="{ background: f.color }"></span>
                         {{ f.name }}
                         <Badge variant="soft" class="ml-auto">{{ materials.filter(m => m.folderId === f.id).length }}</Badge>
@@ -316,9 +316,49 @@ onUnmounted(() => {
 <style scoped>
 .note-card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: fadeInUp 0.35s var(--ease-out) both;
 }
 .note-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+.note-card:nth-child(1) { animation-delay: 0s; }
+.note-card:nth-child(2) { animation-delay: 0.05s; }
+.note-card:nth-child(3) { animation-delay: 0.1s; }
+.note-card:nth-child(4) { animation-delay: 0.15s; }
+.note-card:nth-child(5) { animation-delay: 0.2s; }
+.note-card:nth-child(6) { animation-delay: 0.25s; }
+.note-card:nth-child(7) { animation-delay: 0.3s; }
+.note-card:nth-child(8) { animation-delay: 0.35s; }
+.note-card:nth-child(9) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Stats card hover */
+.stats-card {
+  transition: all 0.25s var(--ease-spring);
+}
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Folder item hover */
+.folder-item {
+  transition: all 0.2s var(--ease-out);
+}
+.folder-item:hover {
+  transform: translateX(4px);
+}
+
+/* Sidebar card sticky enhancement */
+.sticky-card {
+  transition: box-shadow 0.3s ease;
+}
+.sticky-card:hover {
+  box-shadow: var(--shadow-lg);
 }
 </style>

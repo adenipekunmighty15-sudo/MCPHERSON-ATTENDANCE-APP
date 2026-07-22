@@ -2508,4 +2508,77 @@ onMounted(() => {
     padding: 8px 10px;
   }
 }
+
+/* ── LIST ITEM HOVER DEPTH ── */
+.mlp-item {
+  transition: all 0.2s var(--ease-out);
+}
+.mlp-item:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── UNREAD BADGE PULSE ── */
+.mlp-badge {
+  animation: badgePulse 2s ease-in-out infinite;
+}
+.bn-badge {
+  animation: badgePulse 2s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(15, 30, 61, 0.3); }
+  50% { box-shadow: 0 0 6px 3px rgba(15, 30, 61, 0.12); }
+}
+
+/* ── TYPING INDICATOR ── */
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-tertiary);
+  animation: typingDot 1.4s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ── SKELETON PULSE ── */
+.mlp-skeleton {
+  animation: skeletonFade 1.5s ease-in-out infinite;
+}
+@keyframes skeletonFade {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ── ACTIVE CHAT HIGHLIGHT ── */
+.mlp-item.active {
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+/* ── NEW CHAT BUTTON HOVER ── */
+.mlp-new-btn {
+  transition: all 0.2s var(--ease-spring);
+}
+.mlp-new-btn:hover {
+  transform: scale(1.1) rotate(90deg);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* ── SEARCH INPUT FOCUS ── */
+.mlp-search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
 </style>
+
