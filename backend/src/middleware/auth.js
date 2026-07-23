@@ -3,12 +3,14 @@ import { query } from '../../lib/db.js'
 
 const ALLOWED_ROLES = ['student', 'lecturer', 'admin', 'super_admin']
 
+const ALLOWED_EMAIL_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAINS || '@mcpherson.edu,@undergraduate.mcu.edu.ng').split(',').map(d => d.trim())
+
 function isAllowedEmail(email) {
   if (!email || typeof email !== 'string') return false
   const atIndex = email.lastIndexOf('@')
   if (atIndex === -1) return false
   const domain = email.slice(atIndex)
-  return domain === '@mcpherson.edu' || domain === '@undergraduate.mcu.edu.ng'
+  return ALLOWED_EMAIL_DOMAINS.some(d => domain === d)
 }
 
 function isValidRole(role) {
@@ -31,9 +33,6 @@ async function authenticate(req, res, next) {
       console.error('Auth verification failed:', error?.message || 'No user returned')
       return res.status(401).json({ error: 'Unauthorized' })
     }
-    if (!isAllowedEmail(supaUser.email)) {
-      return res.status(403).json({ error: 'Use your school email (@mcpherson.edu / @undergraduate.mcu.edu.ng)' })
-    }
 
     let role = 'student'
     try {
@@ -43,6 +42,11 @@ async function authenticate(req, res, next) {
       }
     } catch (e) {
       console.warn('Could not verify role from DB, defaulting to student:', e.message)
+    }
+
+    // Skip email domain check for admin/super_admin roles (they may use non-school emails)
+    if (!['admin', 'super_admin'].includes(role) && !isAllowedEmail(supaUser.email)) {
+      return res.status(403).json({ error: 'Use your school email (@mcpherson.edu / @undergraduate.mcu.edu.ng)' })
     }
 
     req.user = {

@@ -97,7 +97,7 @@ defineProps({
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: var(--color-bg);
+  background: #F5F1EA;
   overflow: hidden;
 }
 

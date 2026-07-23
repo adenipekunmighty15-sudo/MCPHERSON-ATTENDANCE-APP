@@ -431,9 +431,7 @@ async function sendStream(msg) {
     }
   } catch (err) {
     console.error('Stream error:', err)
-    error.value = 'Failed to reach AI service. Check your connection and try again.'
-    const elapsed = Math.round(performance.now() - startTime)
-    mindStore.messages.push({ role: 'assistant', content: `I'm sorry, I couldn't process your request. The AI service is currently unavailable. Please try again later.`, elapsed, rating: null })
+    error.value = err.message || 'Failed to reach AI service. Check your connection and try again.'
   } finally {
     streaming.value = false
   }

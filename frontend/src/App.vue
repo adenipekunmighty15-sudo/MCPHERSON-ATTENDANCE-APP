@@ -37,6 +37,6 @@ onUnmounted(() => clearTimeout(loadingTimer))
 <style scoped>
 .app-root {
   min-height: 100vh;
-  background: var(--color-bg);
+  background: #F5F1EA;
 }
 </style>

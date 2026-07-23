@@ -251,8 +251,8 @@ function initThree() {
   const rect = threeContainer.value.getBoundingClientRect()
   const aspect = rect.width / rect.height
 
-  camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 20)
-  camera.position.z = 5
+  camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 40)
+  camera.position.z = 8
 
   renderer = new THREE.WebGLRenderer({
     alpha: true,
@@ -274,35 +274,37 @@ function initThree() {
   dir2.position.set(-2, -1, 3)
   scene.add(dir2)
 
-  const palette = [0x0F1E3D, 0xC9902B, 0xF5F1EA, 0x2B3A9E]
-  const geometries = [
-    new THREE.SphereGeometry(0.6, 24, 24),
-    new THREE.SphereGeometry(0.4, 20, 20),
-    new THREE.SphereGeometry(0.8, 32, 32),
-    new THREE.OctahedronGeometry(0.5),
-    new THREE.OctahedronGeometry(0.35),
-    new THREE.TetrahedronGeometry(0.6),
-    new THREE.TetrahedronGeometry(0.4),
+  const palette = [0x0F1E3D, 0xC9902B, 0xF5F1EA, 0x2B3A9E, 0xC9902B, 0x5B6BBF]
+  const geomTypes = [
+    (s) => new THREE.SphereGeometry(s, 24, 24),
+    (s) => new THREE.OctahedronGeometry(s),
+    (s) => new THREE.TetrahedronGeometry(s),
+    (s) => new THREE.IcosahedronGeometry(s),
+    (s) => new THREE.DodecahedronGeometry(s),
+    (s) => new THREE.TorusGeometry(s, s * 0.4, 16, 32),
+    (s) => new THREE.TorusKnotGeometry(s, s * 0.35, 48, 16),
+    (s) => new THREE.ConeGeometry(s, s * 1.5, 12),
+    (s) => new THREE.CylinderGeometry(s * 0.5, s, s * 1.5, 12),
+    (s) => new THREE.BoxGeometry(s, s, s),
   ]
 
-  const depthPlanes = [
-    { z: -1.5, opacity: 0.15 },
-    { z: -3, opacity: 0.1 },
-    { z: -6, opacity: 0.06 },
-  ]
-
-  geometries.forEach((geo, i) => {
-    const plane = depthPlanes[i % depthPlanes.length]
+  const COUNT = 60
+  for (let i = 0; i < COUNT; i++) {
+    const size = 0.15 + Math.random() * 0.7
+    const geomFn = geomTypes[i % geomTypes.length]
+    const geo = geomFn(size)
     const color = palette[i % palette.length]
+    const depth = -1.5 - Math.random() * 6
+    const opacity = 0.04 + Math.random() * 0.14
     const obj = createShape(geo, color, {
-      x: (Math.random() - 0.5) * 5,
-      y: (Math.random() - 0.5) * 4,
-      z: plane.z,
-    }, plane.opacity)
+      x: (Math.random() - 0.5) * 10,
+      y: (Math.random() - 0.5) * 8,
+      z: depth,
+    }, opacity)
     scene.add(obj.mesh)
     scene.add(obj.wire)
     shapes.push(obj)
-  })
+  }
 
   animate()
 }
@@ -311,11 +313,18 @@ function animate() {
   animationId = requestAnimationFrame(animate)
   const t = clock.getElapsedTime()
 
+  const camRadius = 0.6
+  camera.position.x = Math.sin(t * 0.08) * camRadius
+  camera.position.y = Math.cos(t * 0.06) * camRadius * 0.3
+  camera.lookAt(0, 0, -3)
+
   shapes.forEach((obj) => {
     obj.mesh.rotation.x += obj.rotSpeed.x
     obj.mesh.rotation.y += obj.rotSpeed.y
     obj.mesh.rotation.z += obj.rotSpeed.z
+    const drift = Math.sin(t * 0.15 + obj.floatOffset) * 0.2
     obj.mesh.position.y = obj.baseY + Math.sin(t * obj.speed + obj.floatOffset) * obj.floatAmp
+    obj.mesh.position.x += drift * 0.003
 
     obj.wire.rotation.copy(obj.mesh.rotation)
     obj.wire.position.copy(obj.mesh.position)
