@@ -1,111 +1,112 @@
 <template>
-  <div class="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-    <div class="page page-wide">
-      
+  <div class="min-h-screen" style="background: #F5F1EA;">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+
       <!-- Header -->
-      <div class="content-header">
+      <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="h2">Class Schedule</h1>
-          <p>Manage your weekly University timetable</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.15em]" style="color: #96A0B5;">2023/2024 &middot; SEMESTER 2</p>
+          <h1 class="text-3xl font-bold mt-1" style="color: #0F1E3D; font-family: 'Playfair Display', 'Georgia', serif;">Timetable</h1>
         </div>
-        <div class="flex items-center gap-2 card card-hover p-1">
-          <button @click="viewMode = 'timeline'" class="btn btn-primary" :class="{ active: viewMode === 'timeline' }" style="padding:8px 16px;font-size:12px;border-width:2px">Timeline</button>
-          <button @click="viewMode = 'week'" class="btn btn-primary" :class="{ active: viewMode === 'week' }" style="padding:8px 16px;font-size:12px;border-width:2px">Week</button>
-          <button @click="viewMode = 'month'" class="btn btn-primary" :class="{ active: viewMode === 'month' }" style="padding:8px 16px;font-size:12px;border-width:2px">Month</button>
-        </div>
-      </div>
-
-      <!-- Timeline View -->
-      <div v-if="viewMode === 'timeline'" class="card card-hover p-6 animate-fade-in">
-        <div class="flex items-center gap-2 mb-6">
-          <span class="text-xs font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider">Today</span>
-          <span class="text-xs text-[var(--color-text-tertiary)]">{{ todayDate }}</span>
-        </div>
-        <div class="relative pl-8 space-y-0 timeline-container">
-          <div v-for="(item, i) in timelineData" :key="i" class="relative pb-8 timeline-node">
-            <div class="flex items-start gap-4">
-              <div class="text-xs font-mono font-bold text-[var(--color-text-tertiary)] w-12 text-right shrink-0 pt-1.5">{{ item.time }}</div>
-              <div class="flex-1 min-w-0">
-                <div class="p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-                  :class="item.status === 'current' 
-                    ? 'bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-primary)]/5 border-[var(--color-primary)]/30 shadow-[0_0_24px_rgba(147,197,253,0.12)]' 
-                    : item.status === 'done' 
-                    ? 'bg-[var(--color-surface-elevated)]/30 border-[var(--color-border)] opacity-60' 
-                    : 'bg-[var(--color-surface-elevated)]/20 border-[var(--color-border)] hover:border-[var(--color-border-strong)]'">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-2">
-                        <h3 class="font-bold text-[var(--color-text-primary)] text-sm truncate">{{ item.title }}</h3>
-                        <span v-if="item.status === 'current'" class="relative flex h-2 w-2 shrink-0">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-primary)] opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-primary)]"></span>
-                        </span>
-                      </div>
-                      <p class="text-xs text-[var(--color-text-secondary)] mt-1 flex items-center gap-1.5">
-                        <MapPin class="w-3 h-3 shrink-0" />
-                        <span>{{ item.location }}</span>
-                      </p>
-                    </div>
-                    <div v-if="item.status === 'current'" class="shrink-0">
-                      <router-link to="/attendance" class="btn btn-primary" style="padding:6px 12px;font-size:10px">
-                        <ClipboardCheck class="w-3 h-3" />
-                        CHECK IN
-                      </router-link>
-                    </div>
-                    <CheckCircle v-else-if="item.status === 'done'" class="w-4 h-4 text-[var(--color-text-tertiary)] shrink-0 mt-0.5" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-if="timelineData.length === 0" class="flex flex-col items-center justify-center py-12 text-[var(--color-text-tertiary)]">
-            <Calendar class="w-12 h-12 mb-3 opacity-20" />
-            <p class="text-sm font-medium">No classes scheduled today</p>
-          </div>
+        <div class="flex items-center gap-3">
+          <button @click="prevWeek" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all" style="background: #EDEDED; color: #68758E;" @mouseenter="$el.style.background='#E2E6ED'" @mouseleave="$el.style.background='#EDEDED'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <span class="text-sm font-semibold" style="color: #0F1E3D;">Week {{ currentWeekLabel }}</span>
+          <button @click="nextWeek" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all" style="background: #EDEDED; color: #68758E;" @mouseenter="$el.style.background='#E2E6ED'" @mouseleave="$el.style.background='#EDEDED'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
         </div>
       </div>
 
-      <!-- Week Grid View -->
-      <div v-if="viewMode === 'week'" class="card overflow-hidden relative animate-fade-in">
-        <div class="overflow-x-auto">
-          <div class="min-w-[800px]">
-            <div class="grid grid-cols-6 border-b border-[var(--color-border)] bg-[var(--color-bg)]/50">
-              <div class="p-4 border-r border-[var(--color-border)]"></div>
-              <div v-for="day in days" :key="day" class="p-4 border-r border-[var(--color-border)] last:border-0 text-center font-bold text-sm text-[var(--color-text-secondary)] uppercase tracking-wider">
-                {{ day }}
-              </div>
-            </div>
+      <!-- Course Legend -->
+      <div class="flex flex-wrap items-center gap-3 mb-6">
+        <span class="text-xs font-semibold uppercase tracking-wider" style="color: #96A0B5;">Courses</span>
+        <button v-for="c in courses" :key="c.code"
+          @click="toggleCourseFilter(c.code)"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border-0"
+          :style="{
+            background: courseFilter.includes(c.code) ? c.color + '22' : '#EDEDED',
+            color: courseFilter.includes(c.code) ? c.color : '#96A0B5',
+          }"
+        >
+          <span class="w-2 h-2 rounded-full" :style="{ background: c.color }"></span>
+          {{ c.code }}
+        </button>
+      </div>
 
-            <div class="relative">
-              <div v-for="time in timeSlots" :key="time" class="grid grid-cols-6 border-b border-[var(--color-border)]/50 group hover:bg-[var(--color-surface-elevated)]/30 transition-colors">
-                <div class="p-4 border-r border-[var(--color-border)] text-xs font-mono text-[var(--color-text-tertiary)] text-right pr-6 relative">
-                  <span class="relative -top-3">{{ time }}</span>
-                </div>
-                <div v-for="day in days" :key="day + time" class="p-2 border-r border-[var(--color-border)] last:border-0 relative min-h-[80px]">
-                  <div 
-                    v-if="getClass(day, time)" 
-                    class="absolute inset-x-2 inset-y-1 rounded-xl p-3 border shadow-lg backdrop-blur-md transition-all hover:scale-[1.02] cursor-pointer z-10"
-                    :class="getClassStyle(getClass(day, time).type)"
-                  >
-                    <h3 class="text-xs font-bold text-[var(--color-text-primary)] leading-tight mb-1">{{ getClass(day, time).course }}</h3>
-                    <div class="flex items-center gap-1 text-[10px] opacity-80 font-medium">
-                      <MapPin class="w-3 h-3" />
-                      {{ getClass(day, time).room }}
-                    </div>
-                  </div>
-                </div>
-              </div>
+      <!-- 7-Day Grid -->
+      <div class="rounded-2xl overflow-hidden border" style="background: #FFFFFF; border-color: #E2E6ED;">
+        <!-- Header Row -->
+        <div class="grid" style="grid-template-columns: 72px repeat(7, 1fr);">
+          <div class="p-3" style="border-right: 1px solid #E2E6ED; border-bottom: 1px solid #E2E6ED; background: #F5F1EA;"></div>
+          <div v-for="(d, di) in days" :key="d"
+            class="p-3 text-center font-bold text-xs uppercase tracking-wider border-b transition-colors"
+            :class="{ 'today-column': di === todayCol }"
+            :style="{
+              borderRight: di < 6 ? '1px solid #E2E6ED' : 'none',
+              color: di === todayCol ? '#0F1E3D' : '#96A0B5',
+              background: di === todayCol ? '#F5F1EA' : '#FFFFFF',
+              borderBottom: di === todayCol ? '2px solid #0F1E3D' : '1px solid #E2E6ED',
+            }"
+          >
+            <span class="block text-[11px] font-bold tracking-wider">{{ d.slice(0, 3) }}</span>
+            <span class="block text-xs mt-0.5" :style="{ color: di === todayCol ? '#0F1E3D' : '#B8C0D0' }">{{ dayNumber(di) }}</span>
+          </div>
+        </div>
+
+        <!-- Time Rows -->
+        <div v-for="(t, ti) in timeSlots" :key="t"
+          class="grid" style="grid-template-columns: 72px repeat(7, 1fr);"
+        >
+          <!-- Time label -->
+          <div class="relative text-right pr-4 text-[11px] font-mono font-semibold border-r" style="padding: 0 12px; height: 80px; color: #96A0B5; border-color: #E2E6ED;">
+            <span class="absolute" style="top: -6px; right: 12px;">{{ t }}</span>
+          </div>
+
+          <!-- Day cells -->
+          <div v-for="(d, di) in days" :key="d + t"
+            class="relative border-r p-1.5 transition-colors"
+            :style="{
+              borderColor: '#E2E6ED',
+              background: di === todayCol ? '#F5F1EA' : '#FFFFFF',
+              height: '80px',
+            }"
+          >
+            <div
+              v-for="cl in getClasses(d, t)" :key="cl.code + t"
+              @click="openClassDetail(cl)"
+              class="absolute inset-x-1 rounded-lg p-2 text-xs cursor-pointer transition-all hover:scale-[1.02] border shadow-sm overflow-hidden"
+              :style="{
+                background: cl.color + '18',
+                borderColor: cl.color + '44',
+                borderLeft: '3px solid ' + cl.color,
+                top: '4px',
+                bottom: '4px',
+              }"
+            >
+              <div class="font-bold text-[12px] leading-tight" :style="{ color: cl.color }">{{ cl.code }}</div>
+              <div class="text-[10px] font-medium mt-0.5" style="color: #68758E;">{{ cl.room }}</div>
+              <div class="text-[9px]" style="color: #96A0B5;">{{ cl.start }}–{{ cl.end }}</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Month View (placeholder) -->
-      <div v-if="viewMode === 'month'" class="card p-8 flex items-center justify-center animate-fade-in" style="min-height:300px">
-        <div class="text-center text-[var(--color-text-tertiary)]">
-          <Calendar class="w-16 h-16 mx-auto mb-4 opacity-20" />
-          <p class="text-body font-medium">Month view coming soon</p>
-          <p class="text-body-sm text-[var(--color-text-tertiary)] mt-1">Use Timeline or Week view for now</p>
+      <!-- Class Detail Modal -->
+      <div v-if="selectedClass" class="fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(15, 30, 61, 0.3);" @click.self="selectedClass = null">
+        <div class="rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl animate-fade-in" style="background: #FFFFFF;">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-3 h-3 rounded-full" :style="{ background: selectedClass.color }"></span>
+            <h3 class="text-lg font-bold" style="color: #0F1E3D;">{{ selectedClass.code }}</h3>
+          </div>
+          <div class="space-y-2 text-sm" style="color: #68758E;">
+            <p><span class="font-semibold" style="color: #0F1E3D;">Course:</span> {{ selectedClass.title }}</p>
+            <p><span class="font-semibold" style="color: #0F1E3D;">Room:</span> {{ selectedClass.room }}</p>
+            <p><span class="font-semibold" style="color: #0F1E3D;">Time:</span> {{ selectedClass.day }} {{ selectedClass.start }}–{{ selectedClass.end }}</p>
+            <p><span class="font-semibold" style="color: #0F1E3D;">Lecturer:</span> {{ selectedClass.lecturer }}</p>
+          </div>
+          <button @click="selectedClass = null" class="w-full mt-5 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer transition-all" style="background: #EDEDED; color: #0F1E3D;" @mouseenter="$el.style.background='#E2E6ED'" @mouseleave="$el.style.background='#EDEDED'">Close</button>
         </div>
       </div>
 
@@ -114,85 +115,101 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { MapPin, Calendar, CheckCircle, ClipboardCheck } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const today = new Date()
+const todayCol = ref((today.getDay() + 6) % 7)
+const weekOffset = ref(0)
+
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
 const timeSlots = ['08:00', '10:00', '12:00', '14:00', '16:00']
-const viewMode = ref('timeline')
 
-const now = new Date()
-const todayDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+const courseFilter = ref(['CSC 201', 'MTH 201', 'STA 201', 'CSC 203', 'GNS 201', 'CSC 205'])
+
+const courses = [
+  { code: 'CSC 201', title: 'Introduction to Programming', color: '#3B82F6', lecturer: 'Dr. Adebayo' },
+  { code: 'MTH 201', title: 'Linear Algebra', color: '#8B5CF6', lecturer: 'Prof. Okonkwo' },
+  { code: 'STA 201', title: 'Probability & Statistics', color: '#10B981', lecturer: 'Dr. Eze' },
+  { code: 'CSC 203', title: 'Data Structures', color: '#F59E0B', lecturer: 'Dr. Adebayo' },
+  { code: 'GNS 201', title: 'Use of English', color: '#EC4899', lecturer: 'Mrs. Bello' },
+  { code: 'CSC 205', title: 'Computer Organization', color: '#06B6D4', lecturer: 'Dr. Okonkwo' },
+]
 
 const scheduleData = [
-  { day: 'Monday', time: '08:00', course: 'PHY101 General Physics I', room: 'Lab 1', type: 'science' },
-  { day: 'Monday', time: '14:00', course: 'CHM101 General Chemistry I', room: 'Hall B', type: 'science' },
-  { day: 'Tuesday', time: '10:00', course: 'BIO101 General Biology', room: 'Lab 2', type: 'bio' },
-  { day: 'Wednesday', time: '08:00', course: 'PHY101 General Physics I', room: 'Hall A', type: 'science' },
-  { day: 'Wednesday', time: '12:00', course: 'GST101 Use of English', room: 'Auditorium', type: 'general' },
-  { day: 'Thursday', time: '10:00', course: 'CHM101 General Chemistry I', room: 'Lab 1', type: 'science' },
-  { day: 'Friday', time: '14:00', course: 'BIO101 General Biology', room: 'Lab 3', type: 'bio' }
+  { day: 'Monday',    start: '08:00', end: '10:00', code: 'CSC 201', title: 'Introduction to Programming', room: 'Lab 1', lecturer: 'Dr. Adebayo' },
+  { day: 'Monday',    start: '12:00', end: '14:00', code: 'MTH 201', title: 'Linear Algebra', room: 'Hall A', lecturer: 'Prof. Okonkwo' },
+  { day: 'Tuesday',   start: '10:00', end: '12:00', code: 'STA 201', title: 'Probability & Statistics', room: 'Lab 2', lecturer: 'Dr. Eze' },
+  { day: 'Tuesday',   start: '14:00', end: '16:00', code: 'CSC 203', title: 'Data Structures', room: 'Lab 1', lecturer: 'Dr. Adebayo' },
+  { day: 'Wednesday', start: '08:00', end: '10:00', code: 'CSC 201', title: 'Introduction to Programming', room: 'Hall A', lecturer: 'Dr. Adebayo' },
+  { day: 'Wednesday', start: '10:00', end: '12:00', code: 'GNS 201', title: 'Use of English', room: 'Auditorium', lecturer: 'Mrs. Bello' },
+  { day: 'Wednesday', start: '14:00', end: '16:00', code: 'CSC 205', title: 'Computer Organization', room: 'Lab 3', lecturer: 'Dr. Okonkwo' },
+  { day: 'Thursday',  start: '08:00', end: '10:00', code: 'STA 201', title: 'Probability & Statistics', room: 'Lab 2', lecturer: 'Dr. Eze' },
+  { day: 'Thursday',  start: '12:00', end: '14:00', code: 'MTH 201', title: 'Linear Algebra', room: 'Hall B', lecturer: 'Prof. Okonkwo' },
+  { day: 'Friday',    start: '10:00', end: '12:00', code: 'CSC 203', title: 'Data Structures', room: 'Lab 1', lecturer: 'Dr. Adebayo' },
+  { day: 'Friday',    start: '14:00', end: '16:00', code: 'CSC 205', title: 'Computer Organization', room: 'Lab 3', lecturer: 'Dr. Okonkwo' },
 ]
 
-const timelineData = [
-  { time: '08:00', title: 'PHY101 General Physics I', location: 'Lab 1', status: 'done' },
-  { time: '10:00', title: 'BIO101 General Biology', location: 'Lab 2', status: 'done' },
-  { time: '13:00', title: 'CHM101 General Chemistry I', location: 'Hall B', status: 'current' },
-  { time: '15:00', title: 'GST101 Use of English', location: 'Auditorium', status: 'upcoming' },
-]
+const selectedClass = ref(null)
 
-const getClass = (day, time) => {
-  return scheduleData.find(c => c.day === day && c.time === time)
+const currentWeekLabel = computed(() => {
+  const n = today.getDate()
+  const m = today.getMonth()
+  const y = today.getFullYear()
+  const weekNum = Math.ceil((n + new Date(y, m, 1).getDay()) / 7) + weekOffset.value
+  return weekNum
+})
+
+function dayNumber(di) {
+  const diff = di - todayCol.value
+  const d = new Date(today)
+  d.setDate(d.getDate() + diff)
+  return d.getDate()
 }
 
-const getClassStyle = (type) => {
-  const styles = {
-    science: 'bg-[var(--color-primary-soft)] border-[var(--color-primary)]/30 text-blue-100',
-    bio: 'bg-[#FFEBF3]/20 border-emerald-500/30 text-emerald-100',
-    general: 'bg-purple-600/20 border-purple-500/30 text-purple-100'
-  }
-  return styles[type] || 'bg-[var(--color-surface-elevated)] border-[var(--color-border)]'
+function toggleCourseFilter(code) {
+  const i = courseFilter.value.indexOf(code)
+  if (i >= 0) courseFilter.value.splice(i, 1)
+  else courseFilter.value.push(code)
+}
+
+function timeToMinutes(t) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+function getClasses(day, time) {
+  const tMin = timeToMinutes(time)
+  const tMax = tMin + 120
+  return scheduleData.filter(cl =>
+    cl.day === day &&
+    courseFilter.value.includes(cl.code) &&
+    timeToMinutes(cl.start) < tMax &&
+    timeToMinutes(cl.end) > tMin
+  ).map(cl => ({
+    ...cl,
+    color: courses.find(c => c.code === cl.code)?.color || '#96A0B5',
+  }))
+}
+
+function openClassDetail(cl) {
+  selectedClass.value = cl
+}
+
+function prevWeek() { weekOffset.value-- }
+function nextWeek() { weekOffset.value++ }
+
+function getCourseColor(code) {
+  return courses.find(c => c.code === code)?.color || '#96A0B5'
 }
 </script>
 
 <style scoped>
-.btn btn-primary.active {
-  background: var(--color-primary) !important;
-  color: var(--color-surface) !important;
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 4px 16px var(--color-primary-glow) !important;
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
 }
-
-.timeline-container::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 104px;
-  width: 2px;
-  background: var(--color-border);
-  border-radius: 999px;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.timeline-node::before {
-  content: '';
-  position: absolute;
-  left: 98px;
-  top: 6px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  border: 3px solid var(--color-bg);
-  z-index: 1;
-}
-.timeline-node:last-child::after {
-  content: '';
-  position: absolute;
-  left: 104px;
-  bottom: 0;
-  width: 2px;
-  height: 8px;
-  background: transparent;
-}
-.timeline-node:last-child { padding-bottom: 0; }
 </style>
