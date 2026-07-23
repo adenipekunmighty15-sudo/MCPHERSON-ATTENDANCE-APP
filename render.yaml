@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mcpherson-attendance-api
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: mcpherson-attendance-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
