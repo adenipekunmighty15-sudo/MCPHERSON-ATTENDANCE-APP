@@ -370,9 +370,13 @@ async function getAiResponse(provider, messages, options = {}) {
     }
   } catch (err) {
     const isAbort = err?.name === 'AbortError' || err?.name === 'APIUserAbortError' || options.signal?.aborted
-    if (!isAbort) {
-      console.error(`Provider ${provider} error:`, err?.message || err || 'Unknown error')
+    if (isAbort) return null
+    const status = err?.status || err?.response?.status || 0
+    if (status === 401 || status === 403) {
+      console.error(`Provider ${provider} AUTH ERROR (${status}): key invalid or expired — skipping`)
+      throw Object.assign(new Error(`Auth failed for ${provider}`), { authError: true, status })
     }
+    console.error(`Provider ${provider} error (${status}):`, err?.message || err || 'Unknown error')
   }
   return null
 }

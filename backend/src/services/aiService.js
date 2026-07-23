@@ -264,13 +264,20 @@ function markProvider(provider, success) {
 async function getAiResponseWithTimeout(provider, messages, options = {}, timeoutMs = 15000, signal = null) {
   for (let attempt = 0; attempt < 2; attempt++) {
     if (signal?.aborted) return null
-    const result = await Promise.race([
-      getAiResponse(provider, messages, { ...options, signal }),
-      new Promise(resolve => setTimeout(() => resolve(null), timeoutMs))
-    ])
-    if (result) {
-      markProvider(provider, true)
-      return result
+    try {
+      const result = await Promise.race([
+        getAiResponse(provider, messages, { ...options, signal }),
+        new Promise(resolve => setTimeout(() => resolve(null), timeoutMs))
+      ])
+      if (result) {
+        markProvider(provider, true)
+        return result
+      }
+    } catch (err) {
+      if (err?.authError) {
+        markProvider(provider, false)
+        return null
+      }
     }
     if (signal?.aborted) return null
     if (attempt < 1) await new Promise(r => setTimeout(r, 300))
