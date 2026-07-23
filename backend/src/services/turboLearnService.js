@@ -11,6 +11,7 @@
 import { getAiResponse, getAvailableProviders } from '../config/ai.js'
 import { query } from '../../lib/db.js'
 import { randomUUID } from 'crypto'
+import { nvidiaTTS } from './externalService.js'
 
 /**
  * Generate podcast from study material
@@ -31,24 +32,59 @@ async function generatePodcast(materialId, userId, options = {}) {
     const material = materials[0]
     const text = material.summary || material.improved_note || 'Unable to generate podcast from this material'
     
-    // Format the text for podcast (more conversational, shorter segments)
     const podcastScript = formatForPodcast(text, options.maxLength || 3000)
-    
-    // Store podcast generation request
+
+    let audioUrl = null
+    let status = 'pending'
+    try {
+      const ttsBuffer = await nvidiaTTS(podcastScript)
+      if (ttsBuffer) {
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.VITE_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_KEY
+        )
+        const filename = `podcasts/${materialId}-${Date.now()}.mp3`
+        const { error: uploadError } = await supabase.storage
+          .from('study-audio')
+          .upload(filename, ttsBuffer, {
+            contentType: 'audio/mpeg',
+            upsert: true,
+          })
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('study-audio')
+            .getPublicUrl(filename)
+          audioUrl = publicUrl
+          status = 'completed'
+        }
+      }
+    } catch (ttsErr) {
+      console.error('TTS synthesis failed:', ttsErr.message)
+    }
+
     const { rows: podcast } = await query(
       `INSERT INTO podcasts 
-       (material_id, user_id, script, status, created_at) 
-       VALUES ($1, $2, $3, $4, NOW()) 
+       (material_id, user_id, script, audio_url, status, created_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW()) 
        RETURNING id, created_at`,
-      [materialId, userId, podcastScript, 'pending']
+      [materialId, userId, podcastScript, audioUrl || '', status]
     )
+
+    if (audioUrl) {
+      await query(
+        `UPDATE study_materials SET podcast_url = $1, podcast_status = 'completed' WHERE id = $2`,
+        [audioUrl, materialId]
+      )
+    }
 
     return {
       id: podcast[0].id,
       materialId,
       title: `${material.title} - Podcast`,
       script: podcastScript,
-      status: 'pending',
+      audioUrl,
+      status,
       createdAt: podcast[0].created_at
     }
   } catch (err) {

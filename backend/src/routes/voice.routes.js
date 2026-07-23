@@ -3,11 +3,10 @@ import multer from 'multer'
 import { authenticate } from '../middleware/auth.js'
 import supabaseAdmin from '../config/supabase.js'
 import { aiChat } from '../services/aiService.js'
+import { nvidiaTTS, getNvidiaTTSStream } from '../services/externalService.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
-
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'
 
 async function transcribeAudio(audioBuffer, mimeType) {
   const formData = new FormData()
@@ -28,27 +27,6 @@ async function transcribeAudio(audioBuffer, mimeType) {
   }
   const data = await resp.json()
   return data.text || ''
-}
-
-async function generateTts(text) {
-  const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'audio/mpeg',
-      'Content-Type': 'application/json',
-      'xi-api-key': process.env.ELEVENLABS_API_KEY,
-    },
-    body: JSON.stringify({
-      text,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-    }),
-  })
-  if (!resp.ok) {
-    const errText = await resp.text()
-    throw new Error(`ElevenLabs error ${resp.status}: ${errText}`)
-  }
-  return resp
 }
 
 async function authenticateToken(token) {
@@ -92,10 +70,11 @@ router.post('/api/voice/chat', authenticate, upload.single('audio'), async (req,
 
     let audioUrl = null
     try {
-      const ttsResp = await generateTts(responseText)
-      const arrayBuffer = await ttsResp.arrayBuffer()
-      const base64 = Buffer.from(arrayBuffer).toString('base64')
-      audioUrl = `data:audio/mpeg;base64,${base64}`
+      const ttsBuffer = await nvidiaTTS(responseText)
+      if (ttsBuffer) {
+        const base64 = ttsBuffer.toString('base64')
+        audioUrl = `data:audio/mpeg;base64,${base64}`
+      }
     } catch (ttsErr) {
       console.error('TTS generation error:', ttsErr.message)
     }
@@ -114,11 +93,12 @@ router.post('/api/voice/chat', authenticate, upload.single('audio'), async (req,
 
 router.get('/api/voice/tts', authenticate, async (req, res) => {
   try {
-
     const text = req.query.text
     if (!text || !text.trim()) return res.status(400).json({ error: 'Text query parameter required' })
 
-    const ttsResp = await generateTts(text.trim())
+    const ttsResp = await getNvidiaTTSStream(text.trim())
+    if (!ttsResp) return res.status(502).json({ error: 'TTS service unavailable' })
+
     res.setHeader('Content-Type', 'audio/mpeg')
     ttsResp.body.pipe(res)
   } catch (err) {

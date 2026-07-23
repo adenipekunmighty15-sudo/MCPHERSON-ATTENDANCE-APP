@@ -133,11 +133,16 @@ async function run() {
     })
   }
 
-  // ── ElevenLabs ──
-  if (process.env.ELEVENLABS_API_KEY) {
-    await test('ElevenLabs', async () => {
-      return fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY }
+  // ── NVIDIA TTS ──
+  if (process.env.NVIDIA_TTS_KEY) {
+    await test('NVIDIA TTS', async () => {
+      return fetch('https://integrate.api.nvidia.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.NVIDIA_TTS_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model: 'playai/tts-play-3.0', input: 'test', voice: 'angelo', response_format: 'mp3' }),
       })
     })
   }

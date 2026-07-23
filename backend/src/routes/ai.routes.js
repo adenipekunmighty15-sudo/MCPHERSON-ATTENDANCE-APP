@@ -77,12 +77,13 @@ router.get('/api/ai/models', authenticate, async (req, res) => {
           deepseek: 'DeepSeek V4 Pro', llama: 'Llama 3.1 70B', phi4: 'Phi-4', groq: 'Groq Llama 3.3',
           hermes: 'Hermes 3 405B', minimax: 'MiniMax', 'nemotron-nano': 'Nemotron Nano 8B',
           'mistral-nemotron': 'Mistral Nemotron', 'mistral-large': 'Mistral Large',
-          kimi: 'Kimi K2.6', 'gemma-4': 'Gemma 4', stepfun: 'StepFun',
+          kimi: 'Kimi K2.6 (Supreme Judge)', 'gemma-4': 'Gemma 4', stepfun: 'StepFun',
           diffusiongemma: 'Diffusion Gemma', openrouter: 'OpenRouter GPT-4o',
+          inkling: 'Inkling (Thinker)', poolside: 'Poolside Laguna (Coder)',
         }
         modelName = names[p] || p
       }
-      return { id: p, name: modelName, status, role: p === 'nvidia-ultra' || p === 'deepseek' ? 'Chief Justice' : 'Council Member' }
+      return { id: p, name: modelName, status, role: p === 'nvidia-ultra' || p === 'deepseek' || p === 'kimi' ? 'Chief Justice' : 'Council Member' }
     })
     res.json({ models, total: models.length, online: models.filter(m => m.status === 'online').length })
   } catch (err) {
@@ -316,6 +317,9 @@ const PROV_MODELS = {
   'deepseek-v4-pro': 'deepseek-ai/deepseek-v4-pro',
   'nemotron-ultra': 'nvidia/nemotron-3-ultra-550b-a55b',
   'llama-3.3': 'meta/llama-3.3-70b-instruct',
+  kimi: 'moonshotai/kimi-k2.6',
+  inkling: 'thinkingmachines/inkling',
+  poolside: 'poolside/laguna-xs-2.1',
 }
 
 router.post('/api/ai/chat/stream', authenticate, async (req, res) => {

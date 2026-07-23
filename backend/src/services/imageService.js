@@ -47,5 +47,31 @@ export async function generateImage(prompt, options = {}) {
     }
   }
 
+  // Try Qwen Image Edit (dedicated key)
+  if (process.env.QWEN_IMAGE_KEY) {
+    try {
+      const resp = await fetch('https://integrate.api.nvidia.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.QWEN_IMAGE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'qwen/qwen-image-edit',
+          prompt,
+          n: Math.min(n, 4),
+          size,
+        }),
+      })
+      if (resp.ok) {
+        const data = await resp.json()
+        const url = data.data?.[0]?.url || data.data?.[0]?.b64_json
+        return { url, provider: 'qwen' }
+      }
+    } catch (e) {
+      console.error('Qwen image gen error:', e.message)
+    }
+  }
+
   return { error: 'No image generation provider available' }
 }
