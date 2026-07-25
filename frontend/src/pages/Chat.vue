@@ -1,8 +1,8 @@
 <template>
-  <div class="ai-chat">
-    <ParticlesSwarm />
+  <div class="ai-chat" :class="{ 'chat-active': hasMessages }">
+    <ParticlesSwarm v-if="!hasMessages" />
 
-    <div class="radial-glow" />
+    <div v-if="!hasMessages" class="radial-glow" />
 
     <!-- Left icon rail -->
     <aside class="icon-rail">
@@ -46,7 +46,7 @@
       </div>
 
       <!-- Empty state -->
-      <div v-if="mindStore.messages.length === 0 && !streaming" class="empty-state">
+      <div v-if="!hasMessages" class="empty-state">
         <p class="empty-headline">Any new ideas to explore?</p>
 
         <div class="empty-input-row">
@@ -71,7 +71,7 @@
       </div>
 
       <!-- Messages area -->
-      <div v-else class="messages-area" ref="messagesRef" @scroll="onScroll">
+      <div v-if="hasMessages" class="messages-area" ref="messagesRef" @scroll="onScroll" :class="{ 'has-messages': hasMessages }">
         <div class="messages-inner">
           <div v-for="(msg, i) in mindStore.messages" :key="i" class="msg-row" :class="msg.role">
             <div v-if="msg.role === 'assistant'" class="msg-avatar ai">
@@ -79,7 +79,7 @@
                 <span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span>
               </div>
             </div>
-            <div class="msg-bubble" :class="msg.role">
+            <div class="msg-body" :class="msg.role">
               <div v-if="msg.role === 'assistant' && msg.thinking" class="thinking-toggle">
                 <button @click="toggleThinking(i)" class="think-btn">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ rotated: msg.showThinking }"><path d="m9 18 6-6-6-6"/></svg>
@@ -106,7 +106,7 @@
             <div class="msg-avatar ai">
               <div class="ai-dots"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></div>
             </div>
-            <div class="msg-bubble assistant">
+            <div class="msg-body assistant">
               <div v-if="streamThinking || !streamAnswer" class="stream-status">
                 <div class="stream-pulse">
                   <span class="pulse-dot"></span><span class="pulse-dot"></span><span class="pulse-dot"></span>
@@ -123,7 +123,7 @@
             <div class="msg-avatar ai">
               <div class="ai-dots"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></div>
             </div>
-            <div class="msg-bubble assistant">
+            <div class="msg-body assistant">
               <div class="stream-status">
                 <div class="stream-pulse"><span class="pulse-dot"></span><span class="pulse-dot"></span><span class="pulse-dot"></span></div>
                 <span class="stream-label">Verifying {{ verificationCount }} claims...</span>
@@ -144,7 +144,7 @@
       </div>
 
       <!-- Input bar (when messages exist) -->
-      <div v-if="mindStore.messages.length > 0 || streaming" class="input-area">
+      <div v-if="hasMessages || streaming" class="input-area">
         <div class="input-toolbar">
           <div class="model-selector toolbar-item" ref="expertRefBottom">
             <button class="model-btn" @click="showExpertMenuBottom = !showExpertMenuBottom">
@@ -229,6 +229,8 @@ import('highlight.js').then(m => { hljs = m.default || m }).catch(() => {})
 const router = useRouter()
 const authStore = useAuthStore()
 const mindStore = useMindStore()
+
+const hasMessages = computed(() => mindStore.messages.length > 0)
 
 function gotoSettings() { router.push('/settings') }
 function gotoProfile() { router.push('/profile') }
@@ -660,6 +662,10 @@ onUnmounted(() => {
   background: var(--color-bg);
   font-family: 'Inter', system-ui, sans-serif;
   z-index: 1;
+  transition: background 0.4s ease;
+}
+.ai-chat.chat-active {
+  background: var(--color-surface);
 }
 
 .radial-glow {
@@ -862,6 +868,9 @@ onUnmounted(() => {
   padding: 24px 40px 12px;
   scroll-behavior: smooth;
 }
+.messages-area.has-messages {
+  background: var(--color-surface);
+}
 .messages-inner {
   max-width: 720px;
   margin: 0 auto;
@@ -876,6 +885,7 @@ onUnmounted(() => {
   align-items: flex-start;
 }
 .msg-row.user { flex-direction: row-reverse; }
+.chat-active .msg-row.user { flex-direction: row; }
 
 .msg-avatar {
   width: 32px; height: 32px; min-width: 32px;
@@ -898,22 +908,12 @@ onUnmounted(() => {
 .d3 { background: var(--color-accent); }
 .d4 { background: var(--color-success); }
 
-.msg-bubble {
-  max-width: 78%;
-  padding: 10px 14px;
+.msg-body {
   font-size: 14px; line-height: 1.6;
-  border-radius: 16px;
-}
-.msg-bubble.assistant {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 16px 16px 16px 4px;
   color: var(--color-text-primary);
 }
-.msg-bubble.user {
-  background: var(--color-primary);
-  color: #fff;
-  border-radius: 16px 16px 4px 16px;
+.msg-body.user {
+  color: var(--color-text-primary);
 }
 
 .msg-content { line-height: 1.6; }
