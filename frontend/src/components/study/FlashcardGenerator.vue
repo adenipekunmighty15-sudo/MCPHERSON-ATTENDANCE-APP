@@ -227,12 +227,11 @@ function goToQuizPreview() {
 async function saveDeck() {
   saving.value = true
   try {
-    await api.post('/study-materials', {
+    await api.post('/study-materials/save-deck', {
       title: savedTitle.value,
       sourceText: `Generated from ${fileName.value}`,
-      flashcardCount: cards.value.length,
-      quizCount: quiz.value.length,
-      keyPointCount: 6,
+      flashcards: cards.value,
+      quiz: quiz.value.map(q => ({ question: q.question, options: q.options, answerIndex: q.answerIndex, explanation: q.explanation || '' })),
     })
     lastDeck.value = { title: savedTitle.value, cardCount: cards.value.length, quizCount: quiz.value.length }
     state.value = 'saved'

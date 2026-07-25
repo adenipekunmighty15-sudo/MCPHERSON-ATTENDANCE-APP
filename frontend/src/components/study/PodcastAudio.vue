@@ -55,6 +55,8 @@
 import { ref, onMounted } from 'vue'
 import api from '../../lib/api'
 
+const emit = defineEmits(['podcast-generated'])
+
 const materials = ref([])
 const generatingId = ref(null)
 
@@ -91,6 +93,7 @@ async function generatePodcast(m) {
     } else {
       m.podcastError = 'Podcast generated but no audio URL returned'
     }
+    emit('podcast-generated', m.id)
   } catch (err) {
     m.podcastError = err.response?.data?.error || err.message || 'Generation failed'
   } finally {

@@ -109,10 +109,10 @@ async function loadGroups() {
   try {
     loading.value = true
     const response = await api.get('/api/study-groups/my-groups')
-    const { data, success } = response
-    if (success || Array.isArray(data || response)) {
-      groups.value = data || response || []
-      // Load material counts for each group
+    const body = response.data
+    const list = body?.data || body || []
+    if (Array.isArray(list)) {
+      groups.value = list
       for (const group of groups.value) {
         await loadGroupMaterials(group.id)
       }
@@ -128,8 +128,8 @@ async function loadGroups() {
 async function loadGroupMaterials(groupId) {
   try {
     const response = await api.get(`/api/study-groups/${groupId}/materials`)
-    const { data, success } = response
-    const materials = data || response
+    const body = response.data
+    const materials = body?.data || body || []
     if (Array.isArray(materials)) {
       groupMaterials.set(groupId, materials.length)
     }
@@ -171,14 +171,13 @@ async function createGroup() {
       courseId: newGroup.value.courseId || null
     })
     
-    const { data, success } = response
-    const groupData = data || response
+    const body = response.data
+    const groupData = body?.data || body
     
     if (groupData && groupData.id) {
       groups.value.unshift(groupData)
       showCreateModal.value = false
       newGroup.value = { name: '', description: '', courseId: '' }
-      alert(`✓ Study group "${groupData.name}" created! Start inviting your classmates.`)
     }
   } catch (err) {
     console.error('Failed to create group:', err)

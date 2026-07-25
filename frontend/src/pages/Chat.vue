@@ -10,26 +10,25 @@
         <button class="rail-btn" @click="newChat" title="New chat" aria-label="New chat">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
         </button>
-        <button class="rail-btn" title="Compose" aria-label="Compose">
+        <button class="rail-btn" @click="newChat" title="Compose" aria-label="Compose">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
         <button class="rail-btn" @click="showHistory = !showHistory" title="Search history" aria-label="Search history">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </button>
         <div class="rail-divider" />
-        <button class="rail-btn" title="Apps" aria-label="Apps">
+        <button class="rail-btn" @click="gotoStudyHub" title="Study Hub" aria-label="Study Hub">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-          <span class="notif-dot" />
         </button>
-        <button class="rail-btn" title="More" aria-label="More">
+        <button class="rail-btn" @click="showHistory = !showHistory" title="History" aria-label="History">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         </button>
       </div>
       <div class="rail-bottom">
-        <button class="rail-btn" title="Settings" aria-label="Settings">
+        <button class="rail-btn" @click="gotoSettings" title="Settings" aria-label="Settings">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
-        <button class="rail-btn rail-avatar" title="Profile" aria-label="Profile">
+        <button class="rail-btn rail-avatar" @click="gotoProfile" title="Profile" aria-label="Profile">
           {{ userInitial }}
         </button>
       </div>
@@ -40,12 +39,9 @@
 
       <!-- Top-right utility bar -->
       <div class="utility-bar">
-        <button class="upgrade-btn">
+        <button class="upgrade-btn" @click="gotoSettings">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2L21 12l-6.6 2.8L12 22l-2.4-7.2L3 12l6.6-2.8z"/></svg>
           Upgrade
-        </button>
-        <button class="utility-btn" title="Edit" aria-label="Edit">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
       </div>
 
@@ -53,37 +49,24 @@
       <div v-if="mindStore.messages.length === 0 && !streaming" class="empty-state">
         <p class="empty-headline">Any new ideas to explore?</p>
 
-        <div class="input-pill">
-          <button class="attach-btn" title="Attach file" aria-label="Attach file">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          </button>
-          <input
+        <div class="empty-input-row">
+          <AIChatInput
+            ref="aiChatInputRef"
             v-model="input"
-            type="text"
-            class="text-input"
-            placeholder="Ask Gemini"
-            @keydown.enter.prevent="send"
-            :disabled="streaming || mindStore.processing"
+            :streaming="streaming"
+            :processing="mindStore.processing"
+            :selectedExpert="selectedExpert"
+            :mindStore="mindStore"
+            :webSearchEnabled="webSearchEnabled"
+            @update:webSearchEnabled="webSearchEnabled = $event"
+            @trigger-file-upload="onTriggerFileUpload"
+            @file-selected="onFileSelected"
+            @send="onAiChatSend"
           />
-          <div class="input-controls">
-            <div class="model-selector" ref="expertRef">
-              <button class="model-btn" @click="showExpertMenu = !showExpertMenu">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                {{ selectedExpert.label === 'General Assistant' ? 'Flash' : selectedExpert.label.split(' ')[0] }}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div v-if="showExpertMenu" class="expert-dropdown">
-                <div class="dropdown-header">Thinking level</div>
-                <button v-for="ex in experts" :key="ex.id" @click="selectExpert(ex)" class="dropdown-item" :class="{ active: ex.id === selectedExpert.id }">
-                  <span class="ex-icon">{{ ex.icon }}</span>
-                  <div><div class="ex-name">{{ ex.label }}</div><div class="ex-desc">{{ ex.description }}</div></div>
-                </button>
-              </div>
-            </div>
-            <button class="mic-btn" title="Voice input" aria-label="Voice input">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
-            </button>
-          </div>
+          <button class="mic-btn-empty" :class="{ recording: isRecording }" @click="toggleRecording" :disabled="!recordingSupported" title="Voice input" aria-label="Voice input">
+            <svg v-if="!isRecording" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          </button>
         </div>
       </div>
 
@@ -147,35 +130,57 @@
               </div>
             </div>
           </div>
+
+          <!-- Follow-up chips -->
+          <div v-if="followUps.length > 0 && !streaming" class="follow-up-row">
+            <div class="follow-up-label">Suggested follow-ups</div>
+            <div class="follow-up-chips">
+              <button v-for="(chip, ci) in followUps" :key="ci" class="follow-up-chip" @click="sendFollowUp(chip)">
+                {{ chip }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Input bar (when messages exist) -->
       <div v-if="mindStore.messages.length > 0 || streaming" class="input-area">
-        <div class="input-pill chat-input-pill">
-          <button class="attach-btn" title="Attach file" aria-label="Attach file">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          </button>
-          <input v-model="input" type="text" class="text-input" placeholder="Ask Gemini" @keydown.enter.prevent="send" :disabled="streaming || mindStore.processing" />
-          <div class="input-controls">
-            <div class="model-selector" ref="expertRefBottom">
-              <button class="model-btn" @click="showExpertMenuBottom = !showExpertMenuBottom">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                {{ selectedExpert.label === 'General Assistant' ? 'Flash' : selectedExpert.label.split(' ')[0] }}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div v-if="showExpertMenuBottom" class="expert-dropdown bottom-dropdown">
-                <div class="dropdown-header">Thinking level</div>
-                <button v-for="ex in experts" :key="ex.id" @click="selectExpert(ex); showExpertMenuBottom = false" class="dropdown-item" :class="{ active: ex.id === selectedExpert.id }">
-                  <span class="ex-icon">{{ ex.icon }}</span>
-                  <div><div class="ex-name">{{ ex.label }}</div><div class="ex-desc">{{ ex.description }}</div></div>
-                </button>
-              </div>
-            </div>
-            <button class="mic-btn" title="Voice input" aria-label="Voice input">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        <div class="input-toolbar">
+          <div class="model-selector toolbar-item" ref="expertRefBottom">
+            <button class="model-btn" @click="showExpertMenuBottom = !showExpertMenuBottom">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              {{ selectedExpert.label === 'General Assistant' ? 'Flash' : selectedExpert.label.split(' ')[0] }}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
+            <div v-if="showExpertMenuBottom" class="expert-dropdown bottom-dropdown">
+              <div class="dropdown-header">Thinking level</div>
+              <button v-for="ex in experts" :key="ex.id" @click="selectExpert(ex); showExpertMenuBottom = false" class="dropdown-item" :class="{ active: ex.id === selectedExpert.id }">
+                <span class="ex-icon">{{ ex.icon }}</span>
+                <div><div class="ex-name">{{ ex.label }}</div><div class="ex-desc">{{ ex.description }}</div></div>
+              </button>
+            </div>
           </div>
+          <button class="council-toggle-btn toolbar-item" :class="{ active: useCouncil }" @click="useCouncil = !useCouncil" title="Council mode" aria-label="Toggle council mode">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </button>
+        </div>
+        <div class="bottom-input-row">
+          <AIChatInput
+            v-model="input"
+            :streaming="streaming"
+            :processing="mindStore.processing"
+            :selectedExpert="selectedExpert"
+            :mindStore="mindStore"
+            :webSearchEnabled="webSearchEnabled"
+            @update:webSearchEnabled="webSearchEnabled = $event"
+            @trigger-file-upload="onTriggerFileUpload"
+            @file-selected="onFileSelected"
+            @send="onAiChatSend"
+          />
+          <button class="mic-btn-bottom" :class="{ recording: isRecording }" @click="toggleRecording" :disabled="!recordingSupported" title="Voice input" aria-label="Voice input">
+            <svg v-if="!isRecording" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          </button>
         </div>
         <p v-if="error" class="input-error">{{ error }}</p>
       </div>
@@ -205,6 +210,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useMindStore } from '../stores/mind'
 import { supabase, supabaseConfigured } from '../lib/supabase'
@@ -213,14 +219,20 @@ import { sanitizeHtml } from '../lib/sanitize.js'
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/atom-one-dark.min.css'
 import ParticlesSwarm from '../components/three/ParticlesSwarm.vue'
+import AIChatInput from '../components/AIChatInput.vue'
 
 let katex = null
 let hljs = null
 import('katex').then(m => { katex = m.default || m }).catch(() => {})
 import('highlight.js').then(m => { hljs = m.default || m }).catch(() => {})
 
+const router = useRouter()
 const authStore = useAuthStore()
 const mindStore = useMindStore()
+
+function gotoSettings() { router.push('/settings') }
+function gotoProfile() { router.push('/profile') }
+function gotoStudyHub() { router.push('/study-hub') }
 
 const input = ref('')
 const messagesRef = ref(null)
@@ -240,7 +252,93 @@ const streamAnswer = ref('')
 const verifying = ref(false)
 const verificationCount = ref(0)
 const error = ref('')
+const useCouncil = ref(false)
+const webSearchEnabled = ref(false)
+const isRecording = ref(false)
+const fileInputRef = ref(null)
+const aiChatInputRef = ref(null)
+
+function onTriggerFileUpload(accept) {
+  if (fileInputRef.value) {
+    fileInputRef.value.accept = accept
+    fileInputRef.value.click()
+  }
+}
+
+function onFileSelected(file) {
+  // File was selected via AIChatInput's hidden input, upload and prepend summary
+  const formData = new FormData()
+  formData.append('document', file)
+  api.post('/study-materials/upload', formData, {
+    timeout: 120000,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(res => {
+    const body = res.data
+    if (body?.summary) input.value = `I've uploaded ${file.name}. Here's a summary:\n${body.summary.slice(0, 500)}...`
+  }).catch(() => {})
+}
+let mediaRecorder = null
+let audioChunks = []
 let abortController = null
+
+const recordingSupported = computed(() => !!navigator.mediaDevices?.getUserMedia)
+
+async function toggleRecording() {
+  if (isRecording.value) {
+    mediaRecorder?.stop()
+    return
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+    audioChunks = []
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data) }
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop())
+      isRecording.value = false
+      if (audioChunks.length === 0) return
+      const blob = new Blob(audioChunks, { type: 'audio/webm' })
+      const formData = new FormData()
+      formData.append('audio', blob, 'recording.webm')
+      try {
+        const { data } = await api.post('/voice/stt', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        if (data?.transcript) input.value = data.transcript
+      } catch { /* silent */ }
+    }
+    mediaRecorder.start()
+    isRecording.value = true
+  } catch { /* permission denied */ }
+}
+
+function handleFileAttach(e) {
+  const file = e.target.files?.[0]
+  if (file) {
+    const formData = new FormData()
+    formData.append('document', file)
+    api.post('/study-materials/upload', formData, {
+      timeout: 120000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(res => {
+      if (res.data?.summary) input.value = `I've uploaded ${file.name}. Here's a summary:\n${res.data.summary.slice(0, 500)}...`
+    }).catch(() => {})
+  }
+  if (e.target) e.target.value = ''
+}
+
+function sendFollowUp(text) {
+  input.value = text
+  onAiChatSend(text)
+}
+
+function onAiChatSend(text) {
+  if (!text?.trim() || streaming.value || mindStore.processing) return
+  error.value = ''
+  followUps.value = []
+  mindStore.messages.push({ role: 'user', content: text.trim() })
+  input.value = ''
+  sendStream(text.trim())
+  scrollToBottom()
+}
 
 const experts = [
   { id: 'general', label: 'General Assistant', icon: '\u2728', description: 'Help with any topic', prompt: 'You are a warm, conversational AI assistant like ChatGPT, Claude, and Gemini. Be natural and thoughtful.' },
@@ -367,7 +465,7 @@ async function sendStream(msg) {
     const response = await fetch(`${baseUrl}/api/ai/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ message: msg, history, conversationId: conversationId.value, expert: selectedExpert.value.id, council: true, webSearch: false }),
+      body: JSON.stringify({ message: msg, history, conversationId: conversationId.value, expert: selectedExpert.value.id, council: useCouncil.value, webSearch: webSearchEnabled.value }),
       signal: abortController.signal,
     })
 
@@ -435,17 +533,6 @@ async function sendStream(msg) {
   } finally {
     streaming.value = false
   }
-  await scrollToBottom()
-}
-
-async function send() {
-  error.value = ''
-  if ((!input.value.trim()) || streaming.value || mindStore.processing) return
-  const msg = input.value.trim()
-  input.value = ''
-  error.value = ''
-  mindStore.messages.push({ role: 'user', content: msg })
-  await sendStream(msg)
   await scrollToBottom()
 }
 
@@ -888,6 +975,52 @@ onUnmounted(() => {
   backdrop-filter: blur(12px);
 }
 .input-error { text-align: center; font-size: 12px; color: var(--color-error); margin: 6px 0 0; }
+
+/* Input toolbar */
+.input-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 0 4px; }
+.toolbar-item { flex-shrink: 0; }
+
+/* Follow-up chips */
+.follow-up-row { max-width: 720px; margin: 0 auto; padding: 8px 40px 0; }
+.follow-up-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-tertiary); margin-bottom: 6px; }
+.follow-up-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.follow-up-chip {
+  font-size: 12px; padding: 5px 12px; border-radius: 14px;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-secondary); cursor: pointer; transition: all 0.2s;
+}
+.follow-up-chip:hover { background: var(--color-primary-soft); border-color: var(--color-primary); color: var(--color-primary); }
+
+/* Council toggle */
+.council-toggle-btn {
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; border: 1px solid var(--color-border);
+  background: transparent; color: var(--color-text-tertiary);
+  cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.council-toggle-btn:hover { background: var(--color-primary-soft); color: var(--color-primary); border-color: var(--color-primary); }
+.council-toggle-btn.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+/* Recording mic */
+.mic-btn.recording { color: #EF4444; background: rgba(239,68,68,0.1); animation: recPulse 1s ease-in-out infinite; }
+@keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+
+/* Hidden file input */
+.hidden-file-input { display: none; }
+
+/* Empty / bottom input rows with mic */
+.empty-input-row, .bottom-input-row { display: flex; align-items: flex-end; gap: 8px; width: 100%; }
+.empty-input-row .ai-chat-input, .bottom-input-row .ai-chat-input { flex: 1; }
+
+.mic-btn-empty, .mic-btn-bottom {
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  border-radius: 14px; border: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--color-text-tertiary);
+  cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.mic-btn-empty:hover, .mic-btn-bottom:hover { background: var(--color-primary-soft); color: var(--color-primary); border-color: var(--color-primary); }
+.mic-btn-empty.recording, .mic-btn-bottom.recording { color: #EF4444; background: rgba(239,68,68,0.1); border-color: #EF4444; animation: recPulse 1s ease-in-out infinite; }
+.mic-btn-empty:disabled, .mic-btn-bottom:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* History sidebar */
 .history-overlay {

@@ -22,47 +22,8 @@
         <!-- Main content area -->
         <div class="flex-1 min-w-0">
           <!-- STUDY GROUPS -->
-          <div v-if="activeTab === 'groups'" class="space-y-3">
-            <div v-for="g in studyGroups" :key="g.id"
-              class="rounded-2xl p-5 transition-all cursor-pointer border"
-              style="background: #FFFFFF; border-color: #E2E6ED;"
-              @mouseenter="$el.style.boxShadow='0 4px 16px rgba(0,0,0,0.06)'" @mouseleave="$el.style.boxShadow='none'"
-            >
-              <div class="flex items-start gap-4">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :style="{ background: g.color + '18', color: g.color }">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 class="font-bold text-sm" style="color: #0F1E3D;">{{ g.name }}</h3>
-                      <span class="inline-block mt-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold" style="background: #3B82F6; color: #FFFFFF;">{{ g.topic }}</span>
-                    </div>
-                    <button class="px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all shrink-0" :style="{ background: g.btnColor + '18', color: g.btnColor }"
-                      @mouseenter="$el.style.background = g.btnColor + '30'" @mouseleave="$el.style.background = g.btnColor + '18'"
-                    >Join Session</button>
-                  </div>
-                  <div class="flex items-center gap-4 mt-3 text-xs" style="color: #96A0B5;">
-                    <span class="flex items-center gap-1">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                      {{ g.members }}
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                      {{ g.session }}
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <span class="w-1.5 h-1.5 rounded-full" :class="g.status === 'Active' ? 'bg-green-500' : 'bg-amber-400'"></span>
-                      {{ g.status }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button class="w-full mt-4 p-5 rounded-2xl text-sm font-semibold border-2 border-dashed cursor-pointer transition-all flex items-center justify-center gap-2" style="border-color: #D0D6E0; color: #96A0B5; background: transparent;" @mouseenter="$el.style.borderColor='#3B82F6'; $el.style.color='#3B82F6'" @mouseleave="$el.style.borderColor='#D0D6E0'; $el.style.color='#96A0B5'">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-              Create new study group
-            </button>
+          <div v-if="activeTab === 'groups'">
+            <StudyGroupManager />
           </div>
 
           <!-- FLASHCARDS -->
@@ -73,7 +34,7 @@
             <div v-if="decks.length > 0" class="mt-8">
               <h3 class="text-sm font-bold mb-4" style="color: #0F1E3D;">Saved Decks</h3>
               <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));">
-                <div v-for="d in decks" :key="d.id"
+                <div v-for="d in decks" :key="d.id" @click="viewDeck(d.id)"
                   class="rounded-2xl p-4 border transition-all cursor-pointer" style="background: #FFFFFF; border-color: #E2E6ED;"
                   @mouseenter="$el.style.boxShadow='0 4px 16px rgba(0,0,0,0.06)'" @mouseleave="$el.style.boxShadow='none'"
                 >
@@ -136,12 +97,23 @@
               <span class="text-xs font-semibold" style="color: #96A0B5;">{{ completedGoals }}/{{ goals.length }}</span>
             </div>
             <div class="space-y-2">
-              <label v-for="g in goals" :key="g.id" class="flex items-center gap-3 py-1.5 cursor-pointer group">
+              <div v-for="g in goals" :key="g.id" class="flex items-center gap-2 py-1.5 group">
                 <input type="checkbox" v-model="g.done" class="w-4 h-4 rounded border-2 appearance-none cursor-pointer shrink-0 transition-all"
                   :style="{ borderColor: g.done ? '#10B981' : '#D0D6E0', background: g.done ? '#10B981' : 'transparent' }"
                 />
-                <span class="text-sm transition-all" :style="{ color: g.done ? '#B8C0D0' : '#0F1E3D', textDecoration: g.done ? 'line-through' : 'none' }">{{ g.text }}</span>
-              </label>
+                <input v-if="editingGoalId === g.id" v-model="g.text" @blur="editingGoalId = null" @keydown.enter="editingGoalId = null"
+                  class="flex-1 text-sm px-1 py-0.5 border rounded outline-none" style="border-color:#D0D6E0; color:#0F1E3D; background:transparent;"
+                />
+                <span v-else class="flex-1 text-sm transition-all cursor-pointer" :style="{ color: g.done ? '#B8C0D0' : '#0F1E3D', textDecoration: g.done ? 'line-through' : 'none' }"
+                  @dblclick="editingGoalId = g.id">{{ g.text }}</span>
+                <button @click="deleteGoal(g.id)" class="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded border-0 cursor-pointer" style="color:#EF4444; background:transparent;" title="Delete goal">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div class="flex items-center gap-2 pt-1">
+                <input v-model="newGoalText" @keydown.enter="addGoal" placeholder="Add a goal..." class="flex-1 text-sm px-2 py-1 rounded border outline-none" style="border-color:#D0D6E0; color:#0F1E3D; background:transparent;" />
+                <button @click="addGoal" class="px-3 py-1 rounded-lg text-[11px] font-semibold border-0 cursor-pointer" style="background:#0F1E3D; color:#FFFFFF;">Add</button>
+              </div>
             </div>
           </div>
         </div>
@@ -151,11 +123,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import FlashcardGenerator from '../components/study/FlashcardGenerator.vue'
 import QuizView from '../components/study/QuizView.vue'
 import PodcastAudio from '../components/study/PodcastAudio.vue'
+import StudyGroupManager from '../components/study/StudyGroupManager.vue'
 import api from '../lib/api'
+
+const router = useRouter()
 
 const tabs = [
   { id: 'groups', label: 'Study Groups' },
@@ -166,15 +142,12 @@ const tabs = [
 const activeTab = ref('flashcards')
 const decks = ref([])
 
-const studyGroups = ref([
-  { id: 1, name: 'CSC 201 Study Circle', topic: 'Dynamic Programming', members: 8, session: 'Today, 4:00 PM', status: 'Active', color: '#3B82F6', btnColor: '#3B82F6' },
-  { id: 2, name: 'Math Problem Solvers', topic: 'Linear Algebra', members: 12, session: 'Tomorrow, 10:00 AM', status: 'Active', color: '#F59E0B', btnColor: '#F59E0B' },
-  { id: 3, name: 'Statistics Lab Prep', topic: 'Hypothesis Testing', members: 6, session: 'Wed, 2:00 PM', status: 'Scheduled', color: '#10B981', btnColor: '#10B981' },
-  { id: 4, name: 'English Essay Workshop', topic: 'Argumentative Writing', members: 10, session: 'Fri, 1:00 PM', status: 'Scheduled', color: '#EC4899', btnColor: '#EC4899' },
-])
-
 onMounted(async () => {
-  await refreshFlashcardDecks()
+  await Promise.all([refreshFlashcardDecks(), loadGoals()])
+})
+
+onUnmounted(() => {
+  if (interval) { clearInterval(interval); interval = null }
 })
 
 async function refreshFlashcardDecks() {
@@ -188,6 +161,10 @@ async function refreshFlashcardDecks() {
   } catch (e) {
     console.warn('[StudyHub] Load decks failed:', e)
   }
+}
+
+function viewDeck(id) {
+  router.push({ name: 'flashcard-review', params: { materialId: id } })
 }
 
 // Pomodoro Timer
@@ -223,22 +200,59 @@ const timerStateLabel = computed(() => {
 })
 
 function setDuration(minutes) { if (timerState.value === 'running') return; totalSeconds.value = minutes * 60; remainingSeconds.value = minutes * 60; timerState.value = 'idle' }
+
+function savePomodoroSession() {
+  const duration = currentDuration.value
+  api.post('/pomodoro/sessions', { durationMinutes: duration }).catch(() => {})
+}
+
 function startTimer() {
   if (timerState.value === 'idle' || timerState.value === 'paused') {
     timerState.value = 'running'
-    interval = setInterval(() => { remainingSeconds.value--; if (remainingSeconds.value <= 0) { clearInterval(interval); interval = null; timerState.value = 'idle' } }, 1000)
+    interval = setInterval(() => {
+      remainingSeconds.value--
+      if (remainingSeconds.value <= 0) {
+        clearInterval(interval); interval = null; timerState.value = 'idle'
+        savePomodoroSession()
+      }
+    }, 1000)
   }
 }
 function pauseTimer() { if (timerState.value === 'running') { clearInterval(interval); interval = null; timerState.value = 'paused' } }
 function resetTimer() { clearInterval(interval); interval = null; remainingSeconds.value = totalSeconds.value; timerState.value = 'idle' }
 
 // Weekly Goals
-const goals = ref([
-  { id: 1, text: 'Review CSC 201 lecture notes', done: true },
-  { id: 2, text: 'Complete MTH 201 assignment', done: false },
-  { id: 3, text: 'Practice STA 201 problems', done: false },
-  { id: 4, text: 'Read GNS 201 chapter 3', done: false },
-  { id: 5, text: 'Prepare for CSC 203 quiz', done: true },
-])
+const goals = ref([])
 const completedGoals = computed(() => goals.value.filter(g => g.done).length)
+const newGoalText = ref('')
+const editingGoalId = ref(null)
+
+function addGoal() {
+  const text = newGoalText.value.trim()
+  if (!text) return
+  goals.value.push({ id: crypto.randomUUID?.() || Date.now().toString(36), text, done: false })
+  newGoalText.value = ''
+}
+
+function deleteGoal(id) {
+  goals.value = goals.value.filter(g => g.id !== id)
+}
+
+async function loadGoals() {
+  try {
+    const { data } = await api.get('/pomodoro/goals')
+    if (Array.isArray(data) && data.length > 0) {
+      goals.value = data.map(g => ({ id: g.id, text: g.text, done: g.done }))
+    }
+  } catch { goals.value = [] }
+}
+
+async function saveGoals() {
+  try {
+    await api.post('/pomodoro/goals', { goals: goals.value.map(g => ({ id: g.id, text: g.text, done: g.done })) })
+  } catch {}
+}
+
+// Watch goals for changes and persist
+watch(goals, saveGoals, { deep: true })
 </script>

@@ -172,8 +172,6 @@ router.post('/api/study-materials/search-web', authenticate, async (req, res) =>
 })
 
 router.post('/api/study-materials', authenticate, async (req, res) => {
-  req.setTimeout(90000)
-  res.setTimeout(90000)
   const startTime = Date.now()
   const DEADLINE_MS = 40000
   const log = (step, msg) => console.log(`[StudyPack:${step}] ${msg}`)
@@ -476,8 +474,6 @@ router.post('/api/study-materials/upload', authenticate, upload.fields([
   { name: 'document', maxCount: 10 },
   { name: 'pdf', maxCount: 10 },
 ]), async (req, res) => {
-  req.setTimeout(90000)
-  res.setTimeout(90000)
   const startTime = Date.now()
   const DEADLINE_MS = 40000
   const log = (step, msg) => console.log(`[Upload:${step}] ${msg}`)
@@ -1130,11 +1126,11 @@ router.post('/api/study-materials/:id/enhanced-flashcards', authenticate, async 
 router.post('/api/study-groups', authenticate, async (req, res) => {
   try {
     const { name, description, courseId } = req.body
-    if (!name || !courseId) {
+    if (!name) {
       return res.status(400).json({ 
         success: false,
-        error: 'Group name and course are required',
-        hint: 'Please provide a name for your study group and select a course'
+        error: 'Group name is required',
+        hint: 'Please provide a name for your study group'
       })
     }
 
@@ -1145,7 +1141,7 @@ router.post('/api/study-groups', authenticate, async (req, res) => {
       })
     }
 
-    const group = await createStudyGroup(name, description || '', courseId, req.user.id)
+    const group = await createStudyGroup(name, description || '', courseId || null, req.user.id)
     res.status(201).json({
       success: true,
       data: group,
@@ -1300,6 +1296,165 @@ router.delete('/api/study-groups/:groupId/leave', authenticate, async (req, res)
       success: false,
       error: 'Failed to leave study group'
     })
+  }
+})
+
+/**
+ * POST /api/study-materials/save-deck
+ * Save a pre-generated flashcard deck and quiz directly (no AI regeneration)
+ */
+router.post('/api/study-materials/save-deck', authenticate, async (req, res) => {
+  try {
+    const { title, sourceText, flashcards, quiz } = req.body
+    if (!title) return res.status(400).json({ error: 'Title is required' })
+
+    const savedId = randomUUID()
+    const cardArray = Array.isArray(flashcards) ? flashcards : []
+    const quizArray = Array.isArray(quiz) ? quiz : []
+
+    await query(
+      `INSERT INTO public.study_materials
+        (id, course_id, title, source_text, summary, key_points, quiz, diagrams, improved_note, created_by, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())`,
+      [
+        savedId,
+        null,
+        title,
+        sourceText || '',
+        `Study deck: ${title}`,
+        '[]',
+        JSON.stringify(quizArray),
+        '[]',
+        '',
+        req.user.id,
+      ]
+    )
+
+    let inserted = 0
+    for (let i = 0; i < cardArray.length; i++) {
+      const card = cardArray[i] || {}
+      const front = typeof card.front === 'string' ? card.front : typeof card.question === 'string' ? card.question : ''
+      const back = typeof card.back === 'string' ? card.back : typeof card.answer === 'string' ? card.answer : ''
+      if (!front && !back) continue
+      try {
+        await query(
+          'INSERT INTO public.flashcards (id, material_id, front, back, order_index) VALUES ($1,$2,$3,$4,$5)',
+          [randomUUID(), savedId, front, back, i]
+        )
+        inserted++
+      } catch (fcErr) { console.error(`Flashcard ${i} insert failed:`, fcErr.message) }
+    }
+
+    res.status(201).json({
+      id: savedId,
+      title,
+      flashcards: cardArray,
+      quiz: quizArray,
+      flashcardCount: cardArray.length,
+      quizCount: quizArray.length,
+    })
+  } catch (err) {
+    console.error('Save deck failed:', err.message)
+    res.status(500).json({ error: 'Failed to save deck: ' + err.message })
+  }
+})
+
+/**
+ * GET /api/pomodoro/sessions
+ * Get pomodoro sessions for the current user
+ */
+router.get('/api/pomodoro/sessions', authenticate, async (req, res) => {
+  try {
+    const { rows } = await query(
+      'SELECT id, duration_minutes AS "durationMinutes", completed_at AS "completedAt" FROM public.pomodoro_sessions WHERE user_id = $1 ORDER BY completed_at DESC LIMIT 50',
+      [req.user.id]
+    )
+    res.json(rows)
+  } catch (err) {
+    console.error('Get pomodoro sessions failed:', err.message)
+    res.json([])
+  }
+})
+
+/**
+ * POST /api/pomodoro/sessions
+ * Save a completed pomodoro session
+ */
+router.post('/api/pomodoro/sessions', authenticate, async (req, res) => {
+  try {
+    const { durationMinutes } = req.body
+    const id = randomUUID()
+    await query(
+      'INSERT INTO public.pomodoro_sessions (id, user_id, duration_minutes, completed_at) VALUES ($1,$2,$3,NOW())',
+      [id, req.user.id, durationMinutes || 25]
+    )
+    res.status(201).json({ id, durationMinutes, completedAt: new Date().toISOString() })
+  } catch (err) {
+    console.error('Save pomodoro failed:', err.message)
+    res.status(500).json({ error: 'Failed to save session' })
+  }
+})
+
+/**
+ * GET /api/pomodoro/goals
+ * Get weekly goals for the current user
+ */
+router.get('/api/pomodoro/goals', authenticate, async (req, res) => {
+  try {
+    const { rows } = await query(
+      'SELECT id, text, done FROM public.weekly_goals WHERE user_id = $1 AND week_start = (SELECT date_trunc(\'week\', CURRENT_DATE)::date) ORDER BY created_at',
+      [req.user.id]
+    )
+    if (rows.length === 0) {
+      const defaults = [
+        { text: 'Review lecture notes', done: false },
+        { text: 'Complete assignments', done: false },
+        { text: 'Practice problems', done: false },
+      ]
+      for (const g of defaults) {
+        const id = randomUUID()
+        await query(
+          'INSERT INTO public.weekly_goals (id, user_id, text, done, week_start, created_at) VALUES ($1,$2,$3,$4,date_trunc(\'week\', CURRENT_DATE)::date,NOW())',
+          [id, req.user.id, g.text, g.done]
+        )
+        rows.push({ id, text: g.text, done: g.done })
+      }
+    }
+    res.json(rows)
+  } catch (err) {
+    console.error('Get goals failed:', err.message)
+    res.json([])
+  }
+})
+
+/**
+ * POST /api/pomodoro/goals
+ * Save weekly goals for the current user
+ */
+router.post('/api/pomodoro/goals', authenticate, async (req, res) => {
+  try {
+    const { goals } = req.body
+    if (!Array.isArray(goals)) return res.status(400).json({ error: 'Goals array required' })
+
+    // Delete existing goals for this week and re-insert
+    await query(
+      'DELETE FROM public.weekly_goals WHERE user_id = $1 AND week_start = date_trunc(\'week\', CURRENT_DATE)::date',
+      [req.user.id]
+    )
+
+    const saved = []
+    for (const g of goals) {
+      const id = g.id || randomUUID()
+      await query(
+        'INSERT INTO public.weekly_goals (id, user_id, text, done, week_start, created_at) VALUES ($1,$2,$3,$4,date_trunc(\'week\', CURRENT_DATE)::date,NOW())',
+        [id, req.user.id, g.text || '', !!g.done]
+      )
+      saved.push({ id, text: g.text, done: !!g.done })
+    }
+    res.json(saved)
+  } catch (err) {
+    console.error('Save goals failed:', err.message)
+    res.status(500).json({ error: 'Failed to save goals' })
   }
 })
 

@@ -324,7 +324,7 @@ const PROV_MODELS = {
 
 router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
   try {
-    const { message, history, conversationId: bodyConvId, expert, webSearch: doWebSearch } = req.body
+    const { message, history, conversationId: bodyConvId, expert, council, webSearch: doWebSearch } = req.body
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message is required' })
     }
@@ -383,7 +383,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
       { role: 'user', content: message.trim() },
     ]
 
-    const useCouncilMode = !doWebSearch && false // Always turbo for speed
+    const useCouncilMode = req.body.council === true
 
     if (useCouncilMode) {
       // ─── COUNCIL MODE (disabled by default) ───
@@ -401,7 +401,6 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
       // ─── TURBO MODE: fast single response ───
       const timeout = doWebSearch ? 15000 : 10000
       sendEvent('status', { provider: 'turbo', message: 'Thinking...' })
-      const useCouncilMode = false
       const verifyWithSearch = needsVerification(message.trim())
       const result = await Promise.race([
         aiChat(messages, { turboMode: true, fastMode: true, verifyWithSearch }),
