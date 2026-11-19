@@ -3,15 +3,23 @@ import { randomUUID } from 'crypto'
 import { query } from '../../lib/db.js'
 import { getAiResponse, getAvailableProviders } from '../config/ai.js'
 
-const embedder = new OpenAI({
-  apiKey: process.env.NV_EMBEDDER_KEY,
-  baseURL: 'https://integrate.api.nvidia.com/v1',
-})
-
 const EMBED_MODEL = 'nvidia/nv-embed-v1'
+let embedder
+
+function getEmbedder() {
+  const apiKey = process.env.NV_EMBEDDER_KEY
+  if (!apiKey) throw new Error('Semantic search is unavailable until NV_EMBEDDER_KEY is configured.')
+  if (!embedder) {
+    embedder = new OpenAI({
+      apiKey,
+      baseURL: 'https://integrate.api.nvidia.com/v1',
+    })
+  }
+  return embedder
+}
 
 export async function embedText(text, inputType = 'passage') {
-  const resp = await embedder.embeddings.create({
+  const resp = await getEmbedder().embeddings.create({
     input: [text],
     model: EMBED_MODEL,
     input_type: inputType,

@@ -44,7 +44,7 @@ defineProps({
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, transform var(--duration-fast) ease;
   font-family: inherit;
   user-select: none;
   position: relative;
@@ -84,14 +84,15 @@ defineProps({
 
 /* Variants */
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: var(--color-primary);
   color: white;
-  box-shadow: 0 4px 15px rgba(11, 79, 140, 0.3);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(11, 79, 140, 0.4);
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -99,19 +100,19 @@ defineProps({
 }
 
 .btn-secondary {
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--color-bg-tertiary);
+  background: var(--color-surface-elevated);
   border-color: var(--color-primary);
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-text-secondary);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -119,7 +120,7 @@ defineProps({
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: var(--color-error);
   color: white;
 }
 
@@ -129,7 +130,7 @@ defineProps({
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: var(--color-success);
   color: white;
 }
 
@@ -139,8 +140,8 @@ defineProps({
 }
 
 .btn-warning {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
+  background: var(--color-warning);
+  color: #0f172a;
 }
 
 .btn-warning:hover:not(:disabled) {

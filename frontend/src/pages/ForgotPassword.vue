@@ -6,10 +6,6 @@
       </div>
       <h1 class="fp-title">Reset Password</h1>
       <p class="fp-desc">Enter your email address and we'll send you a link to reset your password.</p>
-      <div v-if="sent" class="fp-success">
-        Reset link sent! Check your email.
-      </div>
-      <div v-if="error" class="fp-error" role="alert">{{ error }}</div>
       <form @submit.prevent="handleReset">
         <div class="form-group" style="margin-bottom:20px;text-align:left;">
           <label class="fp-label">Email</label>
@@ -28,22 +24,20 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useToastStore } from '../stores/toast'
 
 const email = ref('')
 const sending = ref(false)
-const sent = ref(false)
-const error = ref('')
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 
 async function handleReset() {
-  error.value = ''
-  sent.value = false
   sending.value = true
   try {
     await authStore.resetPasswordForEmail(email.value.trim())
-    sent.value = true
+    toastStore.success('Password reset link sent. Check your email.')
   } catch (err) {
-    error.value = err?.message || 'Unable to send a password reset link. Please try again.'
+    toastStore.error(err?.message || 'Unable to send a password reset link. Please try again.')
   } finally {
     sending.value = false
   }

@@ -9,7 +9,7 @@ defineProps({
   status: {
     type: String,
     default: 'active',
-    validator: (v) => ['active', 'inactive', 'pending', 'error'].includes(v)
+    validator: (v) => ['active', 'present', 'inactive', 'pending', 'late', 'error', 'absent'].includes(v)
   },
   label: {
     type: String,
@@ -43,14 +43,15 @@ defineProps({
   animation: status-pulse 2s ease-in-out infinite;
 }
 
-.status-active {
+.status-active,
+.status-present {
   background: var(--color-success-soft);
   color: var(--color-success);
 }
 
 .status-inactive {
-  background: var(--color-neutral-soft);
-  color: var(--color-neutral);
+  background: var(--color-bg-alt);
+  color: var(--color-text-tertiary);
   animation: none;
 }
 
@@ -58,12 +59,14 @@ defineProps({
   animation: none;
 }
 
-.status-pending {
+.status-pending,
+.status-late {
   background: var(--color-warning-soft);
   color: var(--color-warning);
 }
 
-.status-error {
+.status-error,
+.status-absent {
   background: var(--color-error-soft);
   color: var(--color-error);
 }

@@ -26,7 +26,7 @@ async function authenticate(req, res, next) {
 
   if (!supabaseAdmin) {
     console.error('Supabase admin not configured — cannot verify tokens')
-    return res.status(503).json({ error: 'Authentication is not configured on the server. Contact the administrator.' })
+    return res.status(503).json({ error: 'Portal authentication is currently unavailable. Please contact the administrator.' })
   }
 
   try {

@@ -64,6 +64,9 @@
               <option value="">No venue selected</option>
               <option v-for="venue in venues" :key="venue.id" :value="venue.id">{{ venue.label }}</option>
             </select>
+            <span v-if="selectedVenue" class="mt-1 block text-[10px] font-medium" style="color: #68758E;">
+              {{ selectedVenue.radiusMeters == null ? 'This venue has no GPS radius configured.' : `GPS geofence: ${selectedVenue.radiusMeters} m` }}
+            </span>
           </label>
           <label class="text-xs font-semibold" style="color: #68758E;">
             Room (optional)
@@ -84,6 +87,7 @@
       <section v-if="isLecturer && activeSession" class="mb-6 rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
+            <div class="text-[9px] font-bold uppercase tracking-[0.16em] mb-1" style="color: #D97706;">Active session projector</div>
             <h2 class="text-base font-bold" style="color: #1A1A2E;">Rotating check-in code</h2>
             <p class="text-xs mt-1" style="color: #68758E;">Share this code with students in the selected session.</p>
           </div>
@@ -97,8 +101,19 @@
           </div>
         </div>
         <div class="mt-4 flex flex-wrap items-end gap-4">
-          <div class="font-mono text-4xl font-bold tracking-[0.3em]" style="color: #2563EB;" aria-live="polite">{{ currentCheckinCode || '------' }}</div>
-          <p v-if="codeExpiresAt" class="text-xs" style="color: #68758E;">Expires at {{ formatExpiry(codeExpiresAt) }}</p>
+          <div class="projector-code">
+            <div class="projector-countdown" :aria-label="`Code refreshes in ${codeSecondsRemaining} seconds`">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="projector-track" cx="50" cy="50" r="42" />
+                <circle class="projector-progress" cx="50" cy="50" r="42" :stroke-dasharray="projectorCircumference" :stroke-dashoffset="projectorRingOffset" />
+              </svg>
+              <strong>{{ codeSecondsRemaining }}</strong>
+              <small>SEC</small>
+            </div>
+            <div class="projector-digits" aria-live="polite">{{ currentCheckinCode || '------' }}</div>
+            <p>Rotates every 30 seconds</p>
+          </div>
+          <p v-if="codeExpiresAt" class="text-xs projector-expiry">Next code at {{ formatExpiry(codeExpiresAt) }}</p>
           <p v-else-if="codeLoading" class="text-xs" style="color: #68758E;">Loading current code…</p>
         </div>
         <p v-if="codeError" class="mt-3 text-sm" role="alert" style="color: #B91C1C;">{{ codeError }}</p>
@@ -152,6 +167,14 @@
         <div class="flex items-center gap-2 flex-wrap">
           <button v-for="f in filters" :key="f" @click="filterStatus = f" class="px-4 py-1.5 rounded-full text-xs font-semibold border-0 cursor-pointer transition-all" :style="filterStatus === f ? { background: '#2563EB', color: '#FFFFFF' } : { background: 'transparent', color: '#68758E' }">{{ f }}</button>
         </div>
+        <button
+          v-if="isLecturer"
+          type="button"
+          @click="exportAttendance"
+          :disabled="!filteredRows.length"
+          class="ml-auto rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-50"
+          style="background: #1E3A8A; color: #FFFFFF;"
+        >Export CSV</button>
       </div>
 
       <!-- Table -->
@@ -171,6 +194,7 @@
                     {{ row.status }}
                   </span>
                   <span v-else-if="col.key === 'status'">—</span>
+                  <span v-else-if="col.key === 'student'" class="font-mono text-xs">{{ row.studentId }}</span>
                   <span v-else-if="row.status === 'Absent' && ['timeIn','timeOut','method','location'].includes(col.key)">&mdash;</span>
                   <span v-else-if="col.key === 'location'" style="color: #2563EB;">{{ row[col.key] }}</span>
                   <span v-else-if="['timeIn','timeOut'].includes(col.key)" style="font-family: 'JetBrains Mono', 'Fira Code', monospace;">{{ row[col.key] }}</span>
@@ -240,7 +264,7 @@ let codeRefreshTimer = null
 
 const filters = ['All', 'Present', 'Late', 'Absent']
 
-const columns = [
+const baseColumns = [
   { key: 'course', label: 'Course' },
   { key: 'date', label: 'Date' },
   { key: 'timeIn', label: 'Time In' },
@@ -249,6 +273,9 @@ const columns = [
   { key: 'location', label: 'Location' },
   { key: 'status', label: 'Status' },
 ]
+const columns = computed(() => isLecturer.value
+  ? [{ key: 'student', label: 'Student ID' }, ...baseColumns]
+  : baseColumns)
 
 function formatTime(value) {
   if (!value) return '—'
@@ -262,6 +289,7 @@ async function fetchAttendance() {
     const items = Array.isArray(records) ? records : Array.isArray(records?.records) ? records.records : Array.isArray(records?.items) ? records.items : Array.isArray(records?.data) ? records.data : []
     data.value = items.map((r, idx) => ({
       id: r.id || `${r.timestamp || r.createdAt || 'record'}-${idx}`,
+      studentId: r.userId || r.user_id || '—',
       course: r.courseName || r.course_name || r.courseId || r.course_id || '—',
       date: r.date || r.timestamp?.slice(0, 10) || r.createdAt?.slice(0, 10) || r.created_at?.slice(0, 10) || '—',
       timeIn: formatTime(r.timeIn || r.time_in || r.timestamp || r.createdAt || r.created_at),
@@ -293,6 +321,7 @@ async function fetchSessions() {
 }
 
 const activeSession = computed(() => sessions.value.find(session => session.id === selectedSessionId.value) || null)
+const selectedVenue = computed(() => venues.value.find(venue => venue.id === selectedVenueId.value) || null)
 const matchingTimetableSlots = computed(() => timetableSlots.value.filter(slot => slot.courseKey === selectedCourseId.value))
 
 function normalizeSession(session) {
@@ -401,6 +430,7 @@ async function fetchLecturerOptions() {
         return id == null ? null : {
           id: String(id),
           label: venue.name || venue.room || venue.code || String(id),
+          radiusMeters: venue.radiusMeters ?? venue.radius_meters ?? null,
         }
       }).filter(Boolean)
   } else {
@@ -646,17 +676,206 @@ function statusDot(status) {
   }
 }
 
+function exportAttendance() {
+  const headers = columns.value
+  const rows = [
+    headers.map(column => column.label),
+    ...filteredRows.value.map(row => headers.map(column => row[column.key] ?? '')),
+  ]
+  const csv = rows.map(row => row.map(csvCell).join(',')).join('\r\n')
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `mcu-attendance-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function csvCell(value) {
+  const text = String(value).replace(/[\r\n]+/g, ' ')
+  const safeText = /^\s*[=+\-@]/.test(text) ? `'${text}` : text
+  return `"${safeText.replace(/"/g, '""')}"`
+}
+
+const codeNow = ref(Date.now())
+const projectorCircumference = 2 * Math.PI * 42
+const codeSecondsRemaining = computed(() => {
+  const expiry = Date.parse(codeExpiresAt.value)
+  return Number.isFinite(expiry) ? Math.max(0, Math.ceil((expiry - codeNow.value) / 1000)) : 0
+})
+const projectorRingOffset = computed(() => projectorCircumference * (1 - codeSecondsRemaining.value / 30))
+let codeClockTimer = null
+
 onMounted(() => {
   fetchAttendance()
   fetchSessions()
   if (isLecturer.value) fetchLecturerOptions()
+  codeClockTimer = setInterval(() => { codeNow.value = Date.now() }, 1000)
 })
 
-onUnmounted(clearCodeRefreshTimer)
+onUnmounted(() => {
+  clearCodeRefreshTimer()
+  if (codeClockTimer) clearInterval(codeClockTimer)
+})
 </script>
 
 <style>
 .attendance-page {
   font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100dvh;
+  background: var(--color-bg) !important;
+  color: var(--color-text-primary);
+}
+
+.projector-code {
+  display: flex;
+  width: 100%;
+  min-height: 132px;
+  align-items: center;
+  gap: clamp(18px, 4vw, 44px);
+  padding: 18px 22px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 14px;
+  background: linear-gradient(110deg, #0f172a, #172554);
+  color: #f8fafc;
+}
+
+.projector-countdown {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  display: grid;
+  flex: 0 0 auto;
+  place-content: center;
+  text-align: center;
+}
+
+.projector-countdown svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.projector-track,
+.projector-progress {
+  fill: none;
+  stroke-width: 4;
+}
+
+.projector-track {
+  stroke: rgba(226, 232, 240, 0.16);
+}
+
+.projector-progress {
+  stroke: #f59e0b;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 500ms linear;
+}
+
+.projector-countdown strong {
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.projector-countdown small {
+  z-index: 1;
+  margin-top: 4px;
+  color: #cbd5e1;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.projector-digits {
+  color: #fbbf24;
+  font-family: var(--font-mono);
+  font-size: clamp(34px, 6vw, 54px);
+  font-weight: 750;
+  letter-spacing: 0.2em;
+  line-height: 1;
+}
+
+.projector-code p {
+  margin: 8px 0 0;
+  color: #cbd5e1;
+  font-size: 10px;
+}
+
+.projector-expiry {
+  color: var(--color-text-tertiary);
+}
+
+.attendance-page .rounded-xl:not(button):not(input) {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.attendance-page [style*="background: rgb(245, 241, 234)"] {
+  background-color: var(--color-bg-alt) !important;
+}
+
+.attendance-page [style*="background: rgb(255, 255, 255)"] {
+  background-color: var(--color-surface) !important;
+}
+
+.attendance-page [style*="background: rgb(237, 237, 237)"] {
+  background-color: var(--color-surface-elevated) !important;
+}
+
+.attendance-page [style*="background: rgb(37, 99, 235)"] {
+  background-color: var(--color-primary) !important;
+}
+
+.attendance-page button[style*="background: rgb(37, 99, 235)"] {
+  color: #fff !important;
+}
+
+.attendance-page [style*="color: rgb(26, 26, 46)"] {
+  color: var(--color-text-primary) !important;
+}
+
+.attendance-page [style*="color: rgb(104, 117, 142)"],
+.attendance-page [style*="color: rgb(150, 160, 181)"] {
+  color: var(--color-text-tertiary) !important;
+}
+
+.attendance-page [style*="color: rgb(37, 99, 235)"] {
+  color: var(--color-primary) !important;
+}
+
+.attendance-page [style*="color: rgb(185, 28, 28)"] {
+  color: var(--color-error) !important;
+}
+
+.attendance-page [style*="border-color: rgb(226, 230, 237)"],
+.attendance-page [style*="border-bottom: 1px solid rgb(226, 230, 237)"],
+.attendance-page [style*="border-top: 1px solid rgb(226, 230, 237)"] {
+  border-color: var(--color-border) !important;
+}
+
+.attendance-page svg[stroke="#96A0B5"] {
+  stroke: var(--color-text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .projector-code {
+    gap: 16px;
+    padding: 14px;
+  }
+
+  .projector-countdown {
+    width: 68px;
+    height: 68px;
+  }
+
+  .projector-digits {
+    font-size: clamp(26px, 8vw, 38px);
+    letter-spacing: 0.12em;
+  }
 }
 </style>

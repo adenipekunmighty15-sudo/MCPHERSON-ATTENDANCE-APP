@@ -12,6 +12,12 @@ function requireAdmin(to, from, next) {
 
 const routes = [
   {
+    path: '/welcome',
+    name: 'Landing',
+    component: () => import('../pages/Landing.vue'),
+    meta: { guest: true, title: 'McPherson University' },
+  },
+  {
     path: '/auth/callback',
     name: 'AuthCallback',
     component: () => import('../pages/AuthCallback.vue'),
@@ -26,7 +32,8 @@ const routes = [
   {
     path: '/signup',
     name: 'Signup',
-    component: () => import('../pages/Signup.vue'),
+    component: () => import('../pages/Login.vue'),
+    props: { initialMode: 'signup' },
     meta: { guest: true, title: 'Create Account' },
   },
   // Legacy/bookmark paths kept working instead of falling through to 404.
@@ -102,6 +109,12 @@ const routes = [
         name: 'StudyHub',
         component: () => import('../pages/StudyHub.vue'),
         meta: { title: 'Study Hub', icon: 'Library' },
+      },
+      {
+        path: 'complaints',
+        name: 'Complaints',
+        component: () => import('../pages/Complaints.vue'),
+        meta: { title: 'Feedback & Complaints', icon: 'MessageSquare' },
       },
       {
         path: 'study-dashboard',
@@ -206,7 +219,9 @@ router.beforeEach(async (to, from, next) => {
 
   document.title = to.meta.title ? `${to.meta.title} — MCU` : 'MCU'
 
-  if (to.meta.auth && !authStore.isAuthenticated) return next('/login')
+  if (to.meta.auth && !authStore.isAuthenticated) {
+    return next({ path: '/welcome', query: { redirect: to.fullPath } })
+  }
   if (to.meta.guest && authStore.isAuthenticated) {
     const redirect = to.query.redirect
     if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('/login')) return next(redirect)

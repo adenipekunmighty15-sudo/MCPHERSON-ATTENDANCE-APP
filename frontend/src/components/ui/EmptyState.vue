@@ -34,19 +34,22 @@ defineProps({
 }
 
 .empty-state-icon {
-  font-size: 48px;
+  font-size: 32px;
   margin-bottom: var(--space-6);
-  opacity: 0.4;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 80px;
   height: 80px;
+  border-radius: var(--radius-xl);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent);
 }
 
 .empty-state-icon svg {
-  width: 100%;
-  height: 100%;
+  width: 38px;
+  height: 38px;
 }
 
 .empty-state-title {

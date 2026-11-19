@@ -184,7 +184,7 @@ async function savePassword() {
   if (!passwordForm.current) { errorMsg.value = 'Current password required'; return }
   if (!passwordForm.new || passwordForm.new.length < 6) { errorMsg.value = 'New password (6+ chars) required'; return }
   if (passwordForm.new !== passwordForm.confirm) { errorMsg.value = 'Passwords do not match'; return }
-  if (!supabase) { errorMsg.value = 'Authentication is not configured.'; return }
+  if (!supabase) { errorMsg.value = 'Portal authentication is currently unavailable. Please try again shortly.'; return }
   saving.password = true; errorMsg.value = ''
   try {
     // Re-authenticate first so an attacker with a briefly unlocked browser

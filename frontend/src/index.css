@@ -4,42 +4,42 @@
 
 @layer base {
   :root {
-    /* === COLOR SYSTEM — refined academic palette === */
-    --color-bg: #F4F6FA;
-    --color-bg-alt: #EBEDF3;
+    /* === CITADEL OF CHAMPIONS — unified academic palette === */
+    --color-bg: #F8FAFC;
+    --color-bg-alt: #F1F5F9;
     --color-surface: #FFFFFF;
-    --color-surface-elevated: #F8F9FC;
+    --color-surface-elevated: #F8FAFC;
     --color-surface-raised: #FFFFFF;
-    --color-border: #E2E6ED;
-    --color-border-strong: #C8CED9;
-    --color-border-accent: rgba(15, 30, 61, 0.12);
-    --color-text-primary: #0B1A33;
-    --color-text-secondary: #3D4A5E;
-    --color-text-tertiary: #68758E;
-    --color-text-quaternary: #96A0B5;
-    --color-primary: #0F1E3D;
-    --color-primary-hover: #1A2D52;
-    --color-primary-soft: rgba(15, 30, 61, 0.06);
-    --color-primary-glow: rgba(15, 30, 61, 0.12);
-    --color-primary-muted: rgba(15, 30, 61, 0.08);
-    --color-primary-light: #3B5A8C;
-    --color-accent: #B8860B;
-    --color-accent-hover: #9A7209;
-    --color-accent-soft: rgba(184, 134, 11, 0.1);
-    --color-secondary: #1B3A5C;
-    --color-secondary-soft: rgba(27, 58, 92, 0.08);
-    --color-deep: #08152D;
-    --color-muted: #EDF0F5;
-    --color-success: #1B7A3D;
-    --color-success-soft: rgba(27, 122, 61, 0.1);
-    --color-error: #C41E1E;
-    --color-error-soft: rgba(196, 30, 30, 0.1);
-    --color-warning: #B8860B;
-    --color-warning-soft: rgba(184, 134, 11, 0.1);
+    --color-border: #E2E8F0;
+    --color-border-strong: #CBD5E1;
+    --color-border-accent: rgba(30, 58, 138, 0.18);
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #334155;
+    --color-text-tertiary: #64748B;
+    --color-text-quaternary: #94A3B8;
+    --color-primary: #1E3A8A;
+    --color-primary-hover: #172554;
+    --color-primary-soft: rgba(30, 58, 138, 0.08);
+    --color-primary-glow: rgba(30, 58, 138, 0.16);
+    --color-primary-muted: rgba(30, 58, 138, 0.1);
+    --color-primary-light: #3B82F6;
+    --color-accent: #D97706;
+    --color-accent-hover: #B45309;
+    --color-accent-soft: rgba(217, 119, 6, 0.1);
+    --color-secondary: #334155;
+    --color-secondary-soft: rgba(51, 65, 85, 0.08);
+    --color-deep: #0F172A;
+    --color-muted: #F1F5F9;
+    --color-success: #10B981;
+    --color-success-soft: rgba(16, 185, 129, 0.12);
+    --color-error: #EF4444;
+    --color-error-soft: rgba(239, 68, 68, 0.1);
+    --color-warning: #F59E0B;
+    --color-warning-soft: rgba(245, 158, 11, 0.12);
     --color-info: #2563EB;
     --color-info-soft: rgba(37, 99, 235, 0.1);
-    --color-gold: #C9902B;
-    --color-gold-soft: rgba(201, 144, 43, 0.08);
+    --color-gold: #D97706;
+    --color-gold-soft: rgba(217, 119, 6, 0.1);
 
     /* Spacing scale */
     --space-1: 4px;  --space-2: 8px; --space-3: 12px; --space-4: 16px;
@@ -433,6 +433,45 @@
     .shimmer-overlay::after, .float-slow, .scale-pulse, .attention-pulse {
       animation: none !important; transform: none !important;
     }
+  }
+
+  /* === CITADEL DESIGN PRIMITIVES === */
+  .tabular-nums,
+  [data-countdown],
+  [data-attendance-value],
+  [data-checkin-code] {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-tertiary);
+  }
+
+  .surface-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .status-present { background: var(--color-success-soft); color: #047857; }
+  .status-late { background: var(--color-warning-soft); color: #B45309; }
+  .status-absent { background: var(--color-error-soft); color: #DC2626; }
+
+  .config-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-warning-soft);
+    border-radius: var(--radius-md);
+    background: var(--color-warning-soft);
+    color: #92400E;
+    font-size: var(--text-sm);
   }
 }
 

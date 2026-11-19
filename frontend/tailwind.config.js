@@ -197,6 +197,17 @@ export default {
           inverse: '#1A1A1A',
           disabled: '#707070',
         },
+        citadel: {
+          navy: '#0F172A',
+          'navy-600': '#1E3A8A',
+          gold: '#D97706',
+          'gold-400': '#F59E0B',
+          slate: '#F8FAFC',
+          line: '#E2E8F0',
+          present: '#10B981',
+          pending: '#F59E0B',
+          absent: '#EF4444',
+        },
       },
       backgroundImage: {
         'gradient-liquid': 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.3) 100%)',

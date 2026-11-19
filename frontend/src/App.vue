@@ -1,6 +1,6 @@
 <template>
   <div class="app-root">
-    <LoadingScreen v-if="!loadingStore.isAppReady" />
+    <LoadingScreen v-if="!loadingStore.isAppReady" :loading="true" />
     <template v-else>
       <router-view />
       <Toast />
@@ -37,6 +37,6 @@ onUnmounted(() => clearTimeout(loadingTimer))
 <style scoped>
 .app-root {
   min-height: 100vh;
-  background: #F5F1EA;
+  background: var(--color-bg);
 }
 </style>

@@ -49,7 +49,9 @@ with the private **service_role** key and reads the authoritative role from
    `DATABASE_URL`.
 3. `frontend/.env`: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
    In production these must also be set in the Vercel project because Vite
-   inlines them at build time.
+   inlines them at build time. The sign-in page shows a setup notice and
+   sign-in/sign-up requests are blocked until both values are present; after
+   changing them, rebuild or redeploy the frontend.
 4. In Supabase → Authentication → URL Configuration, add the deployed origin
    plus `/auth/callback` and `/reset-password` as redirect URLs. Enable the
    Google provider only if you use the Google sign-in button.

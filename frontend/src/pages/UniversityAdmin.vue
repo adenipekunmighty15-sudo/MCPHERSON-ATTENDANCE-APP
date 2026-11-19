@@ -42,6 +42,16 @@
         <UsersTab v-if="activeTab === 'users'" @refresh="fetchData" />
         <EnrollmentsTab v-if="activeTab === 'enrollments'" @refresh="fetchData" />
         <LecturerCoursesTab v-if="activeTab === 'lecturer-courses'" @refresh="fetchData" />
+        <VenuesTab v-if="activeTab === 'venues'" />
+        <ComplaintsTab v-if="activeTab === 'complaints'" />
+        <section v-if="activeTab === 'notifications'" class="service-unavailable" role="status">
+          <span class="service-icon"><Bell :size="21" /></span>
+          <div>
+            <h2>University-wide broadcasts are not available</h2>
+            <p>The current API does not provide a university-wide notification broadcaster. No message has been sent.</p>
+            <router-link to="/admin/portal/dashboard">Send an individual attendance reminder from the at-risk list</router-link>
+          </div>
+        </section>
       </div>
     </div>
   </div>
@@ -50,6 +60,7 @@
 <script setup>
 import { ref, markRaw } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { Bell, MapPin, MessageSquareText } from 'lucide-vue-next'
 
 import FacultiesTab from '../components/admin/FacultiesTab.vue'
 import DepartmentsTab from '../components/admin/DepartmentsTab.vue'
@@ -60,6 +71,8 @@ import CoursesTab from '../components/admin/CoursesTab.vue'
 import UsersTab from '../components/admin/UsersTab.vue'
 import EnrollmentsTab from '../components/admin/EnrollmentsTab.vue'
 import LecturerCoursesTab from '../components/admin/LecturerCoursesTab.vue'
+import VenuesTab from '../components/admin/VenuesTab.vue'
+import ComplaintsTab from '../components/admin/ComplaintsTab.vue'
 
 const authStore = useAuthStore()
 const role = ref(authStore.user?.role || 'student')
@@ -76,7 +89,38 @@ const tabs = [
   { key: 'users', label: 'Users', icon: markRaw({ template: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' }) },
   { key: 'enrollments', label: 'Enrollments', icon: markRaw({ template: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h6"/></svg>' }) },
   { key: 'lecturer-courses', label: 'Lecturer Assign', icon: markRaw({ template: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' }) },
+  { key: 'venues', label: 'Campus Venues', icon: markRaw(MapPin) },
+  { key: 'complaints', label: 'Complaints', icon: markRaw(MessageSquareText) },
+  { key: 'notifications', label: 'Notifications', icon: markRaw(Bell) },
 ]
 
 function fetchData() {}
 </script>
+
+<style scoped>
+.service-unavailable {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 720px;
+  margin: 8px auto;
+  padding: 20px;
+  border: 1px solid var(--color-warning-soft);
+  border-radius: 14px;
+  background: var(--color-warning-soft);
+}
+.service-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-warning);
+}
+.service-unavailable h2 { margin: 2px 0 5px; color: var(--color-text-primary); font-size: 15px; }
+.service-unavailable p { margin: 0 0 10px; color: var(--color-text-secondary); font-size: 12px; line-height: 1.6; }
+.service-unavailable a { color: var(--color-primary); font-size: 11px; font-weight: 700; text-decoration: none; }
+.service-unavailable a:hover { text-decoration: underline; }
+</style>

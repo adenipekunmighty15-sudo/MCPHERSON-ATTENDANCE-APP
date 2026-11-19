@@ -1,41 +1,15 @@
-export const colleges = {
-  COLNAS: 'College of Natural and Applied Sciences',
-  COLCOM: 'College of Computing',
-  COBMS: 'College of Basic Medical Sciences',
-  COLLAW: 'College of Law',
-  COHSMAS: 'College of Humanities, Social and Management Sciences',
-}
+import { colleges as universityColleges, departments as universityDepartments } from './university'
 
-export const departments = [
-  { id: 'bioch', name: 'Biochemistry & Molecular Biology', college: 'COLNAS' },
-  { id: 'biotech', name: 'Biotechnology', college: 'COLNAS' },
-  { id: 'micro', name: 'Microbiology', college: 'COLNAS' },
-  { id: 'chem', name: 'Industrial Chemistry', college: 'COLNAS' },
-  { id: 'math', name: 'Industrial Mathematics', college: 'COLNAS' },
-  { id: 'physics', name: 'Medical Physics', college: 'COLNAS' },
-  { id: 'stats', name: 'Statistics', college: 'COLNAS' },
-  { id: 'cs', name: 'Computer Science', college: 'COLCOM' },
-  { id: 'se', name: 'Software Engineering', college: 'COLCOM' },
-  { id: 'it', name: 'Information Technology', college: 'COLCOM' },
-  { id: 'cyber', name: 'Cyber Security', college: 'COLCOM' },
-  { id: 'ds', name: 'Data Science', college: 'COLCOM' },
-  { id: 'nursing', name: 'Nursing Science', college: 'COBMS' },
-  { id: 'pubhealth', name: 'Public Health', college: 'COBMS' },
-  { id: 'mls', name: 'Medical Laboratory Science', college: 'COBMS' },
-  { id: 'him', name: 'Health Information Management', college: 'COBMS' },
-  { id: 'law', name: 'Law', college: 'COLLAW' },
-  { id: 'acc', name: 'Accounting', college: 'COHSMAS' },
-  { id: 'bnkfin', name: 'Banking & Finance', college: 'COHSMAS' },
-  { id: 'busadmin', name: 'Business Administration', college: 'COHSMAS' },
-  { id: 'mkt', name: 'Marketing', college: 'COHSMAS' },
-  { id: 'econs', name: 'Economics', college: 'COHSMAS' },
-  { id: 'ir', name: 'International Relations', college: 'COHSMAS' },
-  { id: 'masscomm', name: 'Mass Communication', college: 'COHSMAS' },
-  { id: 'his', name: 'History & International Studies', college: 'COHSMAS' },
-  { id: 'lang', name: 'Languages (English)', college: 'COHSMAS' },
-  { id: 'rels', name: 'Religion & Peace Studies', college: 'COHSMAS' },
-  { id: 'gns', name: 'General Studies', college: 'COHSMAS' },
-]
+export const colleges = Object.fromEntries(
+  universityColleges.map((college) => [college.code, college.name]),
+)
+
+export const departments = universityDepartments.map((department) => ({
+  id: department.id,
+  code: department.code,
+  name: department.name,
+  college: department.college,
+}))
 
 export const courses = [
   { id: 'gns101', code: 'GNS 101', title: 'Use of English I', cu: 2, level: 100, semester: 1, dept: 'gns', lecturer: 'Dr. Adebayo', schedule: 'Mon 09:00-11:00', venue: 'CH 1' },

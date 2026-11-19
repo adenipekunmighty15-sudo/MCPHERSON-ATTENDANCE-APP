@@ -104,10 +104,12 @@ router.get('/api/insights', authenticate, async (req, res) => {
     const canViewAll = ADMIN_ROLES.includes(req.user.role)
     const scope = attendanceScope(req)
     const { rows } = await query(
-      `SELECT a.*, c.code AS course_code, c.title AS course_title, u.name AS student_name, u.email AS student_email
+      `SELECT a.*, c.code AS course_code, c.title AS course_title, u.name AS student_name,
+        u.email AS student_email, COALESCE(d.name, u.department) AS student_department
        FROM public.attendance a
        LEFT JOIN public.courses c ON a.course_id = c.id
        LEFT JOIN public.users u ON a.user_id = u.id
+       LEFT JOIN public.departments d ON d.id = u.department_id
        ${scope.where}
        ORDER BY a.timestamp DESC`,
       scope.params
@@ -116,6 +118,7 @@ router.get('/api/insights', authenticate, async (req, res) => {
     const totals = { records: rows.length, present: 0, absent: 0, ooo: 0, late: 0 }
     const byCourse = new Map()
     const byStudent = new Map()
+    const byDepartment = new Map()
 
     for (const row of rows) {
       if (Object.prototype.hasOwnProperty.call(totals, row.status)) totals[row.status] += 1
@@ -136,6 +139,16 @@ router.get('/api/insights', authenticate, async (req, res) => {
       course.records += 1
       if (Object.prototype.hasOwnProperty.call(course, row.status)) course[row.status] += 1
 
+      const departmentName = String(row.student_department || '').trim()
+      if (canViewAll && departmentName) {
+        if (!byDepartment.has(departmentName)) {
+          byDepartment.set(departmentName, { department: departmentName, records: 0, present: 0, late: 0, absent: 0 })
+        }
+        const department = byDepartment.get(departmentName)
+        department.records += 1
+        if (Object.prototype.hasOwnProperty.call(department, row.status)) department[row.status] += 1
+      }
+
       if (canViewAll || req.user.role === 'lecturer') {
         const studentId = row.user_id || 'unknown'
         if (!byStudent.has(studentId)) {
@@ -143,6 +156,7 @@ router.get('/api/insights', authenticate, async (req, res) => {
             studentId,
             studentName: row.student_name || 'Unknown',
             studentEmail: row.student_email || '',
+            department: row.student_department || '',
             records: 0,
             present: 0,
             lastSeen: row.timestamp,
@@ -171,6 +185,13 @@ router.get('/api/insights', authenticate, async (req, res) => {
       .sort((a, b) => a.attendanceRate - b.attendanceRate || b.records - a.records)
       .slice(0, 10)
 
+    const departmentBreakdown = [...byDepartment.values()]
+      .map(department => ({
+        ...department,
+        attendanceRate: department.records ? Math.round((department.present / department.records) * 100) : 0,
+      }))
+      .sort((a, b) => a.attendanceRate - b.attendanceRate || a.department.localeCompare(b.department))
+
     res.status(200).json({
       canViewAll,
       summary: {
@@ -180,6 +201,7 @@ router.get('/api/insights', authenticate, async (req, res) => {
         atRiskStudents: atRiskStudents.length,
       },
       courseBreakdown,
+      departmentBreakdown,
       atRiskStudents,
     })
   } catch (err) {

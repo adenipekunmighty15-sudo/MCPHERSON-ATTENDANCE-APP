@@ -1,87 +1,303 @@
-/* ─── Design Kit Tokens ────────────────────────────────
-   Ink-navy / parchment / brass palette
-   Fraunces (display) / Inter (sans) / IBM Plex Mono
-   Layers on top of existing token system — import in main.js
-   ─────────────────────────────────────────────────── */
-
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,50&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,50&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ── Ink-navy scale (replaces generic --color-primary) ── */
-  --color-ink-900: #0B1A33;
-  --color-ink-800: #0F1E3D;
-  --color-ink-700: #162240;
-  --color-ink-600: #1F2D4A;
-  --color-ink-500: #3D4A5E;
-  --color-ink-400: #68758E;
-  --color-ink-300: #96A0B5;
-  --color-ink-200: #C8CED9;
-  --color-ink-100: #E2E6ED;
-  --color-ink-50:  #F4F6FA;
+  color-scheme: light;
+  --color-bg: #f8fafc;
+  --color-bg-alt: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8fafc;
+  --color-surface-raised: #ffffff;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-border-accent: rgba(30, 58, 138, 0.18);
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-tertiary: #64748b;
+  --color-text-quaternary: #94a3b8;
+  --color-primary: #1e3a8a;
+  --color-primary-hover: #172554;
+  --color-primary-soft: rgba(30, 58, 138, 0.08);
+  --color-primary-glow: rgba(30, 58, 138, 0.16);
+  --color-primary-muted: rgba(30, 58, 138, 0.1);
+  --color-primary-light: #3b82f6;
+  --color-accent: #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-soft: rgba(217, 119, 6, 0.1);
+  --color-secondary: #334155;
+  --color-secondary-soft: rgba(51, 65, 85, 0.08);
+  --color-deep: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-success: #10b981;
+  --color-success-soft: rgba(16, 185, 129, 0.12);
+  --color-error: #ef4444;
+  --color-error-soft: rgba(239, 68, 68, 0.1);
+  --color-warning: #f59e0b;
+  --color-warning-soft: rgba(245, 158, 11, 0.12);
+  --color-info: #2563eb;
+  --color-info-soft: rgba(37, 99, 235, 0.1);
+  --color-gold: #d97706;
+  --color-gold-soft: rgba(217, 119, 6, 0.1);
 
-  /* ── Parchment scale (replaces surface/tints) ── */
-  --color-parchment-900: #E8E2D8;
-  --color-parchment-800: #EDE8DF;
-  --color-parchment-700: #F2EDE6;
-  --color-parchment-600: #F5F1EB;
-  --color-parchment-500: #F8F5F0;
-  --color-parchment-400: #FBF9F6;
-  --color-parchment-300: #FDFCFA;
-  --color-parchment-200: #FEFEFD;
-  --color-parchment-100: #FFFFFF;
+  --font-display: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
 
-  /* ── Brass (replaces --color-accent) ── */
-  --color-brass:      #B8860B;
-  --color-brass-hover:#9A7209;
-  --color-brass-soft: rgba(184, 134, 11, 0.1);
-  --color-brass-glow: rgba(184, 134, 11, 0.2);
-
-  /* ── Semantic aliases (backward compat with existing tokens) ── */
-  --color-bg:           var(--color-parchment-500);
-  --color-bg-alt:       var(--color-parchment-600);
-  --color-surface:      var(--color-parchment-100);
-  --color-surface-alt:  var(--color-parchment-300);
-  --color-border:       var(--color-ink-100);
-  --color-border-muted: var(--color-parchment-800);
-  --color-text:         var(--color-ink-900);
-  --color-text-muted:   var(--color-ink-400);
-
-  /* ── Typography ── */
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono:    'IBM Plex Mono', 'JetBrains Mono', monospace;
-
-  /* ── Design kit extras ── */
-  --seal-size: 80px;
-  --sidebar-width-kit: 260px;
+  --page-max-width: 1440px;
+  --page-padding: 32px;
+  --page-padding-mobile: 18px;
+  --section-gap: 24px;
+  --card-padding: 24px;
+  --card-padding-sm: 18px;
+  --card-padding-lg: 32px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 26px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.035);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.055);
+  --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --shadow-xl: 0 20px 40px rgba(15, 23, 42, 0.1);
+  --sidebar-width: 256px;
+  --sidebar-collapsed: 68px;
+  --topbar-height: 64px;
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-blur: 18px;
+  --glass-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+  --focus-ring: 0 0 0 3px rgba(30, 58, 138, 0.25);
+  --duration-fast: 150ms;
+  --duration-normal: 220ms;
+  --duration-slow: 350ms;
+  --content-max-width: 1440px;
+  --touch-target: 44px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-ink-900: #F0F4FA;
-    --color-ink-800: #BAC8DA;
-    --color-ink-700: #8DA2B7;
-    --color-ink-600: #60748F;
-    --color-ink-500: #3D4A5E;
-    --color-ink-400: #26405E;
-    --color-ink-300: #1B2A47;
-    --color-ink-200: #14203B;
-    --color-ink-100: #0F1A30;
-    --color-ink-50:  #080F1E;
+[data-theme='dark'],
+:root.dark {
+  color-scheme: dark;
+  --color-bg: #0b1220;
+  --color-bg-alt: #111b2e;
+  --color-surface: #111b2e;
+  --color-surface-elevated: #17243a;
+  --color-surface-raised: #152137;
+  --color-border: #26354d;
+  --color-border-strong: #3b4e6a;
+  --color-border-accent: rgba(147, 197, 253, 0.22);
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #dbe4f0;
+  --color-text-tertiary: #a7b5c8;
+  --color-text-quaternary: #718198;
+  --color-primary: #93c5fd;
+  --color-primary-hover: #bfdbfe;
+  --color-primary-soft: rgba(147, 197, 253, 0.1);
+  --color-primary-glow: rgba(147, 197, 253, 0.18);
+  --color-primary-muted: rgba(147, 197, 253, 0.12);
+  --color-primary-light: #bfdbfe;
+  --color-accent: #fbbf24;
+  --color-accent-hover: #fcd34d;
+  --color-accent-soft: rgba(251, 191, 36, 0.14);
+  --color-secondary: #cbd5e1;
+  --color-secondary-soft: rgba(203, 213, 225, 0.1);
+  --color-deep: #020617;
+  --color-muted: #1e293b;
+  --color-success: #34d399;
+  --color-success-soft: rgba(52, 211, 153, 0.12);
+  --color-error: #f87171;
+  --color-error-soft: rgba(248, 113, 113, 0.12);
+  --color-warning: #fbbf24;
+  --color-warning-soft: rgba(251, 191, 36, 0.12);
+  --color-info: #60a5fa;
+  --color-info-soft: rgba(96, 165, 250, 0.12);
+  --color-gold: #fbbf24;
+  --color-gold-soft: rgba(251, 191, 36, 0.12);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.16);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.28);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.35);
+  --glass-bg: rgba(17, 27, 46, 0.9);
+  --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  --focus-ring: 0 0 0 3px rgba(147, 197, 253, 0.35);
+}
 
-    --color-parchment-900: #1A1510;
-    --color-parchment-800: #1F1A14;
-    --color-parchment-700: #252018;
-    --color-parchment-600: #2A251D;
-    --color-parchment-500: #302B22;
-    --color-parchment-400: #383228;
-    --color-parchment-300: #403A2F;
-    --color-parchment-200: #484236;
-    --color-parchment-100: #504A3D;
+html {
+  font-family: var(--font-sans);
+}
 
-    --color-brass:      #E8B83A;
-    --color-brass-hover:#F0C64A;
-    --color-brass-soft: rgba(232, 184, 58, 0.12);
-    --color-brass-glow: rgba(232, 184, 58, 0.2);
+body {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+::selection {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.page {
+  max-width: var(--page-max-width);
+  margin-inline: auto;
+  padding: var(--page-padding-mobile);
+}
+
+.card,
+.soft-panel {
+  border-color: var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-hover:hover {
+  border-color: var(--color-border-accent);
+  box-shadow: var(--shadow-md);
+}
+
+.btn {
+  min-height: var(--touch-target);
+  border-radius: var(--radius-md);
+  font-weight: 650;
+}
+
+.btn:focus-visible,
+.admin-layout button:focus-visible,
+.layout button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.tabular-nums,
+[data-countdown],
+[data-attendance-value] {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.btn-primary {
+  color: #fff;
+}
+
+[data-theme='dark'] .btn-primary,
+:root.dark .btn-primary {
+  color: #0f172a;
+}
+
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  color: var(--color-text-primary);
+}
+
+.app-root [style*="background: #F5F1EA"],
+.app-root [style*="background:#F5F1EA"],
+.app-root [style*="background: rgb(245, 241, 234)"] {
+  background-color: var(--color-bg) !important;
+}
+
+.app-root [style*="background: #EDEDED"],
+.app-root [style*="background:#EDEDED"],
+.app-root [style*="background: rgb(237, 237, 237)"] {
+  background-color: var(--color-surface-elevated) !important;
+}
+
+.app-root [style*="background: #FFFFFF"],
+.app-root [style*="background:#FFFFFF"],
+.app-root [style*="background: rgb(255, 255, 255)"] {
+  background-color: var(--color-surface) !important;
+}
+
+.app-root [style*="background: #0F1E3D"],
+.app-root [style*="background:#0F1E3D"],
+.app-root [style*="background: rgb(15, 30, 61)"],
+.app-root [style*="background: #2563EB"],
+.app-root [style*="background:#2563EB"],
+.app-root [style*="background: rgb(37, 99, 235)"] {
+  background-color: var(--color-primary) !important;
+}
+
+.app-root [style*="color: #2563EB"],
+.app-root [style*="color:#2563EB"],
+.app-root [style*="color: rgb(37, 99, 235)"] {
+  color: var(--color-primary) !important;
+}
+
+.app-root [style*="color: #0F1E3D"],
+.app-root [style*="color:#0F1E3D"],
+.app-root [style*="color: rgb(15, 30, 61)"],
+.app-root [style*="color: #1A1A2E"],
+.app-root [style*="color:#1A1A2E"],
+.app-root [style*="color: rgb(26, 26, 46)"] {
+  color: var(--color-text-primary) !important;
+}
+
+.app-root [style*="color: #68758E"],
+.app-root [style*="color:#68758E"],
+.app-root [style*="color: rgb(104, 117, 142)"] {
+  color: var(--color-text-secondary) !important;
+}
+
+.app-root [style*="color: #96A0B5"],
+.app-root [style*="color:#96A0B5"],
+.app-root [style*="color: rgb(150, 160, 181)"] {
+  color: var(--color-text-tertiary) !important;
+}
+
+.app-root [style*="color: #C9902B"],
+.app-root [style*="color:#C9902B"],
+.app-root [style*="color: rgb(201, 144, 43)"],
+.app-root [style*="color: #D97706"] {
+  color: var(--color-accent) !important;
+}
+
+.app-root [style*="border-color: #E2E6ED"],
+.app-root [style*="border-color:#E2E6ED"],
+.app-root [style*="border-color: rgb(226, 230, 237)"],
+.app-root [style*="border-color: #D0D6E0"],
+.app-root [style*="border-color:#D0D6E0"],
+.app-root [style*="border-color: rgb(208, 214, 224)"] {
+  border-color: var(--color-border) !important;
+}
+
+[data-theme='dark'] .app-root [style*="background: #0F1E3D"][style*="color: #FFFFFF"],
+[data-theme='dark'] .app-root [style*="background:#0F1E3D"][style*="color:#FFFFFF"],
+[data-theme='dark'] .app-root [style*="background: rgb(15, 30, 61)"][style*="color: rgb(255, 255, 255)"],
+[data-theme='dark'] .app-root [style*="background: #2563EB"][style*="color: #FFFFFF"],
+[data-theme='dark'] .app-root [style*="background:#2563EB"][style*="color:#FFFFFF"],
+[data-theme='dark'] .app-root [style*="background: rgb(37, 99, 235)"][style*="color: rgb(255, 255, 255)"] {
+  color: #0b1220 !important;
+}
+
+[data-theme='dark'] .app-root [style*="background: #0F1E3D"][style*="color: #0F1E3D"],
+[data-theme='dark'] .app-root [style*="background:#0F1E3D"][style*="color:#0F1E3D"],
+[data-theme='dark'] .app-root [style*="background: rgb(15, 30, 61)"][style*="color: rgb(15, 30, 61)"] {
+  color: #0b1220 !important;
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding: var(--page-padding);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (hover: hover) {
+  .card-hover:hover,
+  .ui-card-hover:hover {
+    transform: translateY(-1px);
   }
 }

@@ -100,6 +100,11 @@
               </li>
             </ol>
           </nav>
+          <span class="portal-role">{{ portalRole }}</span>
+          <span class="semester-pill">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            {{ semesterLabel }}
+          </span>
         </div>
 
         <div class="topbar-right">
@@ -108,6 +113,58 @@
             <span class="search-placeholder">Search</span>
             <kbd class="search-kbd">Ctrl+K</kbd>
           </button>
+          <div v-if="isStudent" class="citadel-badges" aria-label="Student progress">
+            <span class="citadel-badge streak" title="Study streak">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.4 0 7-3.1 7-7 0-4.5-4-6.5-4-11-2.5 1.5-3.5 3.5-3.5 5.5 0-1.5-1-3-2.5-4.5C9 8 5 10.5 5 15c0 3.9 2.6 7 7 7z"/></svg>
+              <span class="tabular-nums">{{ gamificationStore.currentStreak || 0 }}</span>
+            </span>
+            <span class="citadel-badge gems" title="Wallet balance">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 7 7-7 11-7-11 7-7z"/><path d="M5 10h14"/></svg>
+              <span class="tabular-nums">{{ walletStore.balance || 0 }}</span>
+            </span>
+          </div>
+          <div class="notification-wrap">
+            <button
+              class="topbar-notifications"
+              type="button"
+              :aria-expanded="notificationsOpen"
+              aria-controls="notification-popover"
+              aria-label="Notifications"
+              @click="toggleNotifications"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+              <span v-if="unreadNotifications" class="notification-count" aria-live="polite">{{ unreadNotifications > 9 ? '9+' : unreadNotifications }}</span>
+            </button>
+            <section v-if="notificationsOpen" id="notification-popover" class="notification-popover" aria-label="Notifications">
+              <header class="notification-heading">
+                <div>
+                  <span class="nav-group-label">CAMPUS UPDATES</span>
+                  <h2>Notifications</h2>
+                </div>
+                <button v-if="unreadNotifications" type="button" class="notification-mark-read" @click="markAllNotificationsRead">Mark all read</button>
+              </header>
+              <p v-if="notificationsLoading" class="notification-state" role="status">Loading notifications…</p>
+              <p v-else-if="notificationError" class="notification-state notification-error" role="alert">{{ notificationError }}</p>
+              <p v-else-if="!notificationItems.length" class="notification-state">You’re all caught up. New updates will appear here.</p>
+              <div v-else class="notification-list">
+                <router-link
+                  v-for="notification in notificationItems.slice(0, 6)"
+                  :key="notification.id"
+                  :to="notificationPath(notification.link)"
+                  class="notification-item"
+                  :class="{ unread: !notification.read }"
+                  @click.prevent="openNotification(notification)"
+                >
+                  <span class="notification-dot" :class="`notification-${notification.type || 'info'}`"></span>
+                  <span class="notification-copy">
+                    <strong>{{ notification.title }}</strong>
+                    <span>{{ notification.message }}</span>
+                    <small>{{ formatNotificationDate(notification.createdAt) }}</small>
+                  </span>
+                </router-link>
+              </div>
+            </section>
+          </div>
           <button class="topbar-tour" @click="openWalkthrough" title="Take the app tour" aria-label="Take the app tour">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
@@ -116,12 +173,44 @@
             </svg>
           </button>
           <ThemeToggle />
-          <router-link to="/profile" class="user-avatar" title="Profile">
-            {{ authStore.user?.name?.charAt(0) || 'U' }}
-          </router-link>
-          <button class="topbar-logout" @click="handleLogout" title="Sign Out" aria-label="Sign Out">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          </button>
+          <div class="profile-menu-wrap">
+            <button
+              class="profile-trigger"
+              type="button"
+              :aria-expanded="profileOpen"
+              aria-haspopup="menu"
+              @click="profileOpen = !profileOpen"
+            >
+              <span class="profile-avatar">{{ profileInitial }}</span>
+              <span class="profile-meta">
+                <strong>{{ authStore.user?.name || 'User' }}</strong>
+                <small>{{ profileRoleLabel }}</small>
+              </span>
+              <svg class="profile-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div v-if="profileOpen" class="profile-dropdown" role="menu">
+              <div class="profile-dropdown-head">
+                <strong>{{ authStore.user?.name || 'User' }}</strong>
+                <span>{{ authStore.user?.email || '—' }}</span>
+              </div>
+              <router-link to="/profile" role="menuitem" @click="profileOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                My profile
+              </router-link>
+              <router-link to="/settings" role="menuitem" @click="profileOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.05A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.05A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.05A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.05A1.7 1.7 0 0 0 20.95 10H21a2 2 0 1 1 0 4h-.05A1.7 1.7 0 0 0 19.4 15z"/></svg>
+                Settings
+              </router-link>
+              <router-link v-if="isAdmin" to="/admin/portal/dashboard" role="menuitem" @click="profileOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Admin console
+              </router-link>
+              <button type="button" role="menuitem" @click="handleLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign out
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -178,6 +267,9 @@ import { ref, computed, onMounted, onUnmounted, markRaw, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useMessagingStore } from '../stores/messaging'
+import { useGamificationStore } from '../stores/gamification'
+import { useWalletStore } from '../stores/wallet'
+import api from '../lib/api'
 import CommandPalette from './CommandPalette.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import Logo from './Logo.vue'
@@ -187,12 +279,20 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const messagingStore = useMessagingStore()
+const gamificationStore = useGamificationStore()
+const walletStore = useWalletStore()
 const sidebarOpen = ref(false)
 const sidebarHover = ref(false)
 const isLargeScreen = ref(window.innerWidth > 1280)
 const sidebarExpanded = ref(true)
 const showCommandPalette = ref(false)
 const showWalkthrough = ref(false)
+const profileOpen = ref(false)
+const notificationsOpen = ref(false)
+const notificationsLoading = ref(false)
+const notificationError = ref('')
+const notificationItems = ref([])
+const unreadNotifications = ref(0)
 const sidebarWidth = ref(Number(localStorage.getItem('sidebar-width')) || (window.innerWidth <= 1280 ? 240 : 264))
 const isResizing = ref(false)
 const walkthroughKey = computed(() => `mcu-walkthrough-v1:${authStore.user?.id || 'default'}`)
@@ -256,14 +356,32 @@ function checkScreen() {
 }
 
 const pageTitle = computed(() => route.meta?.title || 'Dashboard')
+const portalRole = computed(() => authStore.user?.role === 'lecturer' ? 'LECTURER VIEW' : 'STUDENT VIEW')
+const isAdmin = computed(() => ['admin', 'super_admin'].includes(authStore.user?.role))
+const isStudent = computed(() => !['lecturer', 'admin', 'super_admin'].includes(authStore.user?.role))
+const profileInitial = computed(() => (authStore.user?.name || authStore.user?.email || 'U').charAt(0).toUpperCase())
+const profileRoleLabel = computed(() => {
+  const role = authStore.user?.role
+  if (role === 'super_admin') return 'Super Admin'
+  if (role === 'admin') return 'Administrator'
+  if (role === 'lecturer') return 'Lecturer'
+  return 'Student'
+})
+const semesterLabel = computed(() => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const semester = now.getMonth() >= 6 ? 'First Semester' : 'Second Semester'
+  return `${year}/${String(year + 1).slice(-2)} · ${semester}`
+})
 
 const navGroups = computed(() => {
+  const isLecturer = authStore.user?.role === 'lecturer'
   const groups = [
     {
       label: 'Core',
       items: [
         { path: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
-        { path: '/attendance', label: 'Attendance', icon: 'ClipboardCheck' },
+        { path: '/attendance', label: isLecturer ? 'Sessions' : 'Attendance', icon: 'ClipboardCheck' },
         { path: '/timetable', label: 'Schedule', icon: 'Calendar' },
         { path: '/courses', label: 'Courses', icon: 'BookOpen' },
       ],
@@ -279,6 +397,7 @@ const navGroups = computed(() => {
       label: 'Learning',
       items: [
         { path: '/study-hub', label: 'Study Hub', icon: 'Library' },
+        { path: '/complaints', label: 'Feedback', icon: 'MessageSquare' },
       ],
     },
     {
@@ -301,14 +420,73 @@ const navGroups = computed(() => {
   return groups
 })
 
-const pillNavItems = [
+const pillNavItems = computed(() => [
   { path: '/', label: 'Home', icon: 'LayoutDashboard' },
-  { path: '/attendance', label: 'Check In', icon: 'ClipboardCheck' },
+  { path: '/attendance', label: authStore.user?.role === 'lecturer' ? 'Sessions' : 'Check In', icon: 'ClipboardCheck' },
   { path: '/messages', label: 'Messages', icon: 'MessageCircle', badge: 'unread' },
   { path: '/study-hub', label: 'Study Hub', icon: 'Library' },
   { path: '/profile', label: 'Profile', icon: 'User' },
   { path: '#logout', label: 'Logout', icon: 'LogOut' },
-]
+])
+
+async function loadNotifications() {
+  notificationsLoading.value = true
+  notificationError.value = ''
+  try {
+    const response = await api.get('/notifications')
+    notificationItems.value = Array.isArray(response.data?.notifications) ? response.data.notifications : []
+    unreadNotifications.value = Number(response.data?.unread) || 0
+  } catch (error) {
+    notificationError.value = error?.response?.data?.error || 'Notifications could not be loaded.'
+  } finally {
+    notificationsLoading.value = false
+  }
+}
+
+async function toggleNotifications() {
+  notificationsOpen.value = !notificationsOpen.value
+  if (notificationsOpen.value) await loadNotifications()
+}
+
+async function markAllNotificationsRead() {
+  notificationError.value = ''
+  try {
+    await api.put('/notifications/read-all')
+    notificationItems.value = notificationItems.value.map(item => ({ ...item, read: true }))
+    unreadNotifications.value = 0
+  } catch (error) {
+    notificationError.value = error?.response?.data?.error || 'Could not mark notifications as read.'
+  }
+}
+
+async function openNotification(notification) {
+  if (!notification.read) {
+    notificationError.value = ''
+    try {
+      await api.put(`/notifications/${encodeURIComponent(notification.id)}/read`)
+      notificationItems.value = notificationItems.value.map(item =>
+        item.id === notification.id ? { ...item, read: true } : item
+      )
+      unreadNotifications.value = Math.max(0, unreadNotifications.value - 1)
+    } catch (error) {
+      notificationError.value = error?.response?.data?.error || 'Could not mark this notification as read.'
+      return
+    }
+  }
+  notificationsOpen.value = false
+  await router.push(notificationPath(notification.link))
+}
+
+function notificationPath(link) {
+  return typeof link === 'string' && link.startsWith('/') && !link.startsWith('//') ? link : '/'
+}
+
+function formatNotificationDate(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })
+}
 
 function isActive(path) {
   if (path === '/') return route.path === '/'
@@ -359,6 +537,10 @@ async function handleLogout() {
   router.push('/login')
 }
 
+function closeProfileOnOutside(event) {
+  if (profileOpen.value && !event.target?.closest?.('.profile-menu-wrap')) profileOpen.value = false
+}
+
 watch(sidebarOpen, (val) => {
   if (val) {
     // force a reflow to ensure CSS transitions render correctly on some browsers
@@ -366,13 +548,27 @@ watch(sidebarOpen, (val) => {
       const s = document.querySelector('.sidebar')
       if (s) void s.offsetWidth
     })
+
+    watch(() => route.fullPath, () => {
+      notificationsOpen.value = false
+    })
   }
 })
 
+watch(() => route.fullPath, () => {
+  profileOpen.value = false
+})
+
 onMounted(() => {
+  loadNotifications()
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('resize', checkScreen)
+  window.addEventListener('click', closeProfileOnOutside)
   messagingStore.init()
+  if (isStudent.value) {
+    gamificationStore.fetchProfile().catch(() => {})
+    walletStore.fetchWallet().catch(() => {})
+  }
   if (localStorage.getItem(walkthroughKey.value) !== 'complete') {
     showWalkthrough.value = true
   }
@@ -381,6 +577,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('resize', checkScreen)
+  window.removeEventListener('click', closeProfileOnOutside)
   window.removeEventListener('mousemove', onResize)
   window.removeEventListener('mouseup', stopResize)
   messagingStore.stopPolling()
@@ -1482,6 +1679,664 @@ onUnmounted(() => {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.02em;
+  }
+}
+
+/* McPherson campus shell */
+.layout {
+  background:
+    radial-gradient(ellipse at 86% 0%, rgba(217, 119, 6, 0.07), transparent 34rem),
+    var(--color-bg);
+}
+
+.layout-bg {
+  background-image:
+    linear-gradient(rgba(30, 58, 138, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 58, 138, 0.025) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
+.bg-orb {
+  display: none;
+}
+
+.sidebar {
+  background: #0f172a;
+  border-right-color: rgba(226, 232, 240, 0.1);
+  box-shadow: 8px 0 32px rgba(15, 23, 42, 0.12);
+}
+
+.sidebar-header {
+  min-height: 76px;
+  padding-inline: 18px;
+  border-bottom-color: rgba(226, 232, 240, 0.1);
+}
+
+.sidebar-collapse-btn {
+  border-color: rgba(226, 232, 240, 0.16);
+  color: rgba(226, 232, 240, 0.62);
+}
+
+.sidebar-collapse-btn:hover,
+.sidebar-user:hover {
+  background: rgba(248, 250, 252, 0.08);
+  border-color: rgba(226, 232, 240, 0.2);
+  color: #f8fafc;
+}
+
+.logo-title,
+.sidebar-user-name {
+  color: #f8fafc;
+}
+
+.logo-sub,
+.sidebar-user-role,
+.nav-group-label {
+  color: rgba(226, 232, 240, 0.56);
+}
+
+.sidebar-nav {
+  padding: 16px 12px;
+  gap: 8px;
+}
+
+.nav-group {
+  margin-bottom: 8px;
+}
+
+.nav-group-label {
+  padding: 12px 12px 8px;
+  letter-spacing: 0.14em;
+}
+
+.nav-item {
+  min-height: 46px;
+  border-radius: 12px;
+  color: rgba(226, 232, 240, 0.7);
+  font-weight: 550;
+}
+
+.nav-item:hover {
+  background: rgba(248, 250, 252, 0.08);
+  color: #f8fafc;
+  transform: translateX(3px);
+}
+
+.nav-item.active,
+.nav-item.active:hover {
+  background: #f59e0b;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.nav-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.nav-active-bar {
+  display: none;
+}
+
+.nav-badge {
+  background: #f87171;
+  color: #0f172a;
+}
+
+.sidebar-footer {
+  padding: 14px 12px;
+  border-top-color: rgba(226, 232, 240, 0.1);
+}
+
+.sidebar-avatar,
+.user-avatar {
+  background: #f59e0b;
+  color: #0f172a;
+  border-radius: 11px;
+}
+
+.sidebar-logout {
+  border-color: rgba(226, 232, 240, 0.14);
+  color: rgba(226, 232, 240, 0.66);
+}
+
+.sidebar-logout:hover {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+}
+
+.main-area {
+  min-width: 0;
+}
+
+.topbar {
+  border-radius: 16px;
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-search,
+.topbar-tour,
+.menu-btn,
+.topbar-logout,
+.topbar-notifications {
+  border-radius: 11px;
+}
+
+.topbar-left {
+  min-width: 0;
+}
+
+.portal-role {
+  padding: 6px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.topbar-right {
+  gap: 8px;
+}
+
+.notification-wrap {
+  position: relative;
+}
+
+.topbar-notifications {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.topbar-notifications:hover {
+  border-color: var(--color-border-accent);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.notification-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-error);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.notification-popover {
+  position: absolute;
+  z-index: 300;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(460px, calc(100dvh - 110px));
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.notification-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.notification-heading .nav-group-label {
+  padding: 0;
+  color: var(--color-text-tertiary);
+  opacity: 1;
+  visibility: visible;
+}
+
+.notification-heading h2 {
+  margin: 4px 0 0;
+  color: var(--color-text-primary);
+  font-size: 16px;
+}
+
+.notification-mark-read {
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notification-state {
+  margin: 0;
+  padding: 22px 18px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notification-error {
+  color: var(--color-error);
+}
+
+.notification-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.notification-item:last-child {
+  border-bottom: 0;
+}
+
+.notification-item:hover,
+.notification-item.unread {
+  background: var(--color-surface-elevated);
+}
+
+.notification-dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--color-info);
+}
+
+.notification-warning { background: var(--color-warning); }
+.notification-error { background: var(--color-error); }
+.notification-success { background: var(--color-success); }
+
+.notification-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.notification-copy strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+
+.notification-copy span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.notification-copy small {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+}
+
+.content {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+.bottom-nav {
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.28);
+}
+
+.bottom-nav-item {
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.bottom-nav-item.active {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.bn-badge {
+  background: #f87171;
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    top: 8px;
+  }
+
+  .portal-role {
+    display: none;
+  }
+
+  .content {
+    padding: 18px 16px 104px;
+  }
+
+  .bottom-nav {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* === CITADEL SHELL REFINEMENT === */
+.layout {
+  background: var(--color-bg);
+}
+
+.layout-bg {
+  opacity: 0.45;
+}
+
+.sidebar {
+  background: #0F172A;
+  border-right-color: rgba(226, 232, 240, 0.08);
+}
+
+.sidebar .logo-icon,
+.sidebar .sidebar-logo {
+  color: #F59E0B;
+}
+
+.sidebar .logo-title,
+.sidebar .sidebar-user-name {
+  color: #F8FAFC;
+}
+
+.sidebar .logo-sub,
+.sidebar .sidebar-user-role,
+.sidebar .nav-group-label {
+  color: rgba(226, 232, 240, 0.55);
+}
+
+.sidebar .nav-item {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.sidebar .nav-item:hover {
+  background: rgba(248, 250, 252, 0.07);
+  color: #F8FAFC;
+}
+
+.sidebar .nav-item.active {
+  background: rgba(245, 158, 11, 0.14);
+  color: #FBBF24;
+  font-weight: 700;
+}
+
+.sidebar .nav-active-bar {
+  background: #F59E0B;
+}
+
+.sidebar .sidebar-avatar {
+  background: #F59E0B;
+  color: #0F172A;
+}
+
+.sidebar .sidebar-logout {
+  border-color: rgba(226, 232, 240, 0.16);
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.topbar {
+  background: var(--glass-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.portal-role {
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(217, 119, 6, 0.18);
+  color: #B45309;
+}
+
+.semester-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-border-accent);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.citadel-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.citadel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.citadel-badge.streak {
+  color: #B45309;
+  background: var(--color-warning-soft);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.citadel-badge.gems {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-border-accent);
+}
+
+.profile-menu-wrap {
+  position: relative;
+}
+
+.profile-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.profile-trigger:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1E3A8A, #D97706);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+  max-width: 130px;
+}
+
+.profile-meta strong {
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.profile-meta small {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+}
+
+.profile-chevron {
+  color: var(--color-text-tertiary);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 2000;
+  width: 240px;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  animation: citadelMenuIn 180ms var(--ease-out) both;
+}
+
+.profile-dropdown-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-dropdown-head strong {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.profile-dropdown-head span {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-dropdown a,
+.profile-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.profile-dropdown a:hover,
+.profile-dropdown button:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.profile-dropdown button:last-child:hover {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+}
+
+.bottom-nav {
+  background: rgba(15, 23, 42, 0.96);
+  border-color: rgba(226, 232, 240, 0.14);
+}
+
+.bottom-nav-item.active {
+  color: #FBBF24;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.bn-badge {
+  background: #F59E0B;
+  color: #0F172A;
+}
+
+.page-enter-active {
+  animation-duration: 220ms;
+}
+
+.page-leave-active {
+  animation-duration: 150ms;
+}
+
+@keyframes citadelMenuIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 900px) {
+  .semester-pill,
+  .citadel-badges {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-meta,
+  .profile-chevron {
+    display: none;
+  }
+
+  .profile-trigger {
+    padding: 3px;
+    border-radius: 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-dropdown {
+    animation: none;
   }
 }
 </style>

@@ -54,7 +54,7 @@ function isRecoveryUrl() {
 onMounted(async () => {
   await authStore.ready
   if (!supabase || !supabaseConfigured) {
-    error.value = 'Password reset is not available because authentication is not configured.'
+    error.value = 'Password reset is currently unavailable. Please try again shortly.'
     checking.value = false
     return
   }

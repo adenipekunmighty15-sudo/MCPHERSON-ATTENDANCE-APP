@@ -51,7 +51,7 @@ const buttonStyle = computed(() => ({
   background: isDark.value
     ? 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))'
     : 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
-  color: '#FFFFFF',
+  color: isDark.value ? '#183a2e' : '#FFFFFF',
   transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
   boxShadow: isDark.value
     ? '0 4px 20px var(--color-primary-glow), inset 0 1px 0 rgba(255,255,255,0.1)'

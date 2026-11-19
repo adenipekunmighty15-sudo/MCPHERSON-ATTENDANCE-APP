@@ -61,27 +61,27 @@ defineProps({
 }
 
 .badge-secondary {
-  background: var(--color-bg-tertiary);
+  background: var(--color-bg-alt);
   color: var(--color-text-secondary);
 }
 
 .badge-success {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--color-success-soft);
   color: #047857;
 }
 
 .badge-error {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--color-error-soft);
   color: #dc2626;
 }
 
 .badge-warning {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--color-warning-soft);
   color: #b45309;
 }
 
 .badge-info {
-  background: rgba(11, 79, 140, 0.15);
+  background: var(--color-primary-soft);
   color: var(--color-primary);
 }
 </style>

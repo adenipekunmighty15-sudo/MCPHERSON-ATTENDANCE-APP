@@ -52,12 +52,12 @@ defineProps({
 }
 
 .ui-card-subtle {
-  background: var(--color-bg-alt);
-  border-color: transparent;
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
 }
 
 .ui-card-elevated {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .ui-card-hover:hover {

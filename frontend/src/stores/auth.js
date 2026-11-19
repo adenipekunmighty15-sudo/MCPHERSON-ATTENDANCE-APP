@@ -32,6 +32,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (m.includes('auth/too-many-requests')) {
       return 'Too many attempts. Please wait before trying again.'
     }
+    if (m.includes('not configured')) {
+      return 'Portal authentication is currently unavailable. Please try again shortly.'
+    }
     return err.message || 'Authentication failed'
   }
 
@@ -40,13 +43,19 @@ export const useAuthStore = defineStore('auth', () => {
     if (!supaUser) return null
     const meta = supaUser.user_metadata || {}
     const appMeta = supaUser.app_metadata || {}
+    const matric = meta.matric || meta.matric_number || meta.matricNumber || appMeta.matric || ''
+    const staffId = meta.staff_id || meta.staffId || appMeta.staff_id || ''
     return {
       id: supaUser.id,
       email: supaUser.email || '',
       name: appMeta.name || meta.name || meta.full_name || supaUser.email?.split('@')[0]?.replace(/[._]/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || 'User',
       role: appMeta.role || meta.role || 'student',
       department: meta.department || 'Computer Science',
+      matric,
+      matricNumber: matric || staffId,
+      staffId,
       avatar: meta.name?.charAt(0)?.toUpperCase() || supaUser.email?.charAt(0)?.toUpperCase() || 'U',
+      avatarUrl: meta.avatar_url || meta.avatarUrl || '',
       isGuest: false,
       provider: appMeta.provider || 'email',
     }
@@ -214,7 +223,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (supaError) throw supaError
       return
     }
-    throw new Error('Password reset is not available in offline mode')
+    throw new Error('Password reset is currently unavailable. Please try again shortly.')
   }
 
   async function updatePassword(newPassword) {
@@ -223,7 +232,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (supaError) throw supaError
       return data
     }
-    throw new Error('Password update is not available in offline mode')
+    throw new Error('Password update is currently unavailable. Please try again shortly.')
   }
 
   async function logout() {

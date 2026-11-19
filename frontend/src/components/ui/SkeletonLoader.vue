@@ -44,12 +44,12 @@ defineProps({
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-bg-tertiary) 0%,
+    var(--color-bg-alt) 0%,
     var(--color-surface-elevated) 50%,
-    var(--color-bg-tertiary) 100%
+    var(--color-bg-alt) 100%
   );
   background-size: 200% 100%;
-  animation: skeleton-loading 2s infinite;
+  animation: skeleton-loading 1.6s infinite;
   border-radius: var(--radius-md);
 }
 

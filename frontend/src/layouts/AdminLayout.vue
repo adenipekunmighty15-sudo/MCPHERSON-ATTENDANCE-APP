@@ -8,7 +8,7 @@
     <aside class="admin-sidebar" :class="{ show: mobileOpen }">
       <div class="sidebar-header">
         <router-link to="/admin/portal/dashboard" class="sidebar-logo">
-          <div class="logo-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div class="logo-icon"><Logo :size="28" /></div>
           <div class="sidebar-logo-text"><span class="logo-title">MCU</span><span class="logo-sub">Admin</span></div>
         </router-link>
       </div>
@@ -39,12 +39,49 @@
             <li class="breadcrumb-item"><span class="breadcrumb-current" aria-current="page">{{ pageTitle }}</span></li>
           </ol>
         </nav>
+        <span class="semester-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+          {{ semesterLabel }}
+        </span>
         <div class="topbar-right">
           <router-link to="/" class="topbar-link" title="Back to Student Portal">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <span class="topbar-link-text">Student Portal</span>
           </router-link>
-          <button class="topbar-logout" @click="handleLogout" title="Sign Out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+          <div class="profile-menu-wrap">
+            <button
+              class="profile-trigger"
+              type="button"
+              :aria-expanded="profileOpen"
+              aria-haspopup="menu"
+              @click="profileOpen = !profileOpen"
+            >
+              <span class="profile-avatar">{{ profileInitial }}</span>
+              <span class="profile-meta">
+                <strong>{{ authStore.user?.name || 'Admin' }}</strong>
+                <small>{{ profileRoleLabel }}</small>
+              </span>
+              <svg class="profile-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div v-if="profileOpen" class="profile-dropdown" role="menu">
+              <div class="profile-dropdown-head">
+                <strong>{{ authStore.user?.name || 'Admin' }}</strong>
+                <span>{{ authStore.user?.email || '—' }}</span>
+              </div>
+              <router-link to="/admin/portal/dashboard" role="menuitem" @click="profileOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                Admin console
+              </router-link>
+              <router-link to="/" role="menuitem" @click="profileOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                Student portal
+              </router-link>
+              <button type="button" role="menuitem" @click="handleLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign out
+              </button>
+            </div>
+          </div>
         </div>
       </header>
       <main id="admin-content" class="admin-content" tabindex="-1">
@@ -68,16 +105,33 @@
     </nav>
   </div>
 </template><script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import Logo from '../components/Logo.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const mobileOpen = ref(false)
+const profileOpen = ref(false)
 
 const pageTitle = computed(() => route.meta?.title || 'Admin')
+const profileInitial = computed(() => (authStore.user?.name || authStore.user?.email || 'A').charAt(0).toUpperCase())
+const profileRoleLabel = computed(() => authStore.user?.role === 'super_admin' ? 'Super Admin' : 'Administrator')
+const semesterLabel = computed(() => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const semester = now.getMonth() >= 6 ? 'First Semester' : 'Second Semester'
+  return `${year}/${String(year + 1).slice(-2)} · ${semester}`
+})
+
+function closeProfileOnOutside(event) {
+  if (profileOpen.value && !event.target?.closest?.('.profile-menu-wrap')) profileOpen.value = false
+}
+
+onMounted(() => window.addEventListener('click', closeProfileOnOutside))
+onUnmounted(() => window.removeEventListener('click', closeProfileOnOutside))
 
 const navItems = [
   { path: '/admin/portal/dashboard', label: 'Dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>' },
@@ -169,4 +223,227 @@ async function handleLogout() {
 @keyframes pageIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes pageOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-8px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .admin-layout *, .admin-layout *::before, .admin-layout *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+.admin-sidebar {
+  background: #0f172a;
+  border-right-color: rgba(226, 232, 240, 0.1);
+}
+.admin-sidebar .logo-icon { color: #fbbf24; }
+.admin-sidebar .logo-title,
+.admin-sidebar .sidebar-user-name { color: #f8fafc; }
+.admin-sidebar .logo-sub,
+.admin-sidebar .sidebar-user-role,
+.admin-sidebar .nav-group-label { color: rgba(226, 232, 240, 0.58); }
+.admin-sidebar .nav-item { color: rgba(226, 232, 240, 0.72); }
+.admin-sidebar .nav-item:hover { background: rgba(248, 250, 252, 0.08); color: #f8fafc; }
+.admin-sidebar .nav-item.active { background: #f59e0b; color: #0f172a; font-weight: 700; }
+.admin-sidebar .sidebar-footer { border-top-color: rgba(226, 232, 240, 0.12); }
+.admin-sidebar .sidebar-avatar { background: #f59e0b; color: #0f172a; }
+.admin-sidebar .sidebar-logout { border-color: rgba(226, 232, 240, 0.18); color: rgba(226, 232, 240, 0.72); }
+.admin-sidebar .sidebar-logout:hover { background: rgba(248, 113, 113, 0.14); color: #fca5a5; }
+.admin-layout .bottom-nav { background: rgba(15, 23, 42, 0.97); border-color: rgba(226, 232, 240, 0.14); }
+.admin-layout .bottom-nav-item { color: rgba(226, 232, 240, 0.72); }
+.admin-layout .bottom-nav-item.active { background: #f59e0b; color: #0f172a; }
+
+/* === CITADEL ADMIN SHELL REFINEMENT === */
+.admin-layout {
+  background: var(--color-bg);
+}
+
+.admin-bg {
+  opacity: 0.5;
+}
+
+.admin-sidebar {
+  background: #0F172A;
+  border-right-color: rgba(226, 232, 240, 0.08);
+}
+
+.admin-sidebar .logo-icon {
+  color: #F59E0B;
+}
+
+.admin-sidebar .nav-item.active {
+  background: rgba(245, 158, 11, 0.14);
+  color: #FBBF24;
+}
+
+.admin-topbar {
+  background: var(--glass-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.semester-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(217, 119, 6, 0.18);
+  color: #B45309;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.profile-menu-wrap {
+  position: relative;
+}
+
+.profile-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.profile-trigger:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F59E0B;
+  color: #0F172A;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+  max-width: 130px;
+}
+
+.profile-meta strong {
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.profile-meta small {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+}
+
+.profile-chevron {
+  color: var(--color-text-tertiary);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 2000;
+  width: 230px;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  animation: adminMenuIn 180ms var(--ease-out) both;
+}
+
+.profile-dropdown-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-dropdown-head strong {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.profile-dropdown-head span {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-dropdown a,
+.profile-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.profile-dropdown a:hover,
+.profile-dropdown button:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.profile-dropdown button:last-child:hover {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+}
+
+@keyframes adminMenuIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 900px) {
+  .semester-pill {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-meta,
+  .profile-chevron {
+    display: none;
+  }
+
+  .profile-trigger {
+    padding: 3px;
+    border-radius: 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-dropdown {
+    animation: none;
+  }
+}
 </style>
