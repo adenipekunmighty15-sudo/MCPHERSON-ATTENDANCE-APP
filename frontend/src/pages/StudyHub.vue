@@ -90,6 +90,9 @@
                       {{ course.code }} · {{ course.title }}
                     </option>
                   </select>
+                  <div v-if="studentDepartment.value" class="dept-badge">
+                    Department: {{ studentDepartment.value }}
+                  </div>
                 </label>
                 <label class="tool-btn">
                   <Paperclip :size="15" /> Add files
@@ -384,6 +387,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import {
   AlertCircle, BarChart3, BookOpen, Check, ChevronRight, ClipboardList, Clock, FileText,
   Headphones, Image as ImageIcon, Layers, Library, Link2, ListChecks, Loader2, MessageCircle,
@@ -392,12 +396,14 @@ import {
 import api from '../lib/api'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 /* ── Workspace state ── */
 const view = ref('workspace')
 const packs = ref([])
 const courses = ref([])
 const selectedCourseId = ref('')
+const studentDepartment = computed(() => authStore.user?.department || '')
 const packsLoading = ref(false)
 const packsError = ref('')
 const activePack = ref(null)
@@ -492,9 +498,21 @@ async function loadPacks() {
 async function loadCourses() {
   try {
     const { data } = await api.get('/courses/enrolled')
-    courses.value = Array.isArray(data) ? data.filter(course => course.id && course.code) : []
+    let result = Array.isArray(data) ? data.filter(course => course.id && course.code) : []
+    // Auto-filter by student's department if available
+    const dept = studentDepartment.value
+    if (dept) {
+      result = result.filter(c => String(c.departmentId) === String(dept) || String(c.department) === String(dept))
+    }
+    courses.value = result
+    // Auto-select the first course from the student's department
+    if (result.length > 0 && !selectedCourseId.value) {
+      const deptCourse = result.find(c => String(c.departmentId) === String(dept) || String(c.department) === String(dept))
+      if (deptCourse) selectedCourseId.value = String(deptCourse.id)
+    }
   } catch (e) {
     console.warn('[StudyHub] Load courses failed:', e)
+    courses.value = []
   }
 }
 
