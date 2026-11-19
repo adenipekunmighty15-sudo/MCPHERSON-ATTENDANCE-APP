@@ -77,17 +77,18 @@ environment-variable settings; do not put credentials in this repository.
 
 ### Environment variables for the live deployment
 
-Vercel (frontend, safe to be public):
+Vercel (frontend):
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_API_URL`
+- `VITE_API_URL` — already set in `vercel.json`. Supabase URL and anon key are
+  fetched at runtime from `GET /api/public/config`, so a missing Vite env value
+  cannot put authentication into maintenance mode.
 
 Render/API host (private secrets — **do not** add these to Vercel, because Vite
 inlines `VITE_*` values into the browser bundle):
 
 - `DATABASE_URL`
 - `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY` — public value used by the browser bootstrap endpoint
 - `SUPABASE_SERVICE_KEY`
 - `NVIDIA_API_KEY` — master NVIDIA key used by the Study Hub model council.
 - `NVIDIA_MODEL` — defaults to `nvidia/nemotron-3.5-lightning-30b-a3b`.

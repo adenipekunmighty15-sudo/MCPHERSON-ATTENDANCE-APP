@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import * as Components from './components'
 import safeHtml from './directives/safeHtml'
+import { initSupabase } from './lib/supabase'
 import './index.css'
 import './design-kit/tokens.css'
 
@@ -18,6 +19,9 @@ window.addEventListener('error', (e) => {
   }
 })
 
+// Resolve public auth config before the first render so the auth pages never
+// show the maintenance banner just because Vite env vars were absent at build.
+initSupabase().finally(() => {
 const app = createApp(App)
 
 app.config.errorHandler = (err, instance, info) => {
@@ -75,3 +79,4 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     })
   })
 }
+})

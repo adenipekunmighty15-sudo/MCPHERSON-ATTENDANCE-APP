@@ -96,6 +96,18 @@ app.use('/api', (req, res, next) => {
   next()
 })
 
+// Public browser bootstrap config. These two values are safe to expose: the
+// Supabase URL and anon key are public by design. The service_role key is not.
+app.get('/api/public/config', (_req, res) => {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return res.status(503).json({ error: 'Authentication is not configured on the server.' })
+  }
+  res.setHeader('Cache-Control', 'public, max-age=300')
+  return res.json({ supabaseUrl, supabaseAnonKey })
+})
+
 // Routes
 import authRoutes from './src/routes/auth.routes.js'
 import complaintsRoutes from './src/routes/complaints.routes.js'
