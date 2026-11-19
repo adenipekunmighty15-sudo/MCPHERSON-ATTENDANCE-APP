@@ -129,6 +129,16 @@ defaults, sets every `public` application column to `NOT NULL`, and verifies the
 result. It does not alter Supabase-managed schemas (`auth`, `storage`,
 `realtime`, `vault`, `extensions`).
 
+The university structure (faculties, departments, programmes, academic years,
+semesters, grade system, enrolments and lecturer/course links) is created
+separately. It is seeded from the canonical catalogue in
+`frontend/src/data/university.js` and never drops existing tables:
+
+```powershell
+cd backend
+node scripts/create-university-structure.mjs
+```
+
 ## Security notes
 
 - Rotate any database credential that has appeared in source control, then
