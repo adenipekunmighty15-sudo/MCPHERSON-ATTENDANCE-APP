@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  isDuplicateAccountError,
   isSafeRedirect,
   normalizeAccountIdentifier,
   validatePassword,
@@ -107,7 +108,7 @@ test('registration auto-confirms allowed domains and signs the user straight in'
   const route = auth.slice(start, end)
   assert.match(route, /validateRegistration\(req\.body/)
   assert.match(route, /email_confirm:\s*true/)
-  assert.match(route, /isAlreadyRegisteredError\(error\)/)
+  assert.match(route, /isDuplicateAccountError\(error\)/)
   assert.match(route, /verifyPassword\(email, password\)/)
   assert.match(route, /email_confirm:\s*true,\s*password/)
   assert.match(route, /'student'/)
@@ -139,6 +140,15 @@ test('auth policy normalizes identifiers and enforces the full password rules', 
   assert.equal(validatePassword('Short1!').valid, false)
   assert.equal(validatePassword('alllower1!').valid, false)
   assert.equal(validatePassword('LongEnough1!').valid, true)
+})
+
+test('duplicate account errors are detected across GoTrue message variants', () => {
+  assert.equal(isDuplicateAccountError({ message: 'A user with this email address has already been registered' }), true)
+  assert.equal(isDuplicateAccountError({ message: 'User already registered' }), true)
+  assert.equal(isDuplicateAccountError({ message: 'A user with this email already exists' }), true)
+  assert.equal(isDuplicateAccountError({ code: 'email_exists' }), true)
+  assert.equal(isDuplicateAccountError({ message: 'network timeout' }), false)
+  assert.equal(isDuplicateAccountError(null), false)
 })
 
 test('redirect validator rejects open redirects and auth-loop paths', () => {

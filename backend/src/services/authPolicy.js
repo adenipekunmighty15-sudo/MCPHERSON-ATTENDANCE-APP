@@ -25,6 +25,19 @@ export function normalizeAccountIdentifier(value) {
   return `${candidate.toLowerCase()}${DEFAULT_STUDENT_DOMAIN}`
 }
 
+// GoTrue's real duplicate-email message is "A user with this email address has
+// already been registered". The word "been" breaks a naive "already
+// registered" match, so cover every observed variant plus the error code.
+export function isDuplicateAccountError(error) {
+  const code = String(error?.code || '').toLowerCase()
+  const message = String(error?.message || '').toLowerCase()
+  return code === 'email_exists' ||
+    message.includes('already been registered') ||
+    message.includes('already registered') ||
+    message.includes('already exists') ||
+    message.includes('email address has already')
+}
+
 export function validatePassword(password) {
   if (typeof password !== 'string') {
     return { valid: false, error: 'Password must be 8–128 characters with uppercase, lowercase, number and symbol.' }

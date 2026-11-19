@@ -4,6 +4,7 @@ import supabaseAdmin from '../config/supabase.js'
 import { query } from '../../lib/db.js'
 import {
   cleanText,
+  isDuplicateAccountError,
   normalizeAccountIdentifier,
   validateRegistration,
 } from '../services/authPolicy.js'
@@ -38,11 +39,6 @@ function decryptFaceDescriptor(value, key) {
     decipher.update(Buffer.from(encryptedValue, 'base64')),
     decipher.final(),
   ]).toString('utf8')
-}
-
-function isAlreadyRegisteredError(error) {
-  const message = (error?.message || '').toLowerCase()
-  return message.includes('already registered') || message.includes('already exists')
 }
 
 function isUniqueViolation(error) {
@@ -171,7 +167,7 @@ async function registerHandler(req, res) {
     })
 
     if (error) {
-      if (!isAlreadyRegisteredError(error)) {
+      if (!isDuplicateAccountError(error)) {
         console.error('Registration failed:', error.message)
         return res.status(500).json({ error: 'Could not create your account. Please try again.' })
       }
