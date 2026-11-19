@@ -3,6 +3,7 @@ import { webSearch, fetchPage, looksTimeSensitive, searchImages, searchForVerifi
 import { generateImage } from './imageService.js'
 import { query } from '../../lib/db.js'
 import { randomUUID } from 'crypto'
+import { transcribeWithParakeet } from './parakeetService.js'
 
 // Verification system: extracts claims, searches web, revises with citations
 const CLAIM_CACHE = new Map()
@@ -665,6 +666,18 @@ async function generateChatTitle(convId, userId, userQuestion, aiResponse) {
 
 async function transcribeAudio(buffer, fileName, mimeType) {
   if (!buffer) return null
+
+  // Parakeet is the primary lecture notetaker. It only accepts 16 kHz mono
+  // PCM/FLAC/OGG, so the service normalizes what it can and returns null for
+  // formats it cannot handle (mp3/m4a fall through to the hosted fallbacks).
+  if (process.env.NVIDIA_PARAKEET_KEY) {
+    try {
+      const transcript = await transcribeWithParakeet(buffer, mimeType)
+      if (transcript) return transcript
+    } catch (err) {
+      console.error('Parakeet error:', err?.message || err)
+    }
+  }
 
   const whisperClient = getAI('openai')
   if (whisperClient) {

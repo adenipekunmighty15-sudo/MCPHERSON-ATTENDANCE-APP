@@ -3,7 +3,7 @@ import { authenticate } from '../middleware/auth.js'
 import { pool, query } from '../../lib/db.js'
 import { randomUUID } from 'crypto'
 import { aiChat, transcribeAudio } from '../services/aiService.js'
-import { getAiResponse, getAvailableProviders } from '../config/ai.js'
+import { getAiResponse, getAvailableProviders, understandImage } from '../config/ai.js'
 import { getYouTubeTranscript, extractTextFromDoc } from '../services/studyPack.js'
 import multer from 'multer'
 import { uploadFile } from '../services/storage.js'
@@ -23,9 +23,11 @@ const allowedStudyMimeTypes = new Set([
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/plain',
+  'image/png', 'image/jpeg', 'image/webp',
 ])
 const allowedStudyExtensions = new Set([
   '.mp3', '.wav', '.m4a', '.aac', '.pdf', '.doc', '.docx', '.txt',
+  '.png', '.jpg', '.jpeg', '.webp',
 ])
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -63,6 +65,18 @@ async function canAccessStudyMaterial(materialId, userId) {
     [materialId, userId]
   )
   return rows.length > 0
+}
+
+async function extractImageText(buffer, mimeType, label) {
+  if (!buffer) return ''
+  try {
+    const text = await understandImage(buffer, mimeType)
+    if (text) console.log(`[Image] ${label}: ${String(text).length} chars`)
+    return text || ''
+  } catch (e) {
+    console.warn(`[Image] ${label} failed: ${e.message}`)
+    return ''
+  }
 }
 
 function asText(value) {
@@ -145,8 +159,8 @@ router.get('/api/study-materials/:id', authenticate, async (req, res) => {
       c.code AS "courseCode", c.title AS "courseTitle"
      FROM public.study_materials sm
      LEFT JOIN public.courses c ON sm.course_id = c.id
-     WHERE sm.id = $1 AND sm.created_by = $2`,
-    [req.params.id, req.user.id]
+     WHERE sm.id = $1`,
+    [req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: 'Study pack not found' })
   const { rows: flashcards } = await query(
@@ -472,6 +486,7 @@ router.post('/api/study-materials/upload', authenticate, upload.fields([
   { name: 'audio', maxCount: 5 },
   { name: 'document', maxCount: 10 },
   { name: 'pdf', maxCount: 10 },
+  { name: 'image', maxCount: 10 },
 ]), async (req, res) => {
   const startTime = Date.now()
   const DEADLINE_MS = 40000
@@ -485,6 +500,7 @@ router.post('/api/study-materials/upload', authenticate, upload.fields([
   const keyPointCount = Math.min(Math.max(parseInt(kpc) || 6, 1), 30)
   const audioFiles = req.files?.audio || []
   const docFiles = [...(req.files?.document || []), ...(req.files?.pdf || [])]
+  const imageFiles = req.files?.image || []
 
   let combinedText = asText(sourceText).trim()
 
@@ -517,10 +533,17 @@ router.post('/api/study-materials/upload', authenticate, upload.fields([
     } catch (e) { log('DOC', `Failed: ${e.message}`) }
   }
 
+  for (const imageFile of imageFiles) {
+    if (!imageFile) continue
+    log('IMAGE', `Reading ${imageFile.originalname}`)
+    const text = await extractImageText(imageFile.buffer, imageFile.mimetype, imageFile.originalname)
+    if (text) combinedText = appendText(combinedText, `[From image: ${imageFile.originalname}]\n${text}`)
+  }
+
   if (combinedText.length < 50) {
     log('VALIDATE', `Text too short: ${combinedText.length} chars`)
     const uploadName = docFiles[0]?.originalname || audioFiles[0]?.originalname || 'the upload'
-    return res.status(400).json({ error: `I could not extract enough text from ${uploadName}. If it is a scanned PDF or image-only file, paste the text manually or upload a text-based PDF/DOCX.` })
+    return res.status(400).json({ error: `I could not extract enough text from ${uploadName}. Try a text-based PDF/DOCX, a clear photo of the page, or paste the notes directly.` })
   }
   const uploadTitle = (title || '').trim() || combinedText.trim().split(/\s+/).slice(0, 8).join(' ') + '...'
 
@@ -746,29 +769,37 @@ CRITICAL RULES:
 
 router.post('/api/study-materials/:id/chat', authenticate, async (req, res) => {
   try {
-  const { message, history } = req.body
+  const { message } = req.body
+  if (typeof message !== 'string' || !message.trim() || message.length > 8000) {
+    return res.status(400).json({ error: 'Message must be between 1 and 8000 characters' })
+  }
   if (!await canAccessStudyMaterial(req.params.id, req.user.id)) {
     return res.status(404).json({ error: 'Study pack not found' })
   }
   const { rows } = await query(
-    'SELECT source_text, title FROM public.study_materials WHERE id = $1',
+    'SELECT source_text, title, chat_history FROM public.study_materials WHERE id = $1',
     [req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: 'Study pack not found' })
 
-  const { source_text, title } = rows[0]
+  const { source_text, title, chat_history } = rows[0]
+  // Chat history belongs to the material, not to whatever the browser sends.
+  const savedHistory = typeof chat_history === 'string'
+    ? (() => { try { return JSON.parse(chat_history) } catch { return [] } })()
+    : (Array.isArray(chat_history) ? chat_history : [])
+  const history = savedHistory.filter(item =>
+    item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string'
+  ).slice(-10)
   const messages = [
     { role: 'system', content: `You are a versatile AI study assistant for the material titled "${title}". Use the following source text as context when relevant, but you can answer ANY question the user asks — academic, general knowledge, or otherwise. Be helpful, thorough, and clear. Use LaTeX for all math: $...$ inline, $$...$$ display. Use Markdown tables for comparisons. Write key points in **bold** for emphasis.\n\nBEFORE answering, analyze the question: identify what the user truly needs. If the question is vague, ambiguous, or missing details, ASK clarifying questions first — then provide a complete answer once you have enough context.\n\nIMPORTANT CAPABILITY: You have LIVE WEB SEARCH access. If you need current information to answer the user's question, include <web_search>your search query</web_search> inside your <answer> tags and the system will fetch results for you.\n\nMaterial context:\n${source_text.slice(0, 6000)}` },
-    ...((Array.isArray(history) ? history : []).filter(item =>
-      item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string'
-    ).slice(-10)),
+    ...history,
     { role: 'user', content: message }
   ]
 
   const result = await aiChat(messages)
   if (!result) return res.status(500).json({ error: 'AI Assistant unavailable' })
 
-  const newHistory = [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: result.final }]
+  const newHistory = [...history, { role: 'user', content: message }, { role: 'assistant', content: result.final }].slice(-20)
   await query('UPDATE public.study_materials SET chat_history = $1 WHERE id = $2', [JSON.stringify(newHistory), req.params.id])
 
   res.status(200).json({ response: result.final, council: result.council, history: newHistory })
@@ -780,11 +811,25 @@ router.post('/api/study-materials/:id/chat', authenticate, async (req, res) => {
 
 router.post('/api/study-materials/chat', authenticate, async (req, res) => {
   try {
-  const { message, history, context } = req.body
+  const { message, history, materialId } = req.body
+  if (typeof message !== 'string' || !message.trim() || message.length > 8000) {
+    return res.status(400).json({ error: 'Message must be between 1 and 8000 characters' })
+  }
   let contextBlock = ''
-  if (context && context.type === 'study-pack') {
-    const diagramsText = (context.diagrams || []).map(d => `Title: ${d.title}\nCode: ${d.code}`).join('\n\n')
-    contextBlock = `\n\nThe user is analyzing a Study Pack titled "${context.title}". Here is its full content:\n\nSummary: ${context.summary || 'N/A'}\n\nKey Points: ${(context.keyPoints || []).map(p => p.text).join('\n') || 'N/A'}\n\nFlashcards: ${(context.flashcards || []).map(f => `Q: ${f.front}\nA: ${f.back}`).join('\n\n') || 'N/A'}\n\nQuiz: ${(context.quiz || []).map(q => `Q: ${q.question}\nOptions: ${(q.options || []).join(', ')}\nAnswer: ${q.answerIndex !== undefined ? q.options[q.answerIndex] : 'N/A'}`).join('\n\n') || 'N/A'}\n\nDiagrams:\n${diagramsText || 'N/A'}\n\nUse this content to answer the user's questions. Reference specific parts of the pack. If the user asks something not in the pack, use your general knowledge too.`
+  // Only server-loaded, authorized study material may become prompt context.
+  // Arbitrary client-supplied "context" objects are ignored.
+  if (materialId && await canAccessStudyMaterial(materialId, req.user.id)) {
+    const { rows: contextRows } = await query(
+      'SELECT title, source_text, summary, key_points FROM public.study_materials WHERE id = $1',
+      [materialId]
+    )
+    const pack = contextRows[0]
+    if (pack) {
+      const keyPoints = typeof pack.key_points === 'string'
+        ? (() => { try { return JSON.parse(pack.key_points) } catch { return [] } })()
+        : (Array.isArray(pack.key_points) ? pack.key_points : [])
+      contextBlock = `\n\nThe user is studying a pack titled "${pack.title}". Use this authorized material when relevant:\n\nSummary: ${pack.summary || 'N/A'}\n\nKey Points: ${keyPoints.map(p => p?.text || '').filter(Boolean).join('\n') || 'N/A'}\n\nSource Notes: ${String(pack.source_text || '').slice(0, 6000)}`
+    }
   }
   const safeHistory = (Array.isArray(history) ? history : []).filter(item =>
     item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string'
@@ -1439,11 +1484,27 @@ router.delete('/api/study-groups/:groupId/leave', authenticate, async (req, res)
 router.post('/api/study-materials/save-deck', authenticate, async (req, res) => {
   try {
     const { title, sourceText, flashcards, quiz } = req.body
-    if (!title) return res.status(400).json({ error: 'Title is required' })
+    if (typeof title !== 'string' || !title.trim() || title.length > 200) {
+      return res.status(400).json({ error: 'A title of 1-200 characters is required' })
+    }
 
     const savedId = randomUUID()
-    const cardArray = Array.isArray(flashcards) ? flashcards : []
-    const quizArray = Array.isArray(quiz) ? quiz : []
+    const cleanTitle = title.trim()
+    const cardArray = (Array.isArray(flashcards) ? flashcards : []).slice(0, 100).map(card => {
+      const entry = card && typeof card === 'object' ? card : {}
+      const front = typeof entry.front === 'string' ? entry.front : typeof entry.question === 'string' ? entry.question : ''
+      const back = typeof entry.back === 'string' ? entry.back : typeof entry.answer === 'string' ? entry.answer : ''
+      return { front: front.slice(0, 2000), back: back.slice(0, 4000) }
+    })
+    const quizArray = (Array.isArray(quiz) ? quiz : []).slice(0, 50).map(item => {
+      const entry = item && typeof item === 'object' ? item : {}
+      return {
+        question: String(entry.question || '').slice(0, 2000),
+        options: (Array.isArray(entry.options) ? entry.options : []).slice(0, 6).map(o => String(o).slice(0, 1000)),
+        answerIndex: Number.isInteger(entry.answerIndex) ? entry.answerIndex : 0,
+        explanation: String(entry.explanation || '').slice(0, 2000),
+      }
+    })
 
     await query(
       `INSERT INTO public.study_materials
@@ -1452,9 +1513,9 @@ router.post('/api/study-materials/save-deck', authenticate, async (req, res) => 
       [
         savedId,
         null,
-        title,
-        sourceText || '',
-        `Study deck: ${title}`,
+        cleanTitle,
+        String(sourceText || '').slice(0, 30000),
+        `Study deck: ${cleanTitle}`,
         '[]',
         JSON.stringify(quizArray),
         '[]',
@@ -1480,7 +1541,7 @@ router.post('/api/study-materials/save-deck', authenticate, async (req, res) => 
 
     res.status(201).json({
       id: savedId,
-      title,
+      title: cleanTitle,
       flashcards: cardArray,
       quiz: quizArray,
       flashcardCount: cardArray.length,

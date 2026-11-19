@@ -90,14 +90,17 @@ inlines `VITE_*` values into the browser bundle):
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY` — public value used by the browser bootstrap endpoint
 - `SUPABASE_SERVICE_KEY`
-- `NVIDIA_API_KEY` — master NVIDIA key used by the Study Hub model council.
+- `NVIDIA_API_KEY` — master NVIDIA key. Reaches any NVIDIA-hosted model and is
+  used for generation, image understanding, and as the Kimi fallback.
 - `NVIDIA_MODEL` — defaults to `nvidia/nemotron-3.5-lightning-30b-a3b`.
-- `NVIDIA_PARAKEET_KEY` — lecture transcription/notetaker key.
-- `KIMI_KEY` — Kimi K3.1 Pro key used for reasoning and image understanding.
+- `NVIDIA_VISION_MODEL` — defaults to `nvidia/nemotron-3.5-super-vl-120b-a12b`.
+- `NVIDIA_PARAKEET_KEY` — lecture transcription/notetaker key (Riva gRPC).
+- `KIMI_KEY` — optional dedicated Kimi key; the master NVIDIA key is used when absent.
 - `KIMI_MODEL` — defaults to `moonshotai/kimi-k3.1-pro`.
 
-The frontend is rebuilt from these values at deploy time; changing frontend
-environment variables requires a redeploy.
+All of these stay on the API host. The browser only receives the two public
+Supabase values from `GET /api/public/config`; no AI key is ever sent to it.
+The frontend is rebuilt from its own values at deploy time.
 
 ## Database updates
 

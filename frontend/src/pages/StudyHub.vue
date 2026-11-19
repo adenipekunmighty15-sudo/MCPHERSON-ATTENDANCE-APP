@@ -1,255 +1,700 @@
 <template>
-  <div class="min-h-screen" style="background: #F5F1EA;">
-    <div class="max-w-7xl mx-auto px-6 py-8">
-      <div class="mb-6">
-        <p class="text-xs font-semibold uppercase tracking-[0.15em]" style="color: #96A0B5;">ACADEMIC TOOLS</p>
-        <h1 class="text-3xl font-bold mt-1" style="color: #0F1E3D; font-family: 'Playfair Display', 'Georgia', serif;">Study Hub</h1>
+  <div class="hub">
+    <!-- ───────────────── Workspace rail ───────────────── -->
+    <aside class="rail">
+      <div class="brand">
+        <div class="brand-mark"><Sparkles :size="18" /></div>
+        <div>
+          <strong>Study Hub</strong>
+          <span>TurboLearn workspace</span>
+        </div>
       </div>
 
-      <div class="flex gap-1 mb-8 p-1 rounded-xl inline-flex flex-wrap" style="background: #EDEDED;">
-        <button v-for="tab in tabs" :key="tab.id"
-          @click="activeTab = tab.id"
-          class="px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border-0 cursor-pointer"
-          :style="{
-            background: activeTab === tab.id ? '#FFFFFF' : 'transparent',
-            color: activeTab === tab.id ? '#0F1E3D' : '#96A0B5',
-            boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-          }"
-        >{{ tab.label }}</button>
+      <button class="new-pack" @click="goWorkspace">
+        <Plus :size="16" />
+        <span>New study pack</span>
+      </button>
+
+      <nav class="rail-nav">
+        <p class="rail-label">WORKSPACE</p>
+        <button v-for="item in railItems" :key="item.id" class="rail-item"
+          :class="{ active: view === item.view && item.view }" @click="item.action()">
+          <component :is="item.icon" :size="17" />
+          <span>{{ item.label }}</span>
+          <ChevronRight v-if="item.external" :size="14" class="rail-chevron" />
+        </button>
+      </nav>
+
+      <div class="rail-recent">
+        <p class="rail-label">RECENT PACKS</p>
+        <button v-for="pack in packs.slice(0, 5)" :key="pack.id" class="recent-item" @click="openPack(pack.id)">
+          <span class="recent-dot" />
+          <span class="recent-title">{{ pack.title }}</span>
+        </button>
+        <p v-if="!packs.length" class="rail-empty">Nothing here yet.</p>
       </div>
 
-      <div class="flex flex-col lg:flex-row gap-6">
-        <!-- Main content area -->
-        <div class="flex-1 min-w-0">
-          <!-- STUDY GROUPS -->
-          <div v-if="activeTab === 'groups'">
-            <StudyGroupManager />
+      <div class="rail-foot">
+        <div class="rail-foot-icon"><Zap :size="15" /></div>
+        <div>
+          <strong>{{ packs.length }} pack{{ packs.length === 1 ? '' : 's' }} saved</strong>
+          <span>Your notes stay private</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ───────────────── Main canvas ───────────────── -->
+    <section class="main">
+      <header class="topbar">
+        <div class="crumbs">
+          <span>Workspace</span>
+          <ChevronRight :size="13" />
+          <strong>{{ view === 'library' ? 'My Library' : view === 'pack' ? 'Study pack' : 'New pack' }}</strong>
+        </div>
+        <div class="topbar-actions">
+          <span class="status-pill"><span class="status-dot" /> AI ready</span>
+          <button class="icon-btn" title="Study dashboard" @click="router.push({ name: 'StudyDashboard' })">
+            <BarChart3 :size="17" />
+          </button>
+        </div>
+      </header>
+
+      <div class="scroll">
+        <Transition name="fade" mode="out-in">
+          <!-- ═══════════ NEW PACK ═══════════ -->
+          <div v-if="view === 'workspace'" key="workspace" class="workspace">
+            <div class="hero">
+              <div class="hero-pill"><Sparkles :size="13" /> POWERED BY NVIDIA · KIMI · PARAKEET</div>
+              <h1>Anything can become<br /><em>a study pack.</em></h1>
+              <p>Drop lecture slides, whiteboard photos, voice notes or a link. Get clean notes, flashcards, a quiz and an audio recap — in one pass.</p>
+            </div>
+
+            <div class="composer" :class="{ dragging: isDragging }"
+              @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
+              @drop.prevent="onDrop">
+              <div class="composer-head">
+                <span class="composer-title"><WandSparkles :size="16" /> Build a study pack</span>
+                <span class="composer-hint">PDF · DOCX · TXT · Images · Audio · YouTube link</span>
+              </div>
+
+              <textarea v-model="sourceText" class="composer-input"
+                placeholder="Paste your lecture notes, summary, or anything you want to study…"
+                rows="5" :disabled="generating" />
+
+              <div class="composer-tools">
+                <label class="tool-btn">
+                  <Paperclip :size="15" /> Add files
+                  <input ref="fileInput" type="file" multiple hidden
+                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.aac" @change="onFiles" />
+                </label>
+                <label class="tool-btn url-tool">
+                  <Link2 :size="15" />
+                  <input v-model="sourceUrl" type="url" placeholder="Paste a YouTube link…" :disabled="generating" />
+                </label>
+              </div>
+
+              <div v-if="files.length" class="file-chips">
+                <div v-for="(file, i) in files" :key="i" class="file-chip">
+                  <component :is="fileIcon(file)" :size="13" />
+                  <span>{{ file.name }}</span>
+                  <button @click="files.splice(i, 1)" title="Remove"><X :size="12" /></button>
+                </div>
+              </div>
+
+              <div v-if="error" class="inline-error"><AlertCircle :size="15" /> {{ error }}</div>
+
+              <Transition name="slide">
+                <div v-if="generating" class="generating">
+                  <div class="gen-bar"><span :style="{ width: genProgress + '%' }" /></div>
+                  <div class="gen-steps">
+                    <span v-for="(step, i) in genSteps" :key="step"
+                      :class="{ done: i < genStep, current: i === genStep }">
+                      <Check v-if="i < genStep" :size="12" />
+                      <Loader2 v-else-if="i === genStep" :size="12" class="spin" />
+                      <span v-else class="num">{{ i + 1 }}</span>
+                      {{ step }}
+                    </span>
+                  </div>
+                </div>
+              </Transition>
+
+              <div class="composer-foot">
+                <span class="composer-meta">Turns your material into notes, cards, quiz & audio</span>
+                <button class="primary-btn" :disabled="generating || (!sourceText.trim() && !sourceUrl.trim() && !files.length)"
+                  @click="generatePack">
+                  <Loader2 v-if="generating" :size="16" class="spin" />
+                  <Sparkles v-else :size="16" />
+                  {{ generating ? 'Building your pack…' : 'Generate study pack' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="suggestions">
+              <p>TRY AN EXAMPLE</p>
+              <div>
+                <button v-for="s in suggestions" :key="s.label" @click="sourceText = s.text">
+                  <component :is="s.icon" :size="15" /> {{ s.label }}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <!-- FLASHCARDS -->
-          <div v-if="activeTab === 'flashcards'">
-            <div class="mb-6">
-              <FlashcardGenerator @saved="refreshFlashcardDecks" />
+          <!-- ═══════════ LIBRARY ═══════════ -->
+          <div v-else-if="view === 'library'" key="library" class="library">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">YOUR COLLECTION</p>
+                <h2>My Library</h2>
+                <p class="sub">Every pack you have generated, ready to revisit.</p>
+              </div>
+              <button class="primary-btn small" @click="goWorkspace"><Plus :size="15" /> New pack</button>
             </div>
-            <div v-if="decks.length > 0" class="mt-8">
-              <h3 class="text-sm font-bold mb-4" style="color: #0F1E3D;">Saved Decks</h3>
-              <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));">
-                <div v-for="d in decks" :key="d.id" @click="viewDeck(d.id)"
-                  class="rounded-2xl p-4 border transition-all cursor-pointer" style="background: #FFFFFF; border-color: #E2E6ED;"
-                  @mouseenter="$el.style.boxShadow='0 4px 16px rgba(0,0,0,0.06)'" @mouseleave="$el.style.boxShadow='none'"
-                >
-                  <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: #DBEAFE; color: #3B82F6;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-xs font-bold truncate" style="color: #0F1E3D;">{{ d.title }}</p>
-                      <p class="text-[10px] mt-0.5" style="color: #96A0B5;">{{ d.flashcardCount || 0 }} cards</p>
-                    </div>
-                  </div>
+            <div v-if="packs.length" class="pack-grid">
+              <button v-for="pack in packs" :key="pack.id" class="pack-card" @click="openPack(pack.id)">
+                <div class="pack-card-top">
+                  <span class="pack-icon"><FileText :size="18" /></span>
+                  <span class="pack-date">{{ shortDate(pack.createdAt) }}</span>
+                </div>
+                <h3>{{ pack.title }}</h3>
+                <p>{{ truncate(stripMarkdown(pack.summary || pack.sourceText || ''), 110) }}</p>
+                <div class="pack-stats">
+                  <span><Layers :size="13" /> {{ pack.flashcardCount || 0 }} cards</span>
+                  <span><ListChecks :size="13" /> {{ Array.isArray(pack.quiz) ? pack.quiz.length : 0 }} quiz</span>
+                  <span v-if="pack.podcastUrl"><Headphones :size="13" /> Audio</span>
+                </div>
+              </button>
+            </div>
+            <div v-else class="empty-state">
+              <Library :size="34" />
+              <h3>Your library is empty</h3>
+              <p>Generate your first study pack and it will appear here.</p>
+              <button class="primary-btn small" @click="goWorkspace">Create a pack</button>
+            </div>
+          </div>
+
+          <!-- ═══════════ ACTIVE PACK ═══════════ -->
+          <div v-else key="pack" class="pack-view">
+            <div class="pack-header">
+              <button class="back-btn" @click="view = 'library'"><ChevronRight :size="15" class="flip" /> Library</button>
+              <div class="pack-title-row">
+                <div>
+                  <p class="eyebrow">STUDY PACK</p>
+                  <h2>{{ activePack?.title }}</h2>
+                </div>
+                <div class="pack-actions">
+                  <button class="ghost-btn" @click="router.push({ name: 'flashcard-review', params: { materialId: activePack.id } })">
+                    <Layers :size="15" /> Full review
+                  </button>
+                  <button class="ghost-btn" @click="router.push({ name: 'podcast-generator', params: { materialId: activePack.id } })">
+                    <Headphones :size="15" /> Podcast studio
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- QUIZZES -->
-          <div v-if="activeTab === 'quizzes'">
-            <QuizView />
-          </div>
-
-          <!-- RESOURCES -->
-          <div v-if="activeTab === 'resources'">
-            <PodcastAudio />
-          </div>
-        </div>
-
-        <!-- Global sidebar — Pomodoro + Goals (visible on all tabs) -->
-        <div class="w-full lg:w-80 space-y-6 shrink-0">
-          <div class="rounded-2xl p-6 border" style="background: #FFFFFF; border-color: #E2E6ED;">
-            <h3 class="text-sm font-bold mb-4" style="color: #0F1E3D;">Pomodoro Timer</h3>
-            <div class="relative w-36 h-36 mx-auto mb-4">
-              <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#EDEDED" stroke-width="6" />
-                <circle cx="60" cy="60" r="52" fill="none" :stroke="timerColor" stroke-width="6" stroke-linecap="round" :stroke-dasharray="circumference" :stroke-dashoffset="progressOffset" class="transition-all duration-300" />
-              </svg>
-              <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span class="text-3xl font-bold font-mono" style="color: #0F1E3D;">{{ formattedTime }}</span>
-                <span class="text-[10px] font-semibold uppercase tracking-wider mt-0.5" :style="{ color: timerState === 'running' ? '#EF4444' : timerState === 'paused' ? '#F59E0B' : '#96A0B5' }">{{ timerStateLabel }}</span>
-              </div>
-            </div>
-            <div class="flex items-center justify-center gap-3 mb-4">
-              <button v-if="timerState !== 'running'" @click="startTimer" class="px-6 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #10B981; color: #FFFFFF;" @mouseenter="$el.style.background='#059669'" @mouseleave="$el.style.background='#10B981'">Start</button>
-              <button v-else @click="pauseTimer" class="px-6 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #F59E0B; color: #FFFFFF;" @mouseenter="$el.style.background='#D97706'" @mouseleave="$el.style.background='#F59E0B'">Pause</button>
-              <button @click="resetTimer" class="w-9 h-9 rounded-xl flex items-center justify-center transition-all border-0 cursor-pointer" style="background: #EDEDED; color: #68758E;" @mouseenter="$el.style.background='#E2E6ED'" @mouseleave="$el.style.background='#EDEDED'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            <div class="activity-tabs">
+              <button v-for="a in activities" :key="a.id" :class="{ active: activity === a.id }" @click="activity = a.id">
+                <component :is="a.icon" :size="15" /> {{ a.label }}
               </button>
             </div>
-            <div class="flex gap-2 justify-center">
-              <button v-for="p in presets" :key="p.label" @click="setDuration(p.minutes)" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold border-0 cursor-pointer transition-all"
-                :style="{ background: currentDuration === p.minutes ? (timerState === 'running' ? '#EF4444' : '#0F1E3D') : '#EDEDED', color: currentDuration === p.minutes ? '#FFFFFF' : '#68758E' }"
-              >{{ p.label }}</button>
-            </div>
-          </div>
 
-          <div class="rounded-2xl p-6 border" style="background: #FFFFFF; border-color: #E2E6ED;">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-sm font-bold" style="color: #0F1E3D;">Weekly Goals</h3>
-              <span class="text-xs font-semibold" style="color: #96A0B5;">{{ completedGoals }}/{{ goals.length }}</span>
-            </div>
-            <div class="space-y-2">
-              <div v-for="g in goals" :key="g.id" class="flex items-center gap-2 py-1.5 group">
-                <input type="checkbox" v-model="g.done" class="w-4 h-4 rounded border-2 appearance-none cursor-pointer shrink-0 transition-all"
-                  :style="{ borderColor: g.done ? '#10B981' : '#D0D6E0', background: g.done ? '#10B981' : 'transparent' }"
-                />
-                <input v-if="editingGoalId === g.id" v-model="g.text" @blur="editingGoalId = null" @keydown.enter="editingGoalId = null"
-                  class="flex-1 text-sm px-1 py-0.5 border rounded outline-none" style="border-color:#D0D6E0; color:#0F1E3D; background:transparent;"
-                />
-                <span v-else class="flex-1 text-sm transition-all cursor-pointer" :style="{ color: g.done ? '#B8C0D0' : '#0F1E3D', textDecoration: g.done ? 'line-through' : 'none' }"
-                  @dblclick="editingGoalId = g.id">{{ g.text }}</span>
-                <button @click="deleteGoal(g.id)" class="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded border-0 cursor-pointer" style="color:#EF4444; background:transparent;" title="Delete goal">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                </button>
+            <Transition name="fade" mode="out-in">
+              <!-- NOTES -->
+              <div v-if="activity === 'notes'" key="notes" class="activity-panel">
+                <div class="notes-layout">
+                  <article class="note-sheet">
+                    <div class="sheet-kicker">SMART NOTES</div>
+                    <div class="markdown-body" v-safe-html="renderMarkdown(activePack?.improvedNote || activePack?.summary)"></div>
+                  </article>
+                  <aside class="key-panel">
+                    <h3><Sparkles :size="15" /> Key takeaways</h3>
+                    <div v-if="keyPoints.length" class="keypoints">
+                      <div v-for="(point, i) in keyPoints" :key="i" class="keypoint">
+                        <span>{{ String(i + 1).padStart(2, '0') }}</span>
+                        <p>{{ point.text || point }}</p>
+                      </div>
+                    </div>
+                    <p v-else class="muted">No key points were extracted for this pack.</p>
+                    <div class="source-box">
+                      <h4><FileText :size="14" /> Source notes</h4>
+                      <p>{{ truncate(stripMarkdown(activePack?.sourceText || ''), 600) }}</p>
+                    </div>
+                  </aside>
+                </div>
               </div>
-              <div class="flex items-center gap-2 pt-1">
-                <input v-model="newGoalText" @keydown.enter="addGoal" placeholder="Add a goal..." class="flex-1 text-sm px-2 py-1 rounded border outline-none" style="border-color:#D0D6E0; color:#0F1E3D; background:transparent;" />
-                <button @click="addGoal" class="px-3 py-1 rounded-lg text-[11px] font-semibold border-0 cursor-pointer" style="background:#0F1E3D; color:#FFFFFF;">Add</button>
+
+              <!-- FLASHCARDS -->
+              <div v-else-if="activity === 'flashcards'" key="flashcards" class="activity-panel">
+                <div class="panel-head">
+                  <div><h3><Layers :size="16" /> Flashcards</h3><p>Tap a card to reveal the answer.</p></div>
+                  <span class="count-pill">{{ flashcards.length }} cards</span>
+                </div>
+                <div v-if="flashcards.length" class="cards-grid">
+                  <button v-for="(card, i) in flashcards" :key="i" class="flashcard"
+                    :class="{ flipped: flippedCard === i }" @click="flippedCard = flippedCard === i ? -1 : i">
+                    <span class="card-index">{{ String(i + 1).padStart(2, '0') }}</span>
+                    <template v-if="flippedCard !== i">
+                      <strong>{{ card.front || card.question }}</strong>
+                      <span class="card-hint">Tap to reveal</span>
+                    </template>
+                    <template v-else>
+                      <p>{{ card.back || card.answer }}</p>
+                      <span class="card-hint">Answer</span>
+                    </template>
+                  </button>
+                </div>
+                <div v-else class="empty-state small"><Layers :size="28" /><p>No flashcards in this pack.</p></div>
               </div>
-            </div>
+
+              <!-- QUIZ -->
+              <div v-else-if="activity === 'quiz'" key="quiz" class="activity-panel">
+                <div class="panel-head">
+                  <div><h3><ListChecks :size="16" /> Quick quiz</h3><p>Test yourself on this material.</p></div>
+                  <span v-if="quizFinished" class="count-pill">{{ quizScore }}/{{ quiz.length }}</span>
+                </div>
+                <div v-if="quiz.length" class="quiz-wrap">
+                  <div v-for="(q, qi) in quiz" :key="qi" class="quiz-card">
+                    <p class="quiz-q"><span>{{ qi + 1 }}.</span> {{ q.question }}</p>
+                    <div class="quiz-options">
+                      <button v-for="(opt, oi) in q.options" :key="oi"
+                        :class="quizAnswers[qi] === oi ? (oi === q.answerIndex ? 'correct' : 'wrong') : ''"
+                        :disabled="quizAnswers[qi] !== undefined" @click="answerQuiz(qi, oi)">
+                        <span class="opt-letter">{{ String.fromCharCode(65 + oi) }}</span>
+                        {{ opt }}
+                        <Check v-if="quizAnswers[qi] !== undefined && oi === q.answerIndex" :size="15" />
+                      </button>
+                    </div>
+                    <p v-if="quizAnswers[qi] !== undefined && q.explanation" class="quiz-explain">{{ q.explanation }}</p>
+                  </div>
+                </div>
+                <div v-else class="empty-state small"><ListChecks :size="28" /><p>No quiz in this pack.</p></div>
+              </div>
+
+              <!-- PODCAST -->
+              <div v-else-if="activity === 'podcast'" key="podcast" class="activity-panel">
+                <div class="audio-hero">
+                  <div class="audio-icon"><Headphones :size="30" /></div>
+                  <div>
+                    <h3>Listen to your notes</h3>
+                    <p>A short audio recap generated from this pack.</p>
+                  </div>
+                  <button class="primary-btn small" :disabled="podcastBusy" @click="makePodcast">
+                    <Loader2 v-if="podcastBusy" :size="15" class="spin" />
+                    <WandSparkles v-else :size="15" />
+                    {{ activePack?.podcastUrl ? 'Regenerate' : 'Generate audio' }}
+                  </button>
+                </div>
+                <audio v-if="activePack?.podcastUrl" :src="activePack.podcastUrl" controls class="audio-player" />
+                <div v-if="audioError" class="inline-error"><AlertCircle :size="15" /> {{ audioError }}</div>
+              </div>
+
+              <!-- CHAT -->
+              <div v-else key="chat" class="activity-panel chat-panel">
+                <div class="chat-log">
+                  <div v-if="!chatMessages.length" class="chat-empty">
+                    <MessageCircle :size="28" />
+                    <h3>Ask anything about this pack</h3>
+                    <p>Clarify a concept, ask for an example, or go deeper.</p>
+                  </div>
+                  <div v-for="(msg, i) in chatMessages" :key="i" class="chat-msg" :class="msg.role">
+                    <span class="chat-avatar">{{ msg.role === 'user' ? 'You' : 'AI' }}</span>
+                    <div class="chat-bubble markdown-body" v-safe-html="renderMarkdown(msg.content)"></div>
+                  </div>
+                  <div v-if="chatBusy" class="chat-msg assistant">
+                    <span class="chat-avatar">AI</span>
+                    <div class="chat-bubble typing"><span /><span /><span /></div>
+                  </div>
+                </div>
+                <form class="chat-input" @submit.prevent="sendChat">
+                  <input v-model="chatInput" placeholder="Ask a question about your material…" :disabled="chatBusy" />
+                  <button type="submit" :disabled="chatBusy || !chatInput.trim()" title="Send"><Send :size="16" /></button>
+                </form>
+              </div>
+            </Transition>
+          </div>
+        </Transition>
+      </div>
+    </section>
+
+    <!-- ───────────────── Focus sidebar (preserved) ───────────────── -->
+    <aside class="side">
+      <div class="side-card">
+        <div class="side-head"><h3><Clock :size="15" /> Focus timer</h3><span class="side-tag">POMODORO</span></div>
+        <div class="timer-ring">
+          <svg viewBox="0 0 120 120" class="-rotate-90">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#E8ECF3" stroke-width="6" />
+            <circle cx="60" cy="60" r="52" fill="none" :stroke="timerColor" stroke-width="6" stroke-linecap="round"
+              :stroke-dasharray="circumference" :stroke-dashoffset="progressOffset" class="ring-progress" />
+          </svg>
+          <div class="timer-label">
+            <strong>{{ formattedTime }}</strong>
+            <span :style="{ color: timerColor }">{{ timerStateLabel }}</span>
           </div>
         </div>
+        <div class="timer-controls">
+          <button v-if="timerState !== 'running'" class="timer-main" @click="startTimer">Start</button>
+          <button v-else class="timer-main pause" @click="pauseTimer">Pause</button>
+          <button class="timer-icon" @click="resetTimer" title="Reset"><RotateCcw :size="14" /></button>
+        </div>
+        <div class="presets">
+          <button v-for="p in presets" :key="p.label" :class="{ active: currentDuration === p.minutes }" @click="setDuration(p.minutes)">
+            {{ p.label }}
+          </button>
+        </div>
       </div>
-    </div>
+
+      <div class="side-card">
+        <div class="side-head"><h3><Target :size="15" /> Weekly goals</h3><span class="side-tag">{{ completedGoals }}/{{ goals.length }}</span></div>
+        <div class="goal-list">
+          <div v-for="g in goals" :key="g.id" class="goal-row">
+            <input type="checkbox" v-model="g.done" class="goal-check" />
+            <input v-if="editingGoalId === g.id" v-model="g.text" @blur="editingGoalId = null" @keydown.enter="editingGoalId = null" class="goal-edit" />
+            <span v-else class="goal-text" :class="{ done: g.done }" @dblclick="editingGoalId = g.id">{{ g.text }}</span>
+            <button class="goal-del" @click="deleteGoal(g.id)" title="Delete"><Trash2 :size="13" /></button>
+          </div>
+          <form class="goal-add" @submit.prevent="addGoal">
+            <input v-model="newGoalText" placeholder="Add a goal…" />
+            <button type="submit"><Plus :size="14" /></button>
+          </form>
+        </div>
+      </div>
+
+      <div class="side-tip">
+        <Sparkles :size="15" />
+        <p><strong>Tip:</strong> Double-click a goal to edit it. Your focus sessions are saved automatically.</p>
+      </div>
+    </aside>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import FlashcardGenerator from '../components/study/FlashcardGenerator.vue'
-import QuizView from '../components/study/QuizView.vue'
-import PodcastAudio from '../components/study/PodcastAudio.vue'
-import StudyGroupManager from '../components/study/StudyGroupManager.vue'
+import {
+  AlertCircle, BarChart3, BookOpen, Check, ChevronRight, ClipboardList, Clock, FileText,
+  Headphones, Image as ImageIcon, Layers, Library, Link2, ListChecks, Loader2, MessageCircle,
+  Mic, Paperclip, Plus, RotateCcw, Send, Sparkles, Target, Trash2, Users, WandSparkles, X, Zap,
+} from 'lucide-vue-next'
 import api from '../lib/api'
 
 const router = useRouter()
 
-const tabs = [
-  { id: 'groups', label: 'Study Groups' },
-  { id: 'flashcards', label: 'Flashcards' },
-  { id: 'quizzes', label: 'Quizzes' },
-  { id: 'resources', label: 'Resources' },
+/* ── Workspace state ── */
+const view = ref('workspace')
+const packs = ref([])
+const activePack = ref(null)
+const activity = ref('notes')
+const sourceText = ref('')
+const sourceUrl = ref('')
+const files = ref([])
+const fileInput = ref(null)
+const isDragging = ref(false)
+const generating = ref(false)
+const genStep = ref(0)
+const error = ref('')
+const genSteps = ['Reading your sources', 'Understanding the material', 'Writing notes & cards', 'Building quiz & audio recap']
+
+const railItems = [
+  { id: 'new', label: 'New pack', icon: Plus, view: 'workspace', action: goWorkspace },
+  { id: 'library', label: 'My library', icon: Library, view: 'library', action: () => { view.value = 'library' } },
+  { id: 'groups', label: 'Study groups', icon: Users, external: true, action: () => router.push({ name: 'StudyGroups' }) },
+  { id: 'plan', label: 'Study plan', icon: ClipboardList, external: true, action: () => router.push({ name: 'StudyPlan' }) },
+  { id: 'dashboard', label: 'Progress', icon: BarChart3, external: true, action: () => router.push({ name: 'StudyDashboard' }) },
 ]
-const activeTab = ref('flashcards')
-const decks = ref([])
+const activities = [
+  { id: 'notes', label: 'Notes', icon: BookOpen },
+  { id: 'flashcards', label: 'Flashcards', icon: Layers },
+  { id: 'quiz', label: 'Quiz', icon: ListChecks },
+  { id: 'podcast', label: 'Podcast', icon: Headphones },
+  { id: 'chat', label: 'Chat', icon: MessageCircle },
+]
+const suggestions = [
+  { label: 'Paste lecture notes', icon: FileText, text: 'Paste your own lecture notes into the box to turn them into a full study pack with notes, flashcards and a quiz.' },
+  { label: 'Summarise a topic', icon: Sparkles, text: 'Cellular respiration is the process by which cells convert glucose and oxygen into ATP, carbon dioxide and water. It has four main stages: glycolysis, pyruvate oxidation, the Krebs cycle and the electron transport chain.' },
+]
 
 onMounted(async () => {
-  await Promise.all([refreshFlashcardDecks(), loadGoals()])
+  await Promise.all([loadPacks(), loadGoals()])
 })
-
 onUnmounted(() => {
   if (interval) { clearInterval(interval); interval = null }
 })
 
-async function refreshFlashcardDecks() {
+function goWorkspace() {
+  view.value = 'workspace'
+  sourceText.value = ''
+  sourceUrl.value = ''
+  files.value = []
+  error.value = ''
+}
+
+const genProgress = computed(() => Math.min(92, (genStep.value / genSteps.length) * 100 + 8))
+
+function fieldFor(file) {
+  if ((file.type || '').startsWith('image/')) return 'image'
+  if ((file.type || '').startsWith('audio/')) return 'audio'
+  return 'document'
+}
+function fileIcon(file) {
+  if ((file.type || '').startsWith('image/')) return ImageIcon
+  if ((file.type || '').startsWith('audio/')) return Mic
+  return FileText
+}
+function onFiles(event) {
+  const incoming = Array.from(event.target.files || [])
+  files.value = [...files.value, ...incoming].slice(0, 20)
+  if (fileInput.value) fileInput.value.value = ''
+}
+function onDrop(event) {
+  isDragging.value = false
+  const incoming = Array.from(event.dataTransfer?.files || [])
+  if (incoming.length) files.value = [...files.value, ...incoming].slice(0, 20)
+}
+function friendlyError(e) {
+  const status = e?.response?.status
+  if (status === 429) return 'You are going a little too fast. Give it a minute and try again.'
+  if (status === 503) return 'The study assistant is warming up. Please try again shortly.'
+  return e?.response?.data?.error || e?.message || 'Something went wrong. Please try again.'
+}
+
+async function loadPacks() {
   try {
-    const res = await api.get('/study-materials')
-    decks.value = (res.data || []).map(m => ({
-      id: m.id,
-      title: m.title,
-      flashcardCount: m.flashcardCount || 0,
-    }))
+    const { data } = await api.get('/study-materials')
+    packs.value = Array.isArray(data) ? data : []
   } catch (e) {
-    console.warn('[StudyHub] Load decks failed:', e)
+    console.warn('[StudyHub] Load packs failed:', e)
   }
 }
 
-function viewDeck(id) {
-  router.push({ name: 'flashcard-review', params: { materialId: id } })
+async function generatePack() {
+  if (!sourceText.value.trim() && !sourceUrl.value.trim() && !files.value.length) {
+    error.value = 'Add some notes, a link, or at least one file first.'
+    return
+  }
+  error.value = ''
+  generating.value = true
+  genStep.value = 0
+  const ticker = setInterval(() => { if (genStep.value < genSteps.length - 1) genStep.value++ }, 4500)
+
+  const form = new FormData()
+  form.append('sourceText', sourceText.value.trim())
+  form.append('title', deriveTitle())
+  if (sourceUrl.value.trim()) form.append('youtubeUrl', sourceUrl.value.trim())
+  for (const file of files.value) form.append(fieldFor(file), file)
+
+  try {
+    const { data } = await api.post('/study-materials/upload', form, { timeout: 180000 })
+    genStep.value = genSteps.length
+    activePack.value = data
+    resetActivities()
+    view.value = 'pack'
+    await loadPacks()
+  } catch (e) {
+    error.value = friendlyError(e)
+  } finally {
+    clearInterval(ticker)
+    generating.value = false
+  }
 }
 
-// Pomodoro Timer
+function deriveTitle() {
+  const text = sourceText.value.trim()
+  if (text) return text.split(/\s+/).slice(0, 6).join(' ')
+  if (files.value.length) return files.value[0].name.replace(/\.[^.]+$/, '')
+  return 'My study pack'
+}
+
+async function openPack(id) {
+  error.value = ''
+  try {
+    const { data } = await api.get(`/study-materials/${id}`)
+    activePack.value = data
+    resetActivities()
+    view.value = 'pack'
+  } catch (e) {
+    error.value = friendlyError(e)
+    view.value = 'library'
+  }
+}
+
+function resetActivities() {
+  activity.value = 'notes'
+  flippedCard.value = -1
+  quizAnswers.value = {}
+  audioError.value = ''
+  chatMessages.value = Array.isArray(activePack.value?.chatHistory)
+    ? activePack.value.chatHistory.slice(-20)
+    : []
+  chatInput.value = ''
+}
+
+/* ── Derived pack data ── */
+const keyPoints = computed(() => {
+  const value = activePack.value?.keyPoints
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') { try { return JSON.parse(value) } catch { return [] } }
+  return []
+})
+const flashcards = computed(() => {
+  const value = activePack.value?.flashcards
+  if (Array.isArray(value)) return value
+  if (Array.isArray(activePack.value?.cards)) return activePack.value.cards
+  return []
+})
+const quiz = computed(() => {
+  const value = activePack.value?.quiz
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') { try { return JSON.parse(value) } catch { return [] } }
+  return []
+})
+const flippedCard = ref(-1)
+const quizAnswers = ref({})
+const quizFinished = computed(() => Object.keys(quizAnswers.value).length >= quiz.value.length && quiz.value.length > 0)
+const quizScore = computed(() => quiz.value.filter((q, i) => quizAnswers.value[i] === q.answerIndex).length)
+function answerQuiz(qi, oi) {
+  if (quizAnswers.value[qi] !== undefined) return
+  quizAnswers.value = { ...quizAnswers.value, [qi]: oi }
+}
+
+/* ── Podcast ── */
+const podcastBusy = ref(false)
+const audioError = ref('')
+async function makePodcast() {
+  if (!activePack.value?.id) return
+  podcastBusy.value = true
+  audioError.value = ''
+  try {
+    const { data } = await api.post(`/study-materials/${activePack.value.id}/podcast`, {}, { timeout: 180000 })
+    const url = data?.url || data?.audioUrl || data?.data?.url || data?.data?.audioUrl
+    if (url) activePack.value = { ...activePack.value, podcastUrl: url }
+    else audioError.value = 'The audio recap is not ready yet. Please try again.'
+  } catch (e) {
+    audioError.value = friendlyError(e)
+  } finally {
+    podcastBusy.value = false
+  }
+}
+
+/* ── Pack chat ── */
+const chatMessages = ref([])
+const chatInput = ref('')
+const chatBusy = ref(false)
+async function sendChat() {
+  const message = chatInput.value.trim()
+  if (!message || !activePack.value?.id || chatBusy.value) return
+  chatMessages.value = [...chatMessages.value, { role: 'user', content: message }]
+  chatInput.value = ''
+  chatBusy.value = true
+  try {
+    const { data } = await api.post(`/study-materials/${activePack.value.id}/chat`, { message }, { timeout: 120000 })
+    chatMessages.value = Array.isArray(data?.history)
+      ? data.history.slice(-20)
+      : [...chatMessages.value, { role: 'assistant', content: data?.response || 'Done.' }]
+  } catch (e) {
+    chatMessages.value = [...chatMessages.value, { role: 'assistant', content: friendlyError(e) }]
+  } finally {
+    chatBusy.value = false
+  }
+}
+
+/* ── Formatting helpers ── */
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;')
+}
+function renderMarkdown(text) {
+  if (!text) return ''
+  return escapeHtml(text)
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')
+}
+function stripMarkdown(text) {
+  return String(text || '').replace(/[#*`>[\]]/g, '').replace(/\s+/g, ' ').trim()
+}
+function truncate(text, max) {
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
+function shortDate(value) {
+  if (!value) return ''
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+/* ── Pomodoro Timer (contract preserved) ── */
 const totalSeconds = ref(25 * 60)
 const remainingSeconds = ref(25 * 60)
 const timerState = ref('idle')
 let interval = null
 const presets = [{ label: '25m', minutes: 25 }, { label: '15m', minutes: 15 }, { label: '5m', minutes: 5 }]
-
 const circumference = 2 * Math.PI * 52
-const progressOffset = computed(() => {
-  const fraction = remainingSeconds.value / totalSeconds.value
-  return circumference * (1 - fraction)
-})
+const progressOffset = computed(() => circumference * (1 - remainingSeconds.value / totalSeconds.value))
 const formattedTime = computed(() => {
   const m = Math.floor(remainingSeconds.value / 60)
   const s = remainingSeconds.value % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 })
-const currentDuration = computed(() => {
-  const m = totalSeconds.value / 60
-  return presets.find(p => p.minutes === m)?.minutes || 25
-})
-const timerColor = computed(() => {
-  if (timerState.value === 'running') return '#EF4444'
-  if (timerState.value === 'paused') return '#F59E0B'
-  return '#96A0B5'
-})
-const timerStateLabel = computed(() => {
-  if (timerState.value === 'running') return 'FOCUSING'
-  if (timerState.value === 'paused') return 'PAUSED'
-  return 'READY'
-})
+const currentDuration = computed(() => presets.find(p => p.minutes === totalSeconds.value / 60)?.minutes || 25)
+const timerColor = computed(() => timerState.value === 'running' ? '#E05B4A' : timerState.value === 'paused' ? '#D4AF37' : '#96A0B5')
+const timerStateLabel = computed(() => timerState.value === 'running' ? 'FOCUSING' : timerState.value === 'paused' ? 'PAUSED' : 'READY')
 
-function setDuration(minutes) { if (timerState.value === 'running') return; totalSeconds.value = minutes * 60; remainingSeconds.value = minutes * 60; timerState.value = 'idle' }
-
+function setDuration(minutes) {
+  if (timerState.value === 'running') return
+  totalSeconds.value = minutes * 60
+  remainingSeconds.value = minutes * 60
+  timerState.value = 'idle'
+}
 function savePomodoroSession() {
-  const duration = currentDuration.value
-  api.post('/pomodoro/sessions', { durationMinutes: duration }).catch(() => {})
+  api.post('/pomodoro/sessions', { durationMinutes: currentDuration.value }).catch(() => {})
 }
-
 function startTimer() {
-  if (timerState.value === 'idle' || timerState.value === 'paused') {
-    timerState.value = 'running'
-    interval = setInterval(() => {
-      remainingSeconds.value--
-      if (remainingSeconds.value <= 0) {
-        clearInterval(interval); interval = null; timerState.value = 'idle'
-        savePomodoroSession()
-      }
-    }, 1000)
-  }
+  if (timerState.value !== 'idle' && timerState.value !== 'paused') return
+  timerState.value = 'running'
+  interval = setInterval(() => {
+    remainingSeconds.value--
+    if (remainingSeconds.value <= 0) {
+      clearInterval(interval); interval = null; timerState.value = 'idle'
+      savePomodoroSession()
+      remainingSeconds.value = totalSeconds.value
+    }
+  }, 1000)
 }
-function pauseTimer() { if (timerState.value === 'running') { clearInterval(interval); interval = null; timerState.value = 'paused' } }
-function resetTimer() { clearInterval(interval); interval = null; remainingSeconds.value = totalSeconds.value; timerState.value = 'idle' }
+function pauseTimer() {
+  if (timerState.value === 'running') { clearInterval(interval); interval = null; timerState.value = 'paused' }
+}
+function resetTimer() {
+  clearInterval(interval); interval = null
+  remainingSeconds.value = totalSeconds.value
+  timerState.value = 'idle'
+}
 
-// Weekly Goals
+/* ── Weekly Goals (contract preserved) ── */
 const goals = ref([])
 const completedGoals = computed(() => goals.value.filter(g => g.done).length)
 const newGoalText = ref('')
 const editingGoalId = ref(null)
-
 function addGoal() {
   const text = newGoalText.value.trim()
   if (!text) return
   goals.value.push({ id: crypto.randomUUID?.() || Date.now().toString(36), text, done: false })
   newGoalText.value = ''
 }
-
-function deleteGoal(id) {
-  goals.value = goals.value.filter(g => g.id !== id)
-}
-
+function deleteGoal(id) { goals.value = goals.value.filter(g => g.id !== id) }
 async function loadGoals() {
   try {
     const { data } = await api.get('/pomodoro/goals')
-    if (Array.isArray(data) && data.length > 0) {
-      goals.value = data.map(g => ({ id: g.id, text: g.text, done: g.done }))
-    }
+    if (Array.isArray(data) && data.length > 0) goals.value = data.map(g => ({ id: g.id, text: g.text, done: g.done }))
   } catch (error) {
     console.warn('[StudyHub] Failed to load goals:', error)
     goals.value = []
   }
 }
-
 async function saveGoals() {
   try {
     await api.post('/pomodoro/goals', { goals: goals.value.map(g => ({ id: g.id, text: g.text, done: g.done })) })
@@ -257,7 +702,234 @@ async function saveGoals() {
     console.warn('[StudyHub] Failed to save goals:', error)
   }
 }
-
-// Watch goals for changes and persist
 watch(goals, saveGoals, { deep: true })
 </script>
+
+<style scoped>
+.hub { --navy: #0B192C; --gold: #D4AF37; --ink: #16233A; --muted: #7C879B; --line: #E7EBF2; --bg: #F6F7FA; display: grid; grid-template-columns: 232px minmax(0, 1fr) 280px; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+.rail, .side { background: #fff; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.rail { border-right: 1px solid var(--line); padding: 24px 16px; display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 11px; padding: 0 6px 22px; }
+.brand-mark { width: 36px; height: 36px; border-radius: 11px; background: var(--navy); color: var(--gold); display: grid; place-items: center; }
+.brand strong { display: block; font-size: 14px; color: var(--navy); }
+.brand span { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+.new-pack { width: 100%; border: 0; border-radius: 10px; background: var(--navy); color: #fff; padding: 11px 13px; display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.new-pack:hover { background: #152c49; }
+.rail-nav { margin-top: 26px; }
+.rail-label { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: #A3ACBB; padding: 0 8px 9px; margin: 0; }
+.rail-item { width: 100%; display: flex; align-items: center; gap: 11px; padding: 9px 10px; border: 0; background: transparent; color: #5A657A; border-radius: 8px; font-size: 12px; cursor: pointer; text-align: left; margin-bottom: 3px; }
+.rail-item:hover, .rail-item.active { background: #F1F4F9; color: var(--navy); }
+.rail-item.active { font-weight: 700; }
+.rail-chevron { margin-left: auto; opacity: .5; }
+.rail-recent { margin-top: 28px; }
+.recent-item { width: 100%; display: flex; align-items: center; gap: 9px; padding: 7px 9px; border: 0; background: transparent; cursor: pointer; text-align: left; border-radius: 7px; }
+.recent-item:hover { background: #F5F7FA; }
+.recent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: none; }
+.recent-title { font-size: 11px; color: #5A657A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-empty { font-size: 11px; color: #A3ACBB; padding: 0 9px; }
+.rail-foot { margin-top: auto; display: flex; gap: 10px; align-items: center; padding: 13px 10px; border-radius: 10px; background: #FBF9F3; }
+.rail-foot-icon { color: var(--gold); }
+.rail-foot strong { display: block; font-size: 11px; color: var(--navy); }
+.rail-foot span { display: block; font-size: 9px; color: var(--muted); }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar { height: 62px; background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex: none; }
+.crumbs { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+.crumbs strong { color: var(--navy); }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.status-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; color: #3F8F6B; background: #EDF8F2; padding: 6px 10px; border-radius: 99px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #4CB888; }
+.icon-btn { width: 32px; height: 32px; border: 1px solid var(--line); background: #fff; border-radius: 8px; color: #657186; display: grid; place-items: center; cursor: pointer; }
+.scroll { flex: 1; overflow-y: auto; padding: 34px 38px 60px; }
+
+.workspace { max-width: 860px; margin: 0 auto; }
+.hero { text-align: center; margin-bottom: 30px; }
+.hero-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 9px; font-weight: 700; letter-spacing: .12em; color: #8A7327; background: #FBF6E6; border: 1px solid #EFE4BE; padding: 6px 12px; border-radius: 99px; }
+.hero h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 38px; line-height: 1.15; color: var(--navy); margin: 18px 0 10px; letter-spacing: -.02em; }
+.hero h1 em { font-style: italic; color: var(--gold); }
+.hero p { color: #68758E; font-size: 13px; line-height: 1.6; max-width: 600px; margin: 0 auto; }
+
+.composer { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 12px 40px rgba(11, 25, 44, .05); transition: border-color .2s, box-shadow .2s; }
+.composer.dragging { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(212, 175, 55, .12); }
+.composer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.composer-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--navy); }
+.composer-hint { font-size: 10px; color: #A3ACBB; }
+.composer-input { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.6; color: var(--ink); resize: vertical; outline: none; background: #FCFDFE; }
+.composer-input:focus { border-color: #B9A963; }
+.composer-tools { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.tool-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; font-size: 11px; font-weight: 600; color: #5A657A; background: #fff; cursor: pointer; }
+.tool-btn:hover { border-color: #C7CEDA; }
+.url-tool { flex: 1; min-width: 200px; }
+.url-tool input { border: 0; outline: none; flex: 1; font-size: 11px; color: var(--ink); background: transparent; }
+.file-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.file-chip { display: inline-flex; align-items: center; gap: 6px; background: #F1F4F9; border-radius: 7px; padding: 6px 9px; font-size: 10px; color: #47536A; max-width: 220px; }
+.file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip button { border: 0; background: transparent; color: #8A94A6; cursor: pointer; display: grid; place-items: center; }
+.inline-error { display: flex; align-items: center; gap: 8px; margin-top: 12px; background: #FEF2F0; color: #B4473A; border: 1px solid #F6D9D4; padding: 10px 12px; border-radius: 9px; font-size: 11px; }
+.generating { margin-top: 14px; }
+.gen-bar { height: 5px; border-radius: 99px; background: #EEF1F6; overflow: hidden; }
+.gen-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--navy), var(--gold)); transition: width .5s ease; }
+.gen-steps { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+.gen-steps > span { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: #A3ACBB; }
+.gen-steps .current { color: var(--navy); font-weight: 700; }
+.gen-steps .done { color: #3F8F6B; }
+.gen-steps .num { width: 14px; height: 14px; border: 1px solid #D5DBE5; border-radius: 50%; display: grid; place-items: center; font-size: 8px; }
+.composer-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
+.composer-meta { font-size: 10px; color: #A3ACBB; }
+.primary-btn { border: 0; border-radius: 9px; background: var(--navy); color: #fff; padding: 11px 18px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.primary-btn:hover:not(:disabled) { background: #152c49; }
+.primary-btn:disabled { opacity: .45; cursor: not-allowed; }
+.primary-btn.small { padding: 9px 14px; font-size: 11px; }
+.suggestions { margin-top: 26px; }
+.suggestions p { font-size: 9px; font-weight: 700; letter-spacing: .14em; color: #A3ACBB; margin: 0 0 10px; }
+.suggestions > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.suggestions button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: #fff; padding: 8px 12px; border-radius: 8px; font-size: 11px; color: #5A657A; cursor: pointer; }
+.suggestions button:hover { border-color: var(--gold); color: var(--navy); }
+
+.section-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; }
+.eyebrow { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--gold); margin: 0 0 6px; }
+.section-head h2, .pack-header h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 26px; color: var(--navy); margin: 0; }
+.section-head .sub { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+.pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.pack-card { text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; cursor: pointer; transition: transform .18s, box-shadow .18s; }
+.pack-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(11, 25, 44, .07); }
+.pack-card-top { display: flex; justify-content: space-between; align-items: center; }
+.pack-icon { width: 36px; height: 36px; border-radius: 10px; background: #F4F1E6; color: var(--gold); display: grid; place-items: center; }
+.pack-date { font-size: 10px; color: #A3ACBB; }
+.pack-card h3 { font-size: 14px; color: var(--navy); margin: 14px 0 7px; line-height: 1.3; }
+.pack-card p { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 0 0 14px; }
+.pack-stats { display: flex; gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.pack-stats span { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: #7C879B; }
+.empty-state { text-align: center; padding: 70px 20px; color: #A3ACBB; }
+.empty-state h3 { color: var(--navy); font-size: 16px; margin: 14px 0 6px; }
+.empty-state p { font-size: 12px; margin: 0 0 16px; }
+.empty-state.small { padding: 40px 20px; }
+
+.pack-header { margin-bottom: 20px; }
+.back-btn { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; padding: 0 0 14px; }
+.flip { transform: rotate(180deg); }
+.pack-title-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+.pack-actions { display: flex; gap: 8px; }
+.ghost-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: #fff; color: #5A657A; padding: 9px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ghost-btn:hover { border-color: var(--gold); color: var(--navy); }
+.activity-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; }
+.activity-tabs button { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; color: #8A94A6; padding: 11px 14px; font-size: 11px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+.activity-tabs button.active { color: var(--navy); border-color: var(--gold); }
+.activity-panel { min-height: 380px; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.panel-head h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--navy); margin: 0; }
+.panel-head p { font-size: 11px; color: var(--muted); margin: 4px 0 0; }
+.count-pill { font-size: 10px; font-weight: 700; color: #8A7327; background: #FBF6E6; padding: 6px 10px; border-radius: 99px; }
+
+.notes-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+.note-sheet { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 26px 28px; }
+.sheet-kicker { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--gold); margin-bottom: 16px; }
+.markdown-body :deep(h1) { font-family: 'Playfair Display', Georgia, serif; font-size: 22px; color: var(--navy); margin: 20px 0 10px; }
+.markdown-body :deep(h2) { font-size: 16px; color: var(--navy); margin: 20px 0 8px; }
+.markdown-body :deep(h3) { font-size: 13px; color: var(--navy); margin: 16px 0 6px; }
+.markdown-body :deep(p) { font-size: 12px; line-height: 1.75; color: #45516A; margin: 0 0 10px; }
+.markdown-body :deep(li) { font-size: 12px; line-height: 1.7; color: #45516A; }
+.markdown-body :deep(strong) { color: var(--navy); }
+.markdown-body :deep(code) { background: #F1F4F9; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+.markdown-body :deep(pre) { background: var(--navy); color: #E8EDF6; padding: 14px; border-radius: 9px; overflow-x: auto; }
+.key-panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.key-panel h3 { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--navy); margin: 0 0 14px; }
+.keypoint { display: flex; gap: 9px; margin-bottom: 12px; }
+.keypoint span { font-size: 10px; font-weight: 700; color: var(--gold); }
+.keypoint p { font-size: 11px; line-height: 1.5; color: #556178; margin: 0; }
+.muted { font-size: 11px; color: #A3ACBB; }
+.source-box { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.source-box h4 { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--navy); margin: 0 0 8px; }
+.source-box p { font-size: 10px; line-height: 1.6; color: #8A94A6; margin: 0; }
+
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.flashcard { position: relative; min-height: 150px; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 13px; padding: 18px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 12px; transition: background .2s, border-color .2s; }
+.flashcard:hover { border-color: #C9B26A; }
+.flashcard.flipped { background: var(--navy); border-color: var(--navy); }
+.card-index { position: absolute; top: 12px; right: 14px; font-size: 10px; color: #C4CBD6; }
+.flashcard strong { font-size: 13px; color: var(--navy); line-height: 1.45; }
+.flashcard p { font-size: 12px; color: #E8EDF6; line-height: 1.55; margin: 0; }
+.card-hint { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #A3ACBB; }
+.flashcard.flipped .card-hint { color: var(--gold); }
+
+.quiz-wrap { display: grid; gap: 14px; }
+.quiz-card { background: #fff; border: 1px solid var(--line); border-radius: 13px; padding: 18px; }
+.quiz-q { font-size: 13px; font-weight: 600; color: var(--navy); margin: 0 0 14px; line-height: 1.5; }
+.quiz-q span { color: var(--gold); margin-right: 6px; }
+.quiz-options { display: grid; gap: 8px; }
+.quiz-options button { display: flex; align-items: center; gap: 10px; text-align: left; border: 1px solid var(--line); background: #FCFDFE; padding: 10px 12px; border-radius: 9px; font-size: 11px; color: #4A5670; cursor: pointer; }
+.quiz-options button:disabled { cursor: default; }
+.opt-letter { width: 22px; height: 22px; border-radius: 6px; background: #EEF1F6; color: #657186; display: grid; place-items: center; font-size: 10px; font-weight: 700; flex: none; }
+.quiz-options .correct { border-color: #8FC7A8; background: #F0FAF4; color: #2F7A52; }
+.quiz-options .wrong { border-color: #E8B3AA; background: #FEF3F1; color: #B4473A; }
+.quiz-explain { font-size: 11px; color: #7C879B; border-left: 2px solid var(--gold); padding-left: 10px; margin: 12px 0 0; line-height: 1.6; }
+
+.audio-hero { display: flex; align-items: center; gap: 18px; background: var(--navy); color: #fff; border-radius: 14px; padding: 24px; }
+.audio-icon { width: 56px; height: 56px; border-radius: 14px; background: rgba(212,175,55,.15); color: var(--gold); display: grid; place-items: center; flex: none; }
+.audio-hero h3 { margin: 0 0 5px; font-size: 15px; }
+.audio-hero p { margin: 0; font-size: 11px; color: #A9B6CA; }
+.audio-hero .primary-btn { margin-left: auto; background: var(--gold); color: var(--navy); flex: none; }
+.audio-player { width: 100%; margin-top: 18px; }
+
+.chat-panel { display: flex; flex-direction: column; min-height: 480px; }
+.chat-log { flex: 1; background: #fff; border: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 18px; max-height: 460px; overflow-y: auto; }
+.chat-empty { text-align: center; color: #A3ACBB; padding: 70px 20px; }
+.chat-empty h3 { color: var(--navy); font-size: 14px; margin: 12px 0 5px; }
+.chat-empty p { font-size: 11px; margin: 0; }
+.chat-msg { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start; }
+.chat-msg.user { flex-direction: row-reverse; }
+.chat-avatar { width: 26px; height: 26px; border-radius: 7px; background: var(--navy); color: var(--gold); display: grid; place-items: center; font-size: 9px; font-weight: 700; flex: none; }
+.chat-msg.user .chat-avatar { background: #EEF1F6; color: #657186; }
+.chat-bubble { background: #F5F7FA; border-radius: 10px; padding: 11px 14px; max-width: 82%; }
+.chat-msg.user .chat-bubble { background: #FBF6E6; }
+.chat-input { display: flex; gap: 8px; border: 1px solid var(--line); border-top: 0; background: #fff; border-radius: 0 0 14px 14px; padding: 12px; }
+.chat-input input { flex: 1; border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; font-size: 12px; outline: none; }
+.chat-input button { width: 38px; border: 0; border-radius: 9px; background: var(--navy); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.typing { display: flex; gap: 4px; align-items: center; }
+.typing span { width: 6px; height: 6px; border-radius: 50%; background: #A3ACBB; animation: bounce 1s infinite; }
+.typing span:nth-child(2) { animation-delay: .15s; }
+.typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+
+.side { border-left: 1px solid var(--line); padding: 24px 18px; }
+.side-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+.side-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.side-head h3 { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--navy); margin: 0; }
+.side-tag { font-size: 8px; font-weight: 700; letter-spacing: .1em; color: #A3ACBB; }
+.timer-ring { position: relative; width: 150px; height: 150px; margin: 0 auto 14px; }
+.timer-ring svg { width: 100%; height: 100%; }
+.ring-progress { transition: stroke-dashoffset .3s ease; }
+.timer-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.timer-label strong { font-size: 26px; font-family: 'Inter', monospace; color: var(--navy); }
+.timer-label span { font-size: 8px; font-weight: 700; letter-spacing: .12em; margin-top: 3px; }
+.timer-controls { display: flex; justify-content: center; gap: 8px; }
+.timer-main { border: 0; background: #3F8F6B; color: #fff; padding: 8px 22px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.timer-main.pause { background: #D4AF37; }
+.timer-icon { width: 32px; border: 1px solid var(--line); background: #fff; border-radius: 8px; color: #7C879B; display: grid; place-items: center; cursor: pointer; }
+.presets { display: flex; gap: 6px; margin-top: 14px; }
+.presets button { flex: 1; border: 1px solid var(--line); background: #F8FAFC; color: #7C879B; border-radius: 7px; padding: 6px; font-size: 10px; font-weight: 600; cursor: pointer; }
+.presets button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.goal-list { display: grid; gap: 8px; }
+.goal-row { display: flex; align-items: center; gap: 8px; }
+.goal-check { width: 14px; height: 14px; accent-color: #3F8F6B; cursor: pointer; }
+.goal-text { flex: 1; font-size: 11px; color: #4A5670; cursor: pointer; }
+.goal-text.done { text-decoration: line-through; color: #B4BCC9; }
+.goal-edit { flex: 1; min-width: 0; border: 1px solid var(--gold); border-radius: 5px; padding: 3px 5px; font-size: 11px; outline: none; }
+.goal-del { border: 0; background: transparent; color: #C3CAD5; cursor: pointer; opacity: 0; }
+.goal-row:hover .goal-del { opacity: 1; }
+.goal-add { display: flex; gap: 6px; margin-top: 8px; }
+.goal-add input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; font-size: 11px; outline: none; }
+.goal-add button { width: 30px; border: 0; border-radius: 7px; background: var(--navy); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.side-tip { display: flex; gap: 9px; background: #FBF9F3; border-radius: 11px; padding: 13px; color: #8A7327; }
+.side-tip p { font-size: 10px; line-height: 1.5; margin: 0; color: #8B7B4E; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.fade-enter-active, .fade-leave-active { transition: opacity .18s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+.slide-enter-active, .slide-leave-active { transition: all .2s ease; }
+.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-6px); }
+
+@media (max-width: 1180px) { .hub { grid-template-columns: 200px minmax(0, 1fr); } .side { display: none; } }
+@media (max-width: 780px) { .hub { grid-template-columns: 1fr; } .rail { display: none; } .scroll { padding: 22px 16px 50px; } .notes-layout { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+</style>

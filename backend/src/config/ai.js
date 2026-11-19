@@ -90,8 +90,9 @@ function getAI(provider) {
     if (provider === 'mistral-nemotron-2' && !_mistralNemotron2 && process.env.MISTRAL_NEMOTRON_KEY_2) {
       _mistralNemotron2 = new OpenAI({ apiKey: process.env.MISTRAL_NEMOTRON_KEY_2, baseURL: 'https://integrate.api.nvidia.com/v1' })
     }
-    if (provider === 'kimi' && !_kimi && process.env.KIMI_KEY) {
-      _kimi = new OpenAI({ apiKey: process.env.KIMI_KEY, baseURL: 'https://integrate.api.nvidia.com/v1' })
+    if (provider === 'kimi' && !_kimi && (process.env.KIMI_KEY || process.env.NVIDIA_API_KEY)) {
+      // The master NVIDIA key can reach Kimi too; use the dedicated key first.
+      _kimi = new OpenAI({ apiKey: process.env.KIMI_KEY || process.env.NVIDIA_API_KEY, baseURL: 'https://integrate.api.nvidia.com/v1' })
     }
     if (provider === 'inkling' && !_inkling && process.env.INKLING_KEY) {
       _inkling = new OpenAI({ apiKey: process.env.INKLING_KEY, baseURL: 'https://integrate.api.nvidia.com/v1' })
@@ -113,7 +114,8 @@ async function getAiResponse(provider, messages, options = {}) {
   try {
     if (provider === 'nvidia') {
       const completion = await client.chat.completions.create({
-        model: process.env.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b',
+        // One master key can address any NVIDIA-hosted model via options.model.
+        model: options.model || process.env.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b',
         messages,
         temperature: options.temperature || 0.3,
         max_tokens: options.max_tokens || 4096,
@@ -349,12 +351,12 @@ async function getAiResponse(provider, messages, options = {}) {
     }
     if (provider === 'kimi') {
       const completion = await client.chat.completions.create({
-        model: 'moonshotai/kimi-k2.6',
+        model: process.env.KIMI_MODEL || 'moonshotai/kimi-k3.1-pro',
         messages,
         temperature: options.temperature || 0.3,
         max_tokens: 16384,
         seed: 0,
-        top_p: options.temperature >= 0.5 ? 0.9 : 1,
+        // Kimi K3.1 Pro rejects explicit top_p values on this endpoint.
       }, { signal: options.signal })
       return completion.choices[0]?.message?.content || null
     }
@@ -459,4 +461,45 @@ const specialistRoles = {
   poolside: 'You are the POOLSIDE CODER — a specialized engineer focused on code generation, software architecture, and technical problem-solving. You excel at writing clean, efficient, and well-structured code.'
 }
 
-export { getAI, getAiResponse, getAvailableProviders, specialistRoles }
+/**
+ * Read a whiteboard / lecture slide / screenshot with a vision model and turn
+ * it into study-ready text. Uses the master NVIDIA key first (so one key can
+ * reach the Nemotron VLM), then Kimi. Keys stay server-side.
+ */
+async function understandImage(buffer, mimeType = 'image/png', instruction = '') {
+  if (!buffer || !Buffer.isBuffer(buffer)) return null
+
+  const prompt = instruction || `Transcribe every word of text in this study image (slide, whiteboard, page or screenshot) in reading order.
+Describe any diagram, chart, formula or table precisely in text.
+Return only the extracted study content — no preamble, no commentary.`
+
+  const content = [
+    { type: 'text', text: prompt },
+    { type: 'image_url', image_url: { url: `data:${mimeType};base64,${buffer.toString('base64')}`, detail: 'high' } },
+  ]
+
+  const attempts = [
+    { provider: 'nvidia', model: process.env.NVIDIA_VISION_MODEL || 'nvidia/nemotron-3.5-super-vl-120b-a12b' },
+    { provider: 'kimi', model: process.env.KIMI_MODEL || 'moonshotai/kimi-k3.1-pro' },
+  ]
+
+  for (const attempt of attempts) {
+    const client = getAI(attempt.provider)
+    if (!client) continue
+    try {
+      const completion = await client.chat.completions.create({
+        model: attempt.model,
+        messages: [{ role: 'user', content }],
+        temperature: 0.2,
+        max_tokens: 4096,
+      })
+      const text = completion.choices?.[0]?.message?.content
+      if (text && String(text).trim().length >= 20) return String(text).trim()
+    } catch (err) {
+      console.warn(`Image understanding via ${attempt.provider} failed:`, err?.message || err)
+    }
+  }
+  return null
+}
+
+export { getAI, getAiResponse, getAvailableProviders, specialistRoles, understandImage }
