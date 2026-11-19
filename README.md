@@ -54,9 +54,9 @@ with the private **service_role** key and reads the authoritative role from
    plus `/auth/callback` and `/reset-password` as redirect URLs. Enable the
    Google provider only if you use the Google sign-in button.
 5. Allowed email domains default to `@mcu.edu.ng`,
-   `@undergraduate.mcu.edu.ng` and `@mcpherson.edu`. Override them with
-   `ALLOWED_EMAIL_DOMAINS` (comma separated) in `backend/.env`. Admin and
-   super-admin accounts are exempt.
+   `@undergraduate.mcu.edu.ng`, `@mcpherson.edu` and `@gmail.com`. Override
+   them with `ALLOWED_EMAIL_DOMAINS` (comma separated) in `backend/.env`.
+   Admin and super-admin accounts are exempt.
 
 With no credentials configured, the UI shows readable "authentication is not
 configured" messages and protected API routes return 503. Guest logins and

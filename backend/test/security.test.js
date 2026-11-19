@@ -181,3 +181,10 @@ test('AI safe mode cannot return simulated chat answers or random retrieval embe
   assert.doesNotMatch(aiRoutes, /AI_SAFE_MODE|simulated response/i)
   assert.doesNotMatch(rag, /AI_SAFE_MODE|Math\.random/)
 })
+
+test('gmail.com is an allowed email domain', () => {
+  const middleware = read('src/middleware/auth.js')
+  const envExample = read('.env.example')
+  assert.match(middleware, /@gmail\.com/)
+  assert.match(envExample, /@gmail\.com/)
+})

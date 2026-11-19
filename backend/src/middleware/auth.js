@@ -4,8 +4,8 @@ import { query } from '../../lib/db.js'
 const ALLOWED_ROLES = ['student', 'lecturer', 'admin', 'super_admin']
 
 // The app's canonical student domain is @mcu.edu.ng (used everywhere in the UI).
-// Keep the older aliases so existing accounts are not locked out.
-const ALLOWED_EMAIL_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAINS || '@mcu.edu.ng,@undergraduate.mcu.edu.ng,@mcpherson.edu').split(',').map(d => d.trim()).filter(Boolean)
+// Keep the older aliases and Gmail so existing/personal accounts are not locked out.
+const ALLOWED_EMAIL_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAINS || '@mcu.edu.ng,@undergraduate.mcu.edu.ng,@mcpherson.edu,@gmail.com').split(',').map(d => d.trim()).filter(Boolean)
 
 function isAllowedEmail(email) {
   if (!email || typeof email !== 'string') return false
@@ -55,7 +55,7 @@ async function authenticate(req, res, next) {
 
     // Skip email domain check for admin/super_admin roles (they may use non-school emails)
     if (!['admin', 'super_admin'].includes(role) && !isAllowedEmail(supaUser.email)) {
-      return res.status(403).json({ error: 'Use your school email (@mcu.edu.ng / @undergraduate.mcu.edu.ng)' })
+      return res.status(403).json({ error: 'Use an allowed email (@mcu.edu.ng / @undergraduate.mcu.edu.ng / @mcpherson.edu / @gmail.com)' })
     }
 
     req.user = {
