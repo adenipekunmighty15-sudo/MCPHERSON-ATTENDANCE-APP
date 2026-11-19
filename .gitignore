@@ -24,6 +24,7 @@ node_modules/
 /.opencode/
 /.github/agents/
 /.github/skills/
+/.agents/
 /package.json
 /package-lock.json
 /opencode.json

@@ -9,6 +9,7 @@ test('every provider served by the AI config resolves to its real env key', () =
     openrouter: 'OPENROUTER_API_KEY',
     groq: 'GROQ_API_KEY',
     gemini: 'GEMINI_API_KEY',
+    nvidia: 'NVIDIA_API_KEY',
     deepseek: 'DEEPSEEK_KEY',
     phi4: 'PHI4_KEY',
     minimax: 'MINIMAX_KEY',

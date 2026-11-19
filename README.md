@@ -2,6 +2,10 @@
 
 Vue/Vite frontend with an Express API backed by Supabase/PostgreSQL.
 
+## Live app
+
+**[Open the deployed app](https://mcpherson-attendance-app-pe1c.vercel.app/welcome?redirect=/)**
+
 ## Local development
 
 1. Install Node.js 20 or later.
@@ -71,6 +75,29 @@ in the Vercel project to the Render API origin ending in `/api`, and set `CORS_O
 to the Vercel application origin. Configure secrets in each provider's
 environment-variable settings; do not put credentials in this repository.
 
+### Environment variables for the live deployment
+
+Vercel (frontend, safe to be public):
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_API_URL`
+
+Render/API host (private secrets — **do not** add these to Vercel, because Vite
+inlines `VITE_*` values into the browser bundle):
+
+- `DATABASE_URL`
+- `VITE_SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY`
+- `NVIDIA_API_KEY` — master NVIDIA key used by the Study Hub model council.
+- `NVIDIA_MODEL` — defaults to `nvidia/nemotron-3.5-lightning-30b-a3b`.
+- `NVIDIA_PARAKEET_KEY` — lecture transcription/notetaker key.
+- `KIMI_KEY` — Kimi K3.1 Pro key used for reasoning and image understanding.
+- `KIMI_MODEL` — defaults to `moonshotai/kimi-k3.1-pro`.
+
+The frontend is rebuilt from these values at deploy time; changing frontend
+environment variables requires a redeploy.
+
 ## Database updates
 
 Initialize an empty database from `backend/scripts/schema_corrected.sql`, then
@@ -85,7 +112,18 @@ resolution; resolve those records before applying it. These SQL updates are not
 run automatically by the API.
 
 The schema deployment scripts require `DATABASE_URL` and read it from
-`backend/.env` or the process environment.
+`backend/.env` or the process environment. To enforce the strict "no nullable
+application data" rule on a live database, run:
+
+```powershell
+cd backend
+node scripts/enforce-public-not-null.mjs
+```
+
+This creates the chat tables if missing, backfills existing NULLs with safe
+defaults, sets every `public` application column to `NOT NULL`, and verifies the
+result. It does not alter Supabase-managed schemas (`auth`, `storage`,
+`realtime`, `vault`, `extensions`).
 
 ## Security notes
 

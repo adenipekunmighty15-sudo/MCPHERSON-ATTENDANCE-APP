@@ -318,7 +318,7 @@ CRITICAL RULES:
             if (result.council) councilInfo = result.council.map(c => ({
               provider: c.provider,
               name: ({
-                openai: 'GPT-4o', gemini: 'Gemini Flash', llama: 'Llama 3.1',
+                openai: 'GPT-4o', gemini: 'Gemini Flash', nvidia: 'NVIDIA', llama: 'Llama 3.1',
                 groq: 'Groq Mixtral', phi4: 'Phi-4', minimax: 'MiniMax M3',
                 diffusiongemma: 'DiffusionGemma', stepfun: 'Step 3.7 Flash',
                 openrouter: 'OpenRouter GPT-4o', deepseek: 'DeepSeek V4',
@@ -594,7 +594,7 @@ CRITICAL RULES:
           if (result.council) councilInfo = result.council.map(c => ({
             provider: c.provider,
             name: ({
-              openai: 'GPT-4o', gemini: 'Gemini Flash', llama: 'Llama 3.1',
+              openai: 'GPT-4o', gemini: 'Gemini Flash', nvidia: 'NVIDIA', llama: 'Llama 3.1',
               groq: 'Groq Mixtral', phi4: 'Phi-4', minimax: 'MiniMax M3',
               diffusiongemma: 'DiffusionGemma', stepfun: 'Step 3.7 Flash',
               openrouter: 'OpenRouter GPT-4o', deepseek: 'DeepSeek V4',

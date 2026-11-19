@@ -1,9 +1,12 @@
 import OpenAI from 'openai'
 
-let _nvidiaUltra, _nvidiaLlama, _deepseek, _phi4, _openrouter, _groq, _minimax, _nemotronNano, _mistralNemotron, _mistralLarge, _gemma4, _stepfun, _diffusiongemma, _ollamaLlama, _ollamaQwen, _zai, _deepseekV4Flash, _deepseekV4Pro, _nemotronUltra2, _gptOss20b, _gptOss120b, _nemotronSuper120b, _llama33, _nemotronSuper49bV15, _nemotronSuper49bV1, _nemotronNano8b, _mistralNemotron2, _kimi, _inkling, _poolside
+let _nvidia, _nvidiaUltra, _nvidiaLlama, _deepseek, _phi4, _openrouter, _groq, _minimax, _nemotronNano, _mistralNemotron, _mistralLarge, _gemma4, _stepfun, _diffusiongemma, _ollamaLlama, _ollamaQwen, _zai, _deepseekV4Flash, _deepseekV4Pro, _nemotronUltra2, _gptOss20b, _gptOss120b, _nemotronSuper120b, _llama33, _nemotronSuper49bV15, _nemotronSuper49bV1, _nemotronNano8b, _mistralNemotron2, _kimi, _inkling, _poolside
 
 function getAI(provider) {
   try {
+    if (provider === 'nvidia' && !_nvidia && process.env.NVIDIA_API_KEY) {
+      _nvidia = new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: 'https://integrate.api.nvidia.com/v1' })
+    }
     if (provider === 'nvidia-ultra' && !_nvidiaUltra && process.env.NVIDIA_ULTRA_KEY) {
       _nvidiaUltra = new OpenAI({ apiKey: process.env.NVIDIA_ULTRA_KEY, baseURL: 'https://integrate.api.nvidia.com/v1' })
     }
@@ -99,7 +102,7 @@ function getAI(provider) {
   } catch (e) {
     console.error(`Failed to init provider ${provider}:`, e.message)
   }
-  const clients = { 'nvidia-ultra': _nvidiaUltra, llama: _nvidiaLlama, deepseek: _deepseek, phi4: _phi4, openrouter: _openrouter, groq: _groq, minimax: _minimax, 'nemotron-nano': _nemotronNano, 'mistral-nemotron': _mistralNemotron, 'mistral-large': _mistralLarge, 'gemma-4': _gemma4, stepfun: _stepfun, diffusiongemma: _diffusiongemma, 'ollama-llama': _ollamaLlama, 'ollama-qwen': _ollamaQwen, 'z-ai': _zai, 'deepseek-v4-flash': _deepseekV4Flash, 'deepseek-v4-pro': _deepseekV4Pro, 'nemotron-ultra': _nemotronUltra2, 'gpt-oss-20b': _gptOss20b, 'gpt-oss-120b': _gptOss120b, 'nemotron-super-120b': _nemotronSuper120b, 'llama-3.3': _llama33, 'nemotron-super-49b-v15': _nemotronSuper49bV15, 'nemotron-super-49b-v1': _nemotronSuper49bV1, 'nemotron-nano-8b': _nemotronNano8b, 'mistral-nemotron-2': _mistralNemotron2, kimi: _kimi, inkling: _inkling, poolside: _poolside }
+  const clients = { nvidia: _nvidia, 'nvidia-ultra': _nvidiaUltra, llama: _nvidiaLlama, deepseek: _deepseek, phi4: _phi4, openrouter: _openrouter, groq: _groq, minimax: _minimax, 'nemotron-nano': _nemotronNano, 'mistral-nemotron': _mistralNemotron, 'mistral-large': _mistralLarge, 'gemma-4': _gemma4, stepfun: _stepfun, diffusiongemma: _diffusiongemma, 'ollama-llama': _ollamaLlama, 'ollama-qwen': _ollamaQwen, 'z-ai': _zai, 'deepseek-v4-flash': _deepseekV4Flash, 'deepseek-v4-pro': _deepseekV4Pro, 'nemotron-ultra': _nemotronUltra2, 'gpt-oss-20b': _gptOss20b, 'gpt-oss-120b': _gptOss120b, 'nemotron-super-120b': _nemotronSuper120b, 'llama-3.3': _llama33, 'nemotron-super-49b-v15': _nemotronSuper49bV15, 'nemotron-super-49b-v1': _nemotronSuper49bV1, 'nemotron-nano-8b': _nemotronNano8b, 'mistral-nemotron-2': _mistralNemotron2, kimi: _kimi, inkling: _inkling, poolside: _poolside }
   return clients[provider] || null
 }
 
@@ -108,6 +111,15 @@ async function getAiResponse(provider, messages, options = {}) {
   if (!client) return null
 
   try {
+    if (provider === 'nvidia') {
+      const completion = await client.chat.completions.create({
+        model: process.env.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning-30b-a3b',
+        messages,
+        temperature: options.temperature || 0.3,
+        max_tokens: options.max_tokens || 4096,
+      }, { signal: options.signal })
+      return completion.choices[0]?.message?.content || null
+    }
     if (provider === 'nvidia-ultra') {
       const completion = await client.chat.completions.create({
         model: process.env.NVIDIA_ULTRA_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b',
@@ -383,6 +395,7 @@ async function getAiResponse(provider, messages, options = {}) {
 
 function getAvailableProviders() {
   const available = []
+  if (process.env.NVIDIA_API_KEY) available.push('nvidia')
   if (process.env.NVIDIA_LLAMA_KEY) available.push('llama')
   if (process.env.PHI4_KEY) available.push('phi4')
   if (process.env.DEEPSEEK_KEY) available.push('deepseek')
@@ -415,6 +428,7 @@ function getAvailableProviders() {
 }
 
 const specialistRoles = {
+  nvidia: 'You are the NVIDIA SPECIALIST. Provide accurate, well-structured answers with clear reasoning and practical examples.',
   'nvidia-ultra': 'You are the CHIEF JUSTICE of the McPherson AI Council. You preside over all deliberations with supreme authority. Your reasoning is deep, nuanced, and decisive. You synthesize all expert testimonies into a single authoritative verdict.',
   llama: 'You are the TECHNICAL ARCHITECT. Focus on technical accuracy, structure, and precision.',
   deepseek: 'You are the REASONING MASTER. Use deep Chain-of-Thought to find hidden connections.',
