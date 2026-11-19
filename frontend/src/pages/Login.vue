@@ -966,7 +966,7 @@ async function handleSignup() {
   submitting.value = true
   try {
     // Existing store action and metadata contract are unchanged; backend role remains authoritative.
-    const result = await authStore.signUp(email.value.trim(), password.value, {
+    await authStore.signUp(email.value.trim(), password.value, {
       name: fullName.value.trim(),
       full_name: fullName.value.trim(),
       matric: identifier.value.trim(),
@@ -976,12 +976,6 @@ async function handleSignup() {
       department: department.value,
       role: 'student',
     })
-
-    if (result?.needsConfirmation) {
-      toast.success('Check your email to confirm your account, then sign in.')
-      setMode('signin')
-      return
-    }
 
     toast.success('Your account is ready. Welcome to McPherson!')
     router.push(safeRedirect())

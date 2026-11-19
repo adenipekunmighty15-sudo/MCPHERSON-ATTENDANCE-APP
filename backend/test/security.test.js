@@ -79,6 +79,29 @@ test('profile creation ignores client-supplied role and user id', () => {
   assert.doesNotMatch(profileRoute, /userRole/)
 })
 
+test('registration auto-confirms allowed domains and signs the user straight in', () => {
+  const auth = read('src/routes/auth.routes.js')
+  const start = auth.indexOf("router.post('/api/auth/register'")
+  const end = auth.indexOf("router.post('/api/auth/confirm-signup'")
+  const route = auth.slice(start, end)
+  assert.match(route, /isAllowedEmail\(email\)/)
+  assert.match(route, /email_confirm:\s*true/)
+  assert.match(route, /isAlreadyRegisteredError\(error\)/)
+  assert.match(route, /verifyPassword\(email, password\)/)
+  assert.match(route, /email_confirm:\s*true,\s*password/)
+  assert.match(route, /'student'/)
+  assert.doesNotMatch(route, /body\.role/)
+
+  const limiter = read('src/middleware/limiter.js')
+  assert.match(limiter, /\/api\/auth\/register/)
+
+  const store = read('../frontend/src/stores/auth.js')
+  const signUp = store.slice(store.indexOf('async function signUp'), store.indexOf('async function signInWithOAuth'))
+  assert.match(signUp, /\/auth\/register/)
+  assert.match(signUp, /signInWithPassword/)
+  assert.doesNotMatch(signUp, /needsConfirmation/)
+})
+
 test('frontend check-in uses the active session and server-supported GPS fields', () => {
   const page = read('../frontend/src/pages/Attendance.vue')
   assert.match(page, /sessionId: activeSession\.value\.id/)

@@ -35,6 +35,125 @@ function decryptFaceDescriptor(value, key) {
   ]).toString('utf8')
 }
 
+function isAlreadyRegisteredError(error) {
+  const message = (error?.message || '').toLowerCase()
+  return message.includes('already registered') || message.includes('already exists')
+}
+
+async function findAuthUserByEmail(email) {
+  let page = 1
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 })
+    if (error) throw error
+    const users = data?.users || []
+    const match = users.find((user) => (user.email || '').toLowerCase() === email)
+    if (match) return match
+    if (users.length < 200) return null
+    page++
+  }
+}
+
+// Password proof prevents an unauthenticated caller from confirming somebody
+// else's stale, unconfirmed account.
+async function verifyPassword(email, password) {
+  const url = process.env.VITE_SUPABASE_URL
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY
+  if (!url || !anonKey) return false
+  const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: anonKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!response.ok) return false
+  const data = await response.json().catch(() => null)
+  return !!data?.access_token
+}
+
+// Self-service registration. The admin API creates an already-confirmed auth
+// user, so the browser can immediately exchange the password for a session.
+// Role is always student here — the client never chooses its own permissions.
+router.post('/api/auth/register', async (req, res) => {
+  const body = req.body || {}
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+  const password = typeof body.password === 'string' ? body.password : ''
+
+  if (!email || !password) return res.status(400).json({ error: 'Email and password are required' })
+  if (!isAllowedEmail(email)) {
+    return res.status(403).json({ error: 'Use an allowed email (@mcu.edu.ng / @undergraduate.mcu.edu.ng / @mcpherson.edu / @gmail.com)' })
+  }
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' })
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Portal registration is currently unavailable. Please try again shortly.' })
+
+  const clean = (value) => (typeof value === 'string' && value.trim() ? value.trim() : '')
+  const displayName = clean(body.name) || clean(body.full_name) || 'User'
+  const department = clean(body.department) || 'Computer Science'
+  const metadata = {
+    name: displayName,
+    full_name: clean(body.full_name) || displayName,
+    matric: clean(body.matric),
+    matric_number: clean(body.matric_number),
+    matricNumber: clean(body.matricNumber),
+    staff_id: clean(body.staff_id),
+    department,
+    role: 'student',
+  }
+
+  try {
+    let userId
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: metadata,
+    })
+
+    if (error) {
+      if (!isAlreadyRegisteredError(error)) {
+        console.error('Registration failed:', error.message)
+        return res.status(500).json({ error: 'Could not create your account. Please try again.' })
+      }
+
+      // A previous signup may have left an auth user without confirming it.
+      // Only finish that setup when the caller proves they know its password.
+      const existing = await findAuthUserByEmail(email)
+      if (!existing || existing.email_confirmed_at) {
+        return res.status(409).json({ error: 'An account with this email already exists. Try signing in.' })
+      }
+      if (!(await verifyPassword(email, password))) {
+        return res.status(409).json({ error: 'An account with this email is waiting for setup. Sign in with its password to finish.' })
+      }
+
+      const { data: updated, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+        email_confirm: true,
+        password,
+        user_metadata: { ...(existing.user_metadata || {}), ...metadata },
+      })
+      if (updateError) throw updateError
+      userId = updated?.user?.id || existing.id
+    } else {
+      userId = data?.user?.id
+    }
+
+    if (!userId) return res.status(500).json({ error: 'Could not create your account. Please try again.' })
+
+    await query(
+      `INSERT INTO public.users (id, email, name, role, department, provider)
+       VALUES ($1, $2, $3, 'student', $4, 'email')
+       ON CONFLICT (id) DO UPDATE SET
+         email = EXCLUDED.email,
+         name = EXCLUDED.name,
+         department = EXCLUDED.department,
+         provider = EXCLUDED.provider`,
+      [userId, email, displayName, department]
+    )
+
+    return res.status(201).json({ success: true, userId })
+  } catch (e) {
+    console.error('Registration error:', e.message)
+    return res.status(500).json({ error: 'Could not create your account. Please try again.' })
+  }
+})
+
 router.post('/api/auth/confirm-signup', authenticate, async (req, res) => {
   if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Only admins can confirm signups' })

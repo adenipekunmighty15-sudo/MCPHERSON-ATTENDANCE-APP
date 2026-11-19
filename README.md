@@ -41,21 +41,19 @@ minutes by default).
 
 ## Authentication setup
 
-Authentication uses Supabase Auth. The frontend signs users in directly with
-Supabase using the public **anon** key; the backend verifies the access token
-with the private **service_role** key and reads the authoritative role from
-`public.users`.
+Authentication uses Supabase Auth. The frontend fetches the public Project URL
+and anon key at runtime from `GET /api/public/config`, then signs users in
+directly with Supabase. The backend verifies the access token with the private
+**service_role** key and reads the authoritative role from `public.users`.
 
 1. In Supabase → Project Settings → API, copy the Project URL, anon key and
    service_role key.
-2. `backend/.env`: set `VITE_SUPABASE_URL` (the project URL) and
-   `SUPABASE_SERVICE_KEY` (the service_role key — never the anon key), plus
-   `DATABASE_URL`.
-3. `frontend/.env`: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-   In production these must also be set in the Vercel project because Vite
-   inlines them at build time. The sign-in page shows a setup notice and
-   sign-in/sign-up requests are blocked until both values are present; after
-   changing them, rebuild or redeploy the frontend.
+2. `backend/.env`: set `VITE_SUPABASE_URL` (the project URL),
+   `VITE_SUPABASE_ANON_KEY` (the public anon key returned by the bootstrap
+   endpoint), and `SUPABASE_SERVICE_KEY` (the service_role key — never the anon
+   key), plus `DATABASE_URL`.
+3. In production these values belong on the API host (Render), not Vercel.
+   The browser never receives the service_role key or any AI key.
 4. In Supabase → Authentication → URL Configuration, add the deployed origin
    plus `/auth/callback` and `/reset-password` as redirect URLs. Enable the
    Google provider only if you use the Google sign-in button.
@@ -63,6 +61,13 @@ with the private **service_role** key and reads the authoritative role from
    `@undergraduate.mcu.edu.ng`, `@mcpherson.edu` and `@gmail.com`. Override
    them with `ALLOWED_EMAIL_DOMAINS` (comma separated) in `backend/.env`.
    Admin and super-admin accounts are exempt.
+6. Sign-up is self-service for allowed domains: `POST /api/auth/register`
+   creates the Supabase user with `email_confirm: true`, writes the
+   `public.users` profile with role `student`, and the frontend immediately
+   exchanges the password for a session. There is no confirmation-email step.
+   If an older unconfirmed account exists, submitting the same password again
+   completes its setup. Client-supplied roles are ignored; the backend remains
+   authoritative.
 
 With no credentials configured, the UI shows readable "authentication is not
 configured" messages and protected API routes return 503. Guest logins and
@@ -100,7 +105,7 @@ inlines `VITE_*` values into the browser bundle):
 
 All of these stay on the API host. The browser only receives the two public
 Supabase values from `GET /api/public/config`; no AI key is ever sent to it.
-The frontend is rebuilt from its own values at deploy time.
+Changing those API-host values does not require a frontend rebuild.
 
 ## Database updates
 

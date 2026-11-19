@@ -55,6 +55,7 @@ const aiLimiter = rateLimit({
 function applyLimiters(app) {
   app.use(attachVerifiedUser)
   app.use(globalLimiter)
+  app.use('/api/auth/register', authLimiter)
   app.use('/api/auth/confirm-signup', authLimiter)
   app.use('/api/auth/create-user-profile', authLimiter)
   app.use('/api/study-materials/chat', aiLimiter)

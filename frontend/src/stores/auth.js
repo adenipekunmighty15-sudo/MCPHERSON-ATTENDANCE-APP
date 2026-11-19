@@ -172,28 +172,25 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     try {
       if (!supabase || !supabaseConfigured) throw new Error('Authentication is not configured')
-      const { data, error: supaError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: metadata,
-          emailRedirectTo: window.location.origin + '/auth/callback',
-        },
-      })
+
+      // The backend creates the auth user with email_confirm=true for allowed
+      // domains, so signup always returns a real session and the user lands
+      // straight in the app. Role stays server-owned (always student here).
+      await api.post('/auth/register', { email, password, ...metadata })
+
+      const { data, error: supaError } = await supabase.auth.signInWithPassword({ email, password })
       if (supaError) throw supaError
-      if (!data?.user?.id) throw new Error('Account could not be created')
-      // Profile row is created by the backend via /auth/me sync (admin-only
-      // confirm-signup must never be called from a newly signed-up student).
-      if (data.session) {
-        user.value = buildUser(data)
-        session.value = data.session
-        freshLogin.value = true
-        return data
-      }
-      return { user: buildUser(data), needsConfirmation: true }
+      if (!data?.session) throw new Error('Account created, but the session could not be started')
+
+      user.value = buildUser(data)
+      session.value = data.session
+      freshLogin.value = true
+      await syncProfile()
+      return data
     } catch (err) {
-      error.value = friendlyAuthError(err)
-      throw err
+      const serverMessage = err?.response?.data?.error
+      error.value = friendlyAuthError(serverMessage ? new Error(serverMessage) : err)
+      throw new Error(error.value)
     } finally {
       loading.value = false
     }
