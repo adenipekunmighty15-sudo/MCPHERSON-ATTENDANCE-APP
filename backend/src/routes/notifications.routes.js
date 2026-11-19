@@ -44,6 +44,30 @@ router.post('/api/notifications/test', authenticate, async (req, res) => {
   }
 })
 
+// Admins can nudge an at-risk student from the dashboard.
+router.post('/api/admin/notifications/student', authenticate, async (req, res) => {
+  if (!['admin', 'super_admin'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Administrator access required' })
+  }
+  const { userId } = req.body || {}
+  if (!userId || typeof userId !== 'string') {
+    return res.status(400).json({ error: 'A student user ID is required' })
+  }
+  try {
+    await notifyUser(
+      userId,
+      'warning',
+      'Attendance reminder',
+      'Your attendance is below the required threshold. Please contact your lecturer or check your timetable.',
+      '/attendance'
+    )
+    res.status(201).json({ success: true })
+  } catch (err) {
+    console.error('Failed to notify student:', err.message)
+    res.status(500).json({ error: 'Failed to send notification' })
+  }
+})
+
 router.put('/api/notifications/:id/read', authenticate, async (req, res) => {
   try {
     await query(

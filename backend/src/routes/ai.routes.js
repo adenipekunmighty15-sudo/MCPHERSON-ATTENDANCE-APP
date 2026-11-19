@@ -495,15 +495,6 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
       res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
     }
 
-    if (process.env.AI_SAFE_MODE === 'true') {
-      sendEvent('thinking', { content: 'Simulating response...', done: true })
-      await new Promise(r => setTimeout(r, 500))
-      sendEvent('answer', { content: 'This is a simulated response from the McPherson AI Council. [AI_SAFE_MODE is enabled]', done: true })
-      sendEvent('done', { thinking: 'Bypassed — AI_SAFE_MODE enabled', answer: 'This is a simulated response from the McPherson AI Council. [AI_SAFE_MODE is enabled]', elapsed: 500, conversationId: null, followUps: ['How do I disable AI_SAFE_MODE?', 'What can the AI Council actually do?', 'Tell me about McPherson University'] })
-      res.end()
-      return
-    }
-
     const expertPrompts = {
       general: 'You are a distinguished university professor at McPherson University. Respond like a scholar — thorough, detailed, well-structured with academic depth, real-world examples, and contextual insights.',
       math: 'You are a distinguished mathematics professor. Explain concepts with scholarly depth — step-by-step derivations, real-world applications, historical context, and multiple example problems. Use LaTeX for all math ($...$ inline, $$...$$ display).',

@@ -1,9 +1,9 @@
 <template>
   <Teleport to="body">
-    <div class="review-overlay" @click.self="$emit('close')">
+    <div class="review-overlay" @click.self="dismiss">
       <div class="review-panel card card-hover">
         <div class="review-header">
-          <button class="back-btn" @click="$emit('close')">
+          <button class="back-btn" @click="dismiss">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
           </button>
           <div class="review-title-area">
@@ -19,6 +19,12 @@
         <div v-if="loading" class="review-loading">
           <div class="spinner-lg"></div>
           <p>Loading flashcards...</p>
+        </div>
+
+        <div v-else-if="reviewError" class="review-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--color-text-tertiary)">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h4M6 12h8"/></svg>
+          <p>{{ reviewError }}</p>
         </div>
 
         <div v-else-if="!cards.length" class="review-empty">
@@ -47,7 +53,7 @@
             </div>
           </div>
 
-          <div v-if="flipped" class="rating-row">
+          <div v-if="flipped && !finished" class="rating-row">
             <button class="rate-btn rate-hard" @click="rate(1)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15 3 8M14 15l7-7"/><path d="M3 8h18v8H3z"/></svg>
               Again
@@ -74,7 +80,7 @@
             <p>{{ correctCount }}/{{ cards.length }} mastered</p>
             <div class="results-actions">
               <button class="primary-btn" @click="resetReview">Review Again</button>
-              <button class="secondary-btn" @click="$emit('close')">Done</button>
+              <button class="secondary-btn" @click="dismiss">Done</button>
             </div>
           </div>
         </div>
@@ -85,11 +91,25 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../../lib/api'
 
-const props = defineProps({ materialId: String, initialCards: { type: Array, default: () => [] } })
+const props = defineProps({
+  materialId: String,
+  initialCards: { type: Array, default: () => [] },
+  due: { type: [String, Boolean], default: '' },
+})
 const emit = defineEmits(['close', 'reviewed'])
+const route = useRoute()
+const router = useRouter()
 
+// This component is used both as a routed page and as an embedded modal.
+function dismiss() {
+  if (route.name === 'flashcard-review') router.push('/study-dashboard')
+  else emit('close')
+}
+
+const reviewError = ref('')
 const loading = ref(true)
 const cards = ref([])
 const currentIndex = ref(0)
@@ -121,6 +141,7 @@ function rate(quality) {
     currentIndex.value++
     flipped.value = false
   } else {
+    flipped.value = false
     finished.value = true
     emit('reviewed', { correct: correctCount.value, wrong: wrongCount.value, total: cards.value.length })
   }
@@ -143,13 +164,23 @@ onMounted(async () => {
     loading.value = false
     return
   }
+  if (!props.materialId) {
+    reviewError.value = 'Open a study material to review its flashcards.'
+    loading.value = false
+    return
+  }
   try {
-    const { data } = await api.get(`/study-materials/${props.materialId}`)
+    const duePath = props.due ? '/flashcards/due' : ''
+    const { data } = await api.get(`/study-materials/${props.materialId}${duePath}`)
+    const raw = props.due ? (data?.cards || data?.flashcards) : data?.flashcards
     try {
-      cards.value = typeof data.flashcards === 'string' ? JSON.parse(data.flashcards) : (data.flashcards || [])
+      cards.value = typeof raw === 'string' ? JSON.parse(raw) : (raw || [])
     } catch (e) { console.warn('[Flashcard] Parse failed:', e); cards.value = [] }
     cards.value = [...cards.value].sort(() => Math.random() - 0.5)
-  } catch (e) { console.warn('[Flashcard] Load failed:', e) }
+  } catch (e) {
+    console.warn('[Flashcard] Load failed:', e)
+    reviewError.value = 'Could not load flashcards. Please try again.'
+  }
   loading.value = false
 })
 </script>

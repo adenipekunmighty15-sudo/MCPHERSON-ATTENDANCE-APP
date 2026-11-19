@@ -9,12 +9,8 @@ const embedder = new OpenAI({
 })
 
 const EMBED_MODEL = 'nvidia/nv-embed-v1'
-const VECTOR_DIM = parseInt(process.env.VECTOR_DIMENSION || '2048')
 
 export async function embedText(text, inputType = 'passage') {
-  if (process.env.AI_SAFE_MODE === 'true') {
-    return Array.from({ length: VECTOR_DIM }, () => Math.random() * 2 - 1)
-  }
   const resp = await embedder.embeddings.create({
     input: [text],
     model: EMBED_MODEL,
@@ -50,14 +46,6 @@ export async function searchSimilar(userId, queryText, limit = 5) {
 }
 
 export async function ragChat(userId, queryText, chatHistory = []) {
-  if (process.env.AI_SAFE_MODE === 'true') {
-    return {
-      response: 'This is a simulated RAG response (AI_SAFE_MODE is enabled). Your query was received and relevant content was found in the knowledge base.',
-      citations: [],
-      sources: [],
-    }
-  }
-
   const results = await searchSimilar(userId, queryText)
   const context = results.map(r =>
     `[${r.title}] (relevance: ${(r.similarity * 100).toFixed(1)}%): ${r.content}`

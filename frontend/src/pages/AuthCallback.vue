@@ -37,13 +37,24 @@ onMounted(async () => {
 
     let session = null
 
-    const hashParams = parseHashParams(window.location.hash)
-    if (hashParams.access_token && hashParams.refresh_token) {
-      const { data, error } = await supabase.auth.setSession({
-        access_token: hashParams.access_token,
-        refresh_token: hashParams.refresh_token,
-      })
+    // PKCE and several OAuth providers redirect with ?code=... instead of
+    // hash tokens. Without this exchange the callback always timed out.
+    const code = new URLSearchParams(window.location.search).get('code')
+    if (code) {
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
       if (!error && data?.session) session = data.session
+    }
+
+    // Implicit-flow redirects carry tokens in the hash.
+    if (!session) {
+      const hashParams = parseHashParams(window.location.hash)
+      if (hashParams.access_token && hashParams.refresh_token) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: hashParams.access_token,
+          refresh_token: hashParams.refresh_token,
+        })
+        if (!error && data?.session) session = data.session
+      }
     }
 
     if (!session?.user) {
@@ -51,50 +62,11 @@ onMounted(async () => {
       if (data?.session?.user) session = data.session
     }
 
-    if (!session?.user) {
-      session = await new Promise((resolve) => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-          if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && newSession?.user) {
-            subscription?.unsubscribe()
-            resolve(newSession)
-          }
-        })
-        setTimeout(() => {
-          subscription?.unsubscribe()
-          resolve(null)
-        }, 5000)
-      })
-    }
-
     if (session?.user) {
-      const supaUser = session.user
-      const meta = supaUser.user_metadata || {}
-      // Store session in auth store so API calls work
       authStore.session = session
-      authStore.user = authStore.buildUser ? authStore.buildUser(supaUser) : {
-        id: supaUser.id,
-        email: supaUser.email || '',
-        name: meta.name || meta.full_name || supaUser.email?.split('@')[0]?.replace(/[._]/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || 'User',
-        role: meta.role || 'student',
-        department: meta.department || 'Computer Science',
-        avatar: meta.name?.charAt(0)?.toUpperCase() || supaUser.email?.charAt(0)?.toUpperCase() || 'U',
-        isGuest: false,
-        provider: supaUser.app_metadata?.provider || 'google',
-      }
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || '/api'
-        await fetch(apiUrl + '/auth/create-user-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session.access_token || '') },
-          body: JSON.stringify({
-            userId: supaUser.id, email: supaUser.email,
-            name: meta.name || meta.full_name || supaUser.email?.split('@')[0] || 'User',
-            role: 'student', department: 'Computer Science', provider: supaUser.app_metadata?.provider || 'google',
-          }),
-        })
-      } catch (e) {
-        console.warn('AuthCallback profile creation failed:', e?.message)
-      }
+      authStore.user = authStore.buildUser(session)
+      // Role comes from the backend DB; sync it without blocking navigation.
+      void authStore.syncProfile()
       router.replace('/')
       return
     }

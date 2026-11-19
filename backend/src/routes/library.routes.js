@@ -2,7 +2,6 @@ import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
 import { randomUUID } from 'crypto'
 import { query } from '../../lib/db.js'
-import libraryResources from '../data/librarySeed.js'
 
 const router = Router()
 
@@ -26,14 +25,14 @@ function safeHttpUrl(value) {
 router.get('/api/library/resources', async (req, res) => {
   try {
     const { category, search } = req.query
-    const { rows: uploadedResources } = await query(
+    const { rows } = await query(
       `SELECT id, title, author, category, type, description, downloads,
         file_url AS "fileUrl", uploaded_by AS "uploadedBy",
         uploaded_at AS "uploadedAt"
        FROM public.library_resources
        ORDER BY uploaded_at DESC LIMIT 200`
     )
-    let results = [...uploadedResources, ...libraryResources]
+    let results = rows
 
     if (category && category !== 'All') {
       results = results.filter(r => r.category === category)
@@ -57,17 +56,14 @@ router.get('/api/library/resources', async (req, res) => {
 
 router.get('/api/library/resources/:id', async (req, res) => {
   try {
-    const seedResource = libraryResources.find(r => r.id === req.params.id)
-    const { rows } = seedResource
-      ? { rows: [] }
-      : await query(
-        `SELECT id, title, author, category, type, description, downloads,
-          file_url AS "fileUrl", uploaded_by AS "uploadedBy",
-          uploaded_at AS "uploadedAt"
-         FROM public.library_resources WHERE id = $1`,
-        [req.params.id]
-      )
-    const resource = seedResource || rows[0]
+    const { rows } = await query(
+      `SELECT id, title, author, category, type, description, downloads,
+        file_url AS "fileUrl", uploaded_by AS "uploadedBy",
+        uploaded_at AS "uploadedAt"
+       FROM public.library_resources WHERE id = $1`,
+      [req.params.id]
+    )
+    const resource = rows[0]
     if (!resource) return res.status(404).json({ error: 'Resource not found' })
     res.json(resource)
   } catch (err) {

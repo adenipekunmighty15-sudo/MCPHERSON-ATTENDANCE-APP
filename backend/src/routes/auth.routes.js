@@ -164,10 +164,12 @@ router.put('/api/auth/profile', authenticate, async (req, res) => {
 
 router.delete('/api/auth/me', authenticate, async (req, res) => {
   try {
-    await query('DELETE FROM public.users WHERE id = $1', [req.user.id])
+    // Delete the auth user first. If that fails the profile stays intact and
+    // the user can still sign in; the reverse order orphaned the auth account.
     if (supabaseAdmin) {
       await supabaseAdmin.auth.admin.deleteUser(req.user.id)
     }
+    await query('DELETE FROM public.users WHERE id = $1', [req.user.id])
     res.status(200).json({ success: true, message: 'Account deleted successfully' })
   } catch (err) {
     console.error('Account deletion error:', err.message)

@@ -74,7 +74,8 @@
             <div v-if="inputType === 'record'" class="form-group">
               <div class="recorder-area">
                 <div class="recorder-wave">
-                  <div v-for="n in 32" :key="n" class="wave-bar" :style="{ height: recording ? (Math.random() * 30 + 10) + 'px' : '4px' }"></div>
+                  <span class="recording-indicator" :class="{ active: recording }"></span>
+                  <span>{{ recording ? 'Recording lecture audio' : 'Ready to record' }}</span>
                 </div>
                 <div class="recorder-controls">
                   <button v-if="!recording" class="record-btn" @click="startRecording">
@@ -117,7 +118,9 @@
           </div>
           <h3 class="gen-title">AI is crafting your study pack...</h3>
           <p class="gen-desc">Analyzing content, generating flashcards, quizzes, and summaries</p>
-          <div class="gen-progress"><div class="gen-progress-bar" :style="{ width: genProgress + '%' }"></div></div>
+          <div class="gen-progress" aria-label="Generating study pack">
+            <div class="gen-progress-bar"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -139,7 +142,6 @@ const uploadedFiles = ref([])
 const flashcardCount = ref(12)
 const quizCount = ref(8)
 const generating = ref(false)
-const genProgress = ref(0)
 const recording = ref(false)
 const recordTime = ref(0)
 const recordedAudio = ref(null)
@@ -197,9 +199,7 @@ function formatTime(s) {
 
 async function generate() {
   generating.value = true
-  genProgress.value = 0
   step.value = 2
-  const pi = setInterval(() => { if (genProgress.value < 90) genProgress.value += Math.random() * 15 }, 1000)
 
   try {
     let data
@@ -222,13 +222,10 @@ async function generate() {
         flashcardCount: flashcardCount.value, quizCount: quizCount.value,
       }, { timeout: 120000 }))
     }
-    clearInterval(pi)
     emit('created', data)
   } catch (e) {
-    clearInterval(pi)
     generating.value = false
     step.value = 1
-    genProgress.value = 0
     alert(e?.response?.data?.error || 'Failed to generate study pack. Please try again.')
   }
 }
@@ -293,8 +290,9 @@ onUnmounted(() => {
 .file-remove { background: none; border: none; color: var(--color-text-tertiary); cursor: pointer; padding: 2px; }
 
 .recorder-area { text-align: center; }
-.recorder-wave { display: flex; align-items: center; justify-content: center; gap: 3px; height: 60px; margin-bottom: 12px; }
-.wave-bar { width: 4px; background: var(--color-primary); border-radius: 2px; transition: height 0.1s; }
+.recorder-wave { display: flex; align-items: center; justify-content: center; gap: 9px; height: 60px; margin-bottom: 12px; color: var(--color-text-secondary); font-size: 12px; }
+.recording-indicator { width: 11px; height: 11px; border-radius: 50%; background: var(--color-border-strong); }
+.recording-indicator.active { background: var(--color-error); animation: pulse-rec 1s infinite; }
 .recorder-controls { display: flex; justify-content: center; }
 .record-btn {
   display: flex; align-items: center; gap: 8px; padding: 10px 20px;
@@ -326,7 +324,8 @@ onUnmounted(() => {
 .gen-title { font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px; }
 .gen-desc { font-size: 13px; color: var(--color-text-tertiary); margin-bottom: 20px; }
 .gen-progress { width: 200px; height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden; }
-.gen-progress-bar { height: 100%; background: var(--color-primary); border-radius: 2px; transition: width 0.5s ease; }
+.gen-progress-bar { width: 35%; height: 100%; background: var(--color-primary); border-radius: 2px; animation: progress-slide 1.4s ease-in-out infinite alternate; }
+@keyframes progress-slide { from { transform: translateX(0); } to { transform: translateX(185%); } }
 
 @media (max-width: 480px) { .input-types { grid-template-columns: 1fr; } .config-row { flex-direction: column; gap: 10px; } }
 </style>

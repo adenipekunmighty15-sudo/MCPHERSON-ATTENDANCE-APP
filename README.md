@@ -35,6 +35,33 @@ to the exact frontend origins and `TRUST_PROXY=true` when running behind Render'
 proxy. `ATTENDANCE_LATE_AFTER_MINUTES` controls the check-in grace period (15
 minutes by default).
 
+## Authentication setup
+
+Authentication uses Supabase Auth. The frontend signs users in directly with
+Supabase using the public **anon** key; the backend verifies the access token
+with the private **service_role** key and reads the authoritative role from
+`public.users`.
+
+1. In Supabase → Project Settings → API, copy the Project URL, anon key and
+   service_role key.
+2. `backend/.env`: set `VITE_SUPABASE_URL` (the project URL) and
+   `SUPABASE_SERVICE_KEY` (the service_role key — never the anon key), plus
+   `DATABASE_URL`.
+3. `frontend/.env`: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+   In production these must also be set in the Vercel project because Vite
+   inlines them at build time.
+4. In Supabase → Authentication → URL Configuration, add the deployed origin
+   plus `/auth/callback` and `/reset-password` as redirect URLs. Enable the
+   Google provider only if you use the Google sign-in button.
+5. Allowed email domains default to `@mcu.edu.ng`,
+   `@undergraduate.mcu.edu.ng` and `@mcpherson.edu`. Override them with
+   `ALLOWED_EMAIL_DOMAINS` (comma separated) in `backend/.env`. Admin and
+   super-admin accounts are exempt.
+
+With no credentials configured, the UI shows readable "authentication is not
+configured" messages and protected API routes return 503. Guest logins and
+invented accounts are not accepted.
+
 ## Deployment
 
 Deploy the API on Render and the static frontend on Vercel. Set `VITE_API_URL`
@@ -46,8 +73,9 @@ environment-variable settings; do not put credentials in this repository.
 
 Initialize an empty database from `backend/scripts/schema_corrected.sql`, then
 apply each numbered SQL update in `backend/src/migrations` once, in order.
-Migrations 007–013 add attendance protections, venue ownership, complaint and
-library features, face-data privacy, Data API lockdown, and study-group invites.
+Migrations 007–014 add attendance protections, venue ownership, complaint and
+library features, face-data privacy, Data API lockdown, study-group invites,
+and private direct messaging.
 Migration 012 disables direct Supabase Data API access to public tables; the application
 uses the authenticated backend API for database operations. The
 attendance uniqueness migration stops if existing duplicate check-ins need

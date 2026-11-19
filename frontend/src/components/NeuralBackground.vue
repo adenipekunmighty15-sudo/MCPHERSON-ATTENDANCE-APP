@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, defineProps, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 
 const props = defineProps({
   messageCount: { type: Number, default: 0 },

@@ -38,7 +38,9 @@ async function loadDbApiKeys() {
 await loadDbApiKeys()
 
 const app = express()
-app.set('trust proxy', 1)
+// Behind Render/Vercel this must be enabled for correct client IPs in rate
+// limiting; local development keeps it off unless explicitly requested.
+app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : false)
 
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
@@ -122,6 +124,7 @@ import memoryRoutes from './src/routes/memory.routes.js'
 import researchRoutes from './src/routes/research.routes.js'
 import imageRoutes from './src/routes/image.routes.js'
 import trackingRoutes from './src/routes/tracking.routes.js'
+import messagesRoutes from './src/routes/messages.routes.js'
 
 app.use(authRoutes)
 app.use(complaintsRoutes)
@@ -150,6 +153,7 @@ app.use(memoryRoutes)
 app.use(researchRoutes)
 app.use(imageRoutes)
 app.use(trackingRoutes)
+app.use(messagesRoutes)
 
 // Serve uploads
 app.use('/uploads', express.static(uploadDir))

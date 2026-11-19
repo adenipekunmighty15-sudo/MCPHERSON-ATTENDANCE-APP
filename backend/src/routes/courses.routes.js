@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
-import { query, generateCourses } from '../../lib/db.js'
+import { query } from '../../lib/db.js'
 import { randomUUID } from 'crypto'
 import { notifyDepartment } from '../services/notification.js'
 
@@ -58,6 +58,43 @@ router.get('/api/courses', async (req, res) => {
   }
 })
 
+// Courses shown on the student dashboard / attendance screens. Some schemas
+// used enrollment_status instead of status, so fall back if the column is old.
+router.get('/api/courses/enrolled', authenticate, async (req, res) => {
+  const baseSql = `SELECT DISTINCT
+      c.id, c.code, c.title, c.level, c.units AS "creditUnits",
+      c.department_id AS "departmentId", c.lecturer_id AS "lecturerId",
+      e.course_id AS "courseId", e.course_name AS "courseName", e.status,
+      lecturer.name AS lecturer,
+      d.name AS "departmentName"
+    FROM public.enrollments e
+    LEFT JOIN public.courses c ON c.id::text = e.course_id
+    LEFT JOIN public.users lecturer ON lecturer.id = c.lecturer_id
+    LEFT JOIN public.departments d ON d.id = c.department_id
+    WHERE (e.user_id = $1 AND COALESCE(e.status, 'active') <> 'dropped')
+       OR c.lecturer_id = $1
+    ORDER BY c.code NULLS LAST, e.course_name, c.title`
+
+  try {
+    const { rows } = await query(baseSql, [req.user.id])
+    return res.status(200).json(rows)
+  } catch (err) {
+    if (!/column e\.status|status.*does not exist/i.test(err.message)) {
+      console.error('Failed to load enrolled courses:', err.message)
+      return res.status(500).json({ error: 'Failed to load enrolled courses' })
+    }
+  }
+
+  try {
+    const legacySql = baseSql.replace('e.status,', 'e.enrollment_status AS status,').replace(/COALESCE\(e\.status, 'active'\)/, "COALESCE(e.enrollment_status, 'Active')")
+    const { rows } = await query(legacySql, [req.user.id])
+    res.status(200).json(rows)
+  } catch (err) {
+    console.error('Failed to load enrolled courses:', err.message)
+    res.status(500).json({ error: 'Failed to load enrolled courses' })
+  }
+})
+
 router.post('/api/courses', authenticate, async (req, res) => {
   try {
     if (!['lecturer', 'admin', 'super_admin'].includes(req.user.role)) {
@@ -86,34 +123,6 @@ router.post('/api/courses', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Failed to create course:', err.message)
     res.status(500).json({ error: 'Failed to create course' })
-  }
-})
-
-router.post('/api/courses/seed', authenticate, async (req, res) => {
-  try {
-    if (!['admin', 'super_admin'].includes(req.user.role)) {
-      return res.status(403).json({ error: 'Only administrators can seed courses' })
-    }
-    const { rows: existing } = await query('SELECT COUNT(*) as c FROM public.courses')
-    if (parseInt(existing[0].c) > 0) {
-      return res.status(200).json({ message: 'Courses already seeded', count: parseInt(existing[0].c) })
-    }
-    const { courses } = generateCourses()
-    let inserted = 0
-    for (const c of courses) {
-      try {
-        await query(
-          `INSERT INTO public.courses (id, code, title, level, units, custom)
-           VALUES ($1,$2,$3,$4,$5,false) ON CONFLICT (id) DO NOTHING`,
-          [c.id, c.code, c.title, c.level, c.units]
-        )
-        inserted++
-      } catch (e) { console.error('Seed course failed:', c.code, e.message) }
-    }
-    res.status(201).json({ message: 'Courses seeded', count: inserted })
-  } catch (err) {
-    console.error('Seed error:', err.message)
-    res.status(500).json({ error: 'Seed failed' })
   }
 })
 

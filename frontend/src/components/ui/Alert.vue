@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, markRaw } from 'vue'
+import { markRaw } from 'vue'
 
 defineProps({
   type: {

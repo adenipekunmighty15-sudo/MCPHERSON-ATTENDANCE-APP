@@ -97,6 +97,41 @@ test('dashboard does not ship invented attendance numbers', () => {
   assert.match(page, /api\.get\('\/attendance'\)/)
 })
 
+test('direct messages are authenticated and scoped to conversation members', () => {
+  const server = read('server.js')
+  const routes = read('src/routes/messages.routes.js')
+  const migration = read('src/migrations/014_direct_messages.sql')
+  assert.match(server, /messagesRoutes/)
+  assert.match(routes, /router\.get\('\/api\/messages\/contacts', authenticate, requireChatRole/)
+  assert.match(routes, /router\.post\('\/api\/messages\/conversations\/:conversationId\/messages', authenticate, requireChatRole/)
+  assert.match(routes, /conversation_id = \$1 AND user_id = \$2/)
+  assert.match(routes, /senderId: row\.sender_id === currentUserId \? 'me'/)
+  assert.match(migration, /UNIQUE \(participant_low, participant_high\)/)
+  assert.match(migration, /ENABLE ROW LEVEL SECURITY/)
+})
+
+test('messages and study packs do not fall back to local demo content', () => {
+  const messages = read('../frontend/src/stores/messaging.js')
+  const api = read('../frontend/src/lib/api.js')
+  const adminDashboard = read('../frontend/src/pages/AdminDashboard.vue')
+  const studyRoutes = read('src/routes/study.routes.js')
+  const studyPackService = read('src/services/studyPack.js')
+  assert.match(messages, /api\.post\('\/messages\/conversations'/)
+  assert.doesNotMatch(messages, /localStorage|Math\.random|simulateReply/)
+  assert.doesNotMatch(api, /mcu_local_study_materials|buildStudyPack|createStudyMaterialLocally/)
+  assert.doesNotMatch(adminDashboard, /Showing sample data|Oluwaseun Adebayo|28400/)
+  assert.doesNotMatch(studyRoutes, /pack = buildStudyPack/)
+  assert.match(studyRoutes, /status\(503\)\.json\(\{ error: 'AI study-pack generation is temporarily unavailable/)
+  assert.doesNotMatch(studyPackService, /buildStudyPack|buildFlashcards|buildQuiz/)
+})
+
+test('study dashboard reports errors instead of showing an empty-state success', () => {
+  const dashboard = read('../frontend/src/components/study/StudyDashboard.vue')
+  assert.match(dashboard, /const result = response\.data/)
+  assert.match(dashboard, /class="dashboard-error" role="alert"/)
+  assert.doesNotMatch(dashboard, /Great job! No weak areas detected/)
+})
+
 test('service worker uses network-first navigation instead of cache-first index.html', () => {
   const sw = read('../frontend/public/sw.js')
   assert.match(sw, /networkFirst/)
@@ -136,4 +171,13 @@ test('study deck save does not leak raw DB errors', () => {
 test('AI fallback HTML-escapes reflected user text', () => {
   const ai = read('src/services/aiService.js')
   assert.match(ai, /escapeHtml|replace\(\/[<>&]["']\/g/)
+})
+
+test('AI safe mode cannot return simulated chat answers or random retrieval embeddings', () => {
+  const ai = read('src/services/aiService.js')
+  const aiRoutes = read('src/routes/ai.routes.js')
+  const rag = read('src/services/ragService.js')
+  assert.doesNotMatch(ai, /AI_SAFE_MODE|simulated response/i)
+  assert.doesNotMatch(aiRoutes, /AI_SAFE_MODE|simulated response/i)
+  assert.doesNotMatch(rag, /AI_SAFE_MODE|Math\.random/)
 })

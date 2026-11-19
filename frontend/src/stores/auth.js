@@ -13,7 +13,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   let _resolveReady
   const ready = new Promise(resolve => { _resolveReady = resolve })
-  let authSubscription = null
 
   const isAuthenticated = computed(() => !!user.value)
   const token = computed(() => session.value?.access_token || null)
@@ -53,92 +52,88 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // The backend is the source of truth for role (it reads public.users).
+  // Supabase metadata is only used for display until this resolves.
+  async function syncProfile() {
+    try {
+      let row = null
+      try {
+        const res = await api.get('/auth/me')
+        row = res?.data || null
+      } catch (e) {
+        if (e?.response?.status !== 404) throw e
+      }
+
+      if (!row || (!row.name && !row.created_at)) {
+        // No profile row yet. The backend ignores client-supplied id/role.
+        await api.post('/auth/create-user-profile', {
+          name: user.value?.name || 'User',
+          department: user.value?.department || 'Computer Science',
+          provider: user.value?.provider || 'email',
+        })
+        return
+      }
+
+      if (user.value) {
+        if (row.role) user.value.role = row.role
+        if (row.name) user.value.name = row.name
+        if (row.department) user.value.department = row.department
+        if (row.avatar_url) user.value.avatarUrl = row.avatar_url
+      }
+    } catch (e) {
+      if (!(e instanceof TypeError) && !e?.message?.includes('Network')) {
+        console.warn('[auth] Profile sync failed:', e?.message)
+      }
+    }
+  }
+
   async function initializeAuth() {
     try {
       localStorage.removeItem('mcu_user')
       localStorage.removeItem('mcu_users')
+
       if (supabase && supabaseConfigured) {
         try {
-          const { data: { session: currentSession } } = await supabase.auth.getSession()
-          if (currentSession) {
-            const { data: { user: supaUser }, error: userError } = await supabase.auth.getUser()
-            if (userError || !supaUser) {
-              await supabase.auth.signOut()
-              localStorage.removeItem('mcu_user')
-              throw userError || new Error('Invalid session')
-            }
-            session.value = currentSession
-            user.value = buildUser(supaUser)
-            const meta = supaUser.user_metadata || {}
-            const provider = supaUser.app_metadata?.provider || 'email'
-            try {
-              await api.post('/auth/create-user-profile', {
-                userId: supaUser.id,
-                email: supaUser.email,
-                name: meta.name || meta.full_name || supaUser.email?.split('@')[0] || 'User',
-                role: 'student',
-                department: 'Computer Science',
-                provider,
-              })
-            } catch (e) {
-              if (e?.message !== 'Network Error') {
-                console.warn('Backend profile creation on init failed:', e?.message)
-              }
-            }
-          } else {
-            localStorage.removeItem('mcu_user')
-            initialized.value = true
-            _resolveReady()
-            return
-          }
-
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+          // Register once, even when the visitor starts signed out. Supabase
+          // callbacks must stay synchronous — never await Supabase or API calls
+          // inside them or the auth client can deadlock.
+          supabase.auth.onAuthStateChange((event, newSession) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+              if (!newSession) return
               session.value = newSession
               user.value = buildUser(newSession)
-              if (event === 'SIGNED_IN') {
-                const supaUser = newSession?.user
-                if (supaUser) {
-                  const meta = supaUser.user_metadata || {}
-                  const provider = supaUser.app_metadata?.provider || 'email'
-                  try {
-                    await api.post('/auth/create-user-profile', {
-                      userId: supaUser.id,
-                      email: supaUser.email,
-                      name: meta.name || meta.full_name || supaUser.email?.split('@')[0] || 'User',
-                      role: 'student',
-                      department: 'Computer Science',
-                      provider,
-                    })
-                  } catch (e) {
-                    if (!(e instanceof TypeError) && !e?.message?.includes('Network')) {
-                      console.warn('Backend profile creation on SIGNED_IN failed:', e?.message)
-                    }
-                  }
-                }
-              }
+              if (event === 'SIGNED_IN') void syncProfile()
             } else if (event === 'SIGNED_OUT') {
               user.value = null
               session.value = null
             }
           })
-          authSubscription = subscription
-          initialized.value = true
-          _resolveReady()
-          return
+          // Keep the subscription for the store's lifetime.
+
+          const { data: { session: currentSession } } = await supabase.auth.getSession()
+          if (currentSession) {
+            const { data: { user: supaUser }, error: userError } = await supabase.auth.getUser()
+            if (userError || !supaUser) {
+              await supabase.auth.signOut()
+              throw userError || new Error('Invalid session')
+            }
+            session.value = currentSession
+            user.value = buildUser(supaUser)
+            await syncProfile()
+          }
         } catch (supaErr) {
           console.error('Supabase auth failed:', supaErr?.message)
-          localStorage.removeItem('mcu_user')
+          user.value = null
+          session.value = null
+          try { await supabase.auth.signOut() } catch { /* already signed out */ }
         }
       }
     } catch (err) {
       console.error('Auth init error:', err)
       error.value = 'Failed to initialize authentication'
     } finally {
-      if (!initialized.value) {
-        initialized.value = true
-        _resolveReady()
-      }
+      initialized.value = true
+      _resolveReady()
     }
   }
 
@@ -152,6 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = buildUser(data)
       session.value = data.session
       freshLogin.value = true
+      await syncProfile()
       return data
     } catch (err) {
       const msg = friendlyAuthError(err)
@@ -167,11 +163,18 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     try {
       if (!supabase || !supabaseConfigured) throw new Error('Authentication is not configured')
-      const { data, error: supaError } = await supabase.auth.signUp({ email, password, options: { data: metadata } })
+      const { data, error: supaError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata,
+          emailRedirectTo: window.location.origin + '/auth/callback',
+        },
+      })
       if (supaError) throw supaError
       if (!data?.user?.id) throw new Error('Account could not be created')
-      try { await api.post('/auth/confirm-signup', { userId: data.user.id, email }) } catch (e) { console.warn('[auth] Signup confirm failed:', e) }
-      try { await api.post('/auth/create-user-profile', { userId: data.user.id, email, name: metadata.name || email.split('@')[0], role: metadata.role || 'student', department: metadata.department || 'Computer Science' }) } catch (e) { console.warn('[auth] Profile creation failed:', e) }
+      // Profile row is created by the backend via /auth/me sync (admin-only
+      // confirm-signup must never be called from a newly signed-up student).
       if (data.session) {
         user.value = buildUser(data)
         session.value = data.session
@@ -227,7 +230,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     user.value = null
     session.value = null
-    if (authSubscription) { authSubscription.unsubscribe(); authSubscription = null }
+    // Keep the auth subscription alive for cross-tab sign-out / later logins.
     localStorage.removeItem('mcu_user')
     try { if (supabase && supabaseConfigured) await supabase.auth.signOut() } catch (e) { console.warn('[auth] Signout error:', e) }
   }
@@ -235,6 +238,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user, session, token, loading, error, isAuthenticated, initialized, ready,
     initializeAuth, signIn, signUp, signInWithOAuth, logout, freshLogin,
-    resetPasswordForEmail, updatePassword, signOut: logout,
+    resetPasswordForEmail, updatePassword, signOut: logout, buildUser, syncProfile,
   }
 })

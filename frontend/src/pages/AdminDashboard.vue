@@ -15,7 +15,13 @@
       <div v-for="i in 4" :key="i" class="skeleton-card"></div>
     </div>
 
-    <template v-else>
+    <p v-if="notice" role="status" style="color: var(--color-success); font-size: 13px; margin: 0 0 12px;">{{ notice }}</p>
+    <p v-if="error && !loading" role="alert" style="color: var(--color-error); font-size: 13px; margin: 0 0 12px;">
+      {{ error }}
+      <button class="text-button" type="button" @click="fetchData">Retry</button>
+    </p>
+
+    <template v-else-if="!loading">
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-top">
@@ -66,7 +72,7 @@
                 <td>{{ s.records }}</td>
                 <td>{{ s.present }}</td>
                 <td><span class="rate-pill" :class="{ low: s.attendanceRate < 60, mid: s.attendanceRate >= 60 }">{{ s.attendanceRate }}%</span></td>
-                <td><button class="notify-btn">Notify</button></td>
+                <td><button class="notify-btn" :disabled="notifyingId === s.studentId" @click="notifyStudent(s)">{{ notifyingId === s.studentId ? 'Sending...' : 'Notify' }}</button></td>
               </tr>
               <tr v-if="filteredAtRisk.length === 0"><td colspan="6" class="empty">No at-risk students found</td></tr>
             </tbody>
@@ -87,6 +93,8 @@ const summary = ref({})
 const atRiskStudents = ref([])
 const search = ref('')
 const error = ref(null)
+const notifyingId = ref(null)
+const notice = ref('')
 
 const atRiskPercent = computed(() => {
   if (!stats.value.users) return 0
@@ -103,6 +111,8 @@ const filteredAtRisk = computed(() => {
 })
 
 async function fetchData() {
+  loading.value = true
+  error.value = ''
   try {
     const [statsRes, insightsRes] = await Promise.all([
       api.get('/stats'),
@@ -115,18 +125,24 @@ async function fetchData() {
     }
   } catch (err) {
     console.error('Failed to load admin dashboard:', err)
-    error.value = 'Could not load data from server. Showing sample data.'
-    stats.value = { users: 1250, courses: 48, departments: 12 }
-    summary.value = { records: 28400, attendanceRate: 89, present: 25276, absent: 3124, atRiskStudents: 42 }
-    atRiskStudents.value = [
-      { studentId: 'MCU/26/0142', studentName: 'Oluwaseun Adebayo', records: 28, present: 19, attendanceRate: 68 },
-      { studentId: 'MCU/26/0281', studentName: 'Ngozi Okafor', records: 32, present: 23, attendanceRate: 72 },
-      { studentId: 'MCU/26/0093', studentName: 'Ibrahim Musa', records: 22, present: 12, attendanceRate: 55 },
-      { studentId: 'MCU/26/0410', studentName: 'Chinedu Eze', records: 35, present: 26, attendanceRate: 74 },
-      { studentId: 'MCU/26/0112', studentName: 'Aisha Bello', records: 30, present: 18, attendanceRate: 60 },
-    ]
+    error.value = 'Could not load admin data. Please retry.'
   } finally {
     loading.value = false
+  }
+}
+
+async function notifyStudent(student) {
+  if (!student?.studentId) return
+  notifyingId.value = student.studentId
+  notice.value = ''
+  try {
+    await api.post('/admin/notifications/student', { userId: student.studentId })
+    notice.value = `Reminder sent to ${student.studentName}.`
+    setTimeout(() => { notice.value = '' }, 4000)
+  } catch (err) {
+    error.value = err?.response?.data?.error || 'Could not send the reminder.'
+  } finally {
+    notifyingId.value = null
   }
 }
 

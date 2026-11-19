@@ -29,6 +29,9 @@ const routes = [
     component: () => import('../pages/Signup.vue'),
     meta: { guest: true, title: 'Create Account' },
   },
+  // Legacy/bookmark paths kept working instead of falling through to 404.
+  { path: '/dashboard', redirect: '/' },
+  { path: '/admin', redirect: '/admin/portal/dashboard' },
   {
     path: '/',
     component: () => import('../components/Layout.vue'),
@@ -122,6 +125,7 @@ const routes = [
         path: 'flashcards/:materialId?',
         name: 'flashcard-review',
         component: () => import('../components/study/FlashcardReview.vue'),
+        props: true,
         meta: { title: 'Flashcard Review' },
       },
       {
@@ -204,6 +208,8 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.auth && !authStore.isAuthenticated) return next('/login')
   if (to.meta.guest && authStore.isAuthenticated) {
+    const redirect = to.query.redirect
+    if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('/login')) return next(redirect)
     if (adminPaths.some(p => to.path.startsWith(p))) return next('/admin/portal/dashboard')
     return next('/')
   }

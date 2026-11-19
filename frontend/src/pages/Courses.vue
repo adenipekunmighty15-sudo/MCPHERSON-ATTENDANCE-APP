@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="flex items-start justify-between mb-8">
         <div>
-          <div class="text-[10px] font-semibold uppercase tracking-[1.5px] mb-1.5" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">2023/2024 &mdash; Semester 2</div>
+          <div class="text-[10px] font-semibold uppercase tracking-[1.5px] mb-1.5" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">Enrolled courses</div>
           <h1 class="text-3xl lg:text-4xl font-bold leading-tight" style="font-family: 'Fraunces', Georgia, serif; color: #1A1A2E;">My Courses</h1>
         </div>
       </div>

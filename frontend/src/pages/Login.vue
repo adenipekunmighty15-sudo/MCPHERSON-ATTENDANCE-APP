@@ -87,16 +87,16 @@
           <div class="bg-white rounded-[20px] p-8 relative overflow-hidden" style="box-shadow: 0 16px 40px rgba(11, 26, 51, 0.08), 0 8px 16px rgba(11, 26, 51, 0.04);">
             <!-- Tab Switcher -->
             <div class="flex p-1 mb-7 rounded-xl" style="background: #EDEDED;">
-              <button class="flex-1 py-2.5 px-4 text-sm font-semibold rounded-[10px] transition-all duration-200" style="font-family: 'Inter', system-ui, sans-serif; background: #FFFFFF; color: #1A1A2E; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">Sign In</button>
-              <button class="flex-1 py-2.5 px-4 text-sm font-semibold rounded-[10px] transition-all duration-200" style="font-family: 'Inter', system-ui, sans-serif; background: transparent; color: #96A0B5;">Create Account</button>
+              <router-link to="/login" class="flex-1 py-2.5 px-4 text-sm font-semibold rounded-[10px] transition-all duration-200 text-center" style="font-family: 'Inter', system-ui, sans-serif; background: #FFFFFF; color: #1A1A2E; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">Sign In</router-link>
+              <router-link to="/signup" class="flex-1 py-2.5 px-4 text-sm font-semibold rounded-[10px] transition-all duration-200 text-center" style="font-family: 'Inter', system-ui, sans-serif; background: transparent; color: #96A0B5;">Create Account</router-link>
             </div>
 
             <!-- Form -->
-            <form @submit.prevent="handleLogin" class="space-y-5">
+            <form @submit.prevent="handleLogin" novalidate class="space-y-5">
               <!-- Email -->
               <div class="space-y-1.5">
-                <label class="text-[10px] font-semibold text-[#68758E] uppercase tracking-wider" style="font-family: 'Inter', system-ui, sans-serif;">Email</label>
-                <input v-model="email" type="email" placeholder="you@mcu.edu.ng" required
+                <label for="login-email" class="text-[10px] font-semibold text-[#68758E] uppercase tracking-wider" style="font-family: 'Inter', system-ui, sans-serif;">Email</label>
+                <input id="login-email" v-model="email" type="email" placeholder="you@mcu.edu.ng" autocomplete="email"
                   class="w-full text-sm rounded-xl px-4 py-3.5 border-0 outline-none transition-all duration-200"
                   style="background: #EDEDED; color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;"
                   @focus="$el.style.boxShadow = '0 0 0 2px #C9902B'"
@@ -107,11 +107,11 @@
               <!-- Password -->
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
-                  <label class="text-[10px] font-semibold text-[#68758E] uppercase tracking-wider" style="font-family: 'Inter', system-ui, sans-serif;">Password</label>
+                  <label for="login-password" class="text-[10px] font-semibold text-[#68758E] uppercase tracking-wider" style="font-family: 'Inter', system-ui, sans-serif;">Password</label>
                   <router-link to="/forgot-password" class="text-[11px] font-medium transition-colors" style="color: #0F1E3D; font-family: 'Inter', system-ui, sans-serif;">Forgot?</router-link>
                 </div>
                 <div class="relative">
-                  <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Enter your password" required
+                  <input id="login-password" v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Enter your password" autocomplete="current-password"
                     class="w-full text-sm rounded-xl px-4 py-3.5 border-0 outline-none transition-all duration-200 pr-11"
                     style="background: #EDEDED; color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;"
                     @focus="$el.style.boxShadow = '0 0 0 2px #C9902B'"
@@ -175,7 +175,17 @@
       </div>
 
       <!-- Floating help button -->
-      <button class="fixed bottom-6 right-6 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-0 cursor-pointer z-20 transition-all duration-200" style="background: #EDEDED; color: #68758E; box-shadow: 0 4px 12px rgba(0,0,0,0.06);" @mouseenter="$el.style.background = '#E2E6ED'" @mouseleave="$el.style.background = '#EDEDED'">?</button>
+      <div class="fixed bottom-6 right-6 z-20 flex flex-col items-end gap-2">
+        <div v-if="helpOpen" role="status" class="max-w-[260px] rounded-xl bg-white px-4 py-3 text-xs leading-relaxed shadow-lg" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">
+          Can't sign in? Contact ICT Support at
+          <a href="mailto:ict@mcu.edu.ng" class="font-semibold underline" style="color: #0F1E3D;">ict@mcu.edu.ng</a>.
+        </div>
+        <button type="button" :aria-expanded="helpOpen" aria-label="Help and support contact"
+          class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-all duration-200"
+          style="background: #EDEDED; color: #68758E; box-shadow: 0 4px 12px rgba(0,0,0,0.06);"
+          @click="helpOpen = !helpOpen"
+          @mouseenter="$el.style.background = '#E2E6ED'" @mouseleave="$el.style.background = '#EDEDED'">?</button>
+      </div>
     </div>
   </div>
 </template>
@@ -190,6 +200,7 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const helpOpen = ref(false)
 
 onMounted(async () => {
   await authStore.ready
@@ -197,9 +208,14 @@ onMounted(async () => {
 })
 
 async function handleLogin() {
+  if (!email.value.trim() || !password.value) {
+    authStore.error = 'Enter both your email and password.'
+    return
+  }
   try {
-    await authStore.signIn(email.value, password.value)
-    router.push('/')
+    await authStore.signIn(email.value.trim(), password.value)
+    const redirect = router.currentRoute.value.query.redirect
+    router.push(typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('/login') ? redirect : '/')
   } catch (e) { console.warn('[Login] Sign in failed:', e) }
 }
 

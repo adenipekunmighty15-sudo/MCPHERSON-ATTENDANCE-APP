@@ -13,9 +13,7 @@
         <div class="lg:col-span-2">
           <div class="rounded-xl overflow-hidden" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
             <!-- Gradient banner -->
-            <div class="h-24 relative" style="background: linear-gradient(135deg, #2563EB, #1D4ED8, #0F1E3D);">
-              <button v-if="editMode" @click="saveProfile" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-bold border-0 cursor-pointer transition-all" style="background: rgba(255,255,255,0.2); color: #FFFFFF;" @mouseenter="$event.target.style.background = 'rgba(255,255,255,0.3)'" @mouseleave="$event.target.style.background = 'rgba(255,255,255,0.2)'">Save</button>
-            </div>
+            <div class="h-24 relative" style="background: linear-gradient(135deg, #2563EB, #1D4ED8, #0F1E3D);"></div>
 
             <!-- Avatar overlapping -->
             <div class="flex justify-center -mt-10 mb-3">
@@ -26,15 +24,15 @@
 
             <!-- Name & Email -->
             <div class="text-center px-6">
-              <h2 class="text-xl font-bold" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">{{ authStore.user?.name || 'Adeola Johnson' }}</h2>
-              <p class="text-sm mt-0.5 font-medium" style="color: #2563EB; font-family: 'Inter', system-ui, sans-serif;">{{ authStore.user?.email || 'adeola@mcu.edu.ng' }}</p>
+              <h2 class="text-xl font-bold" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">{{ displayName }}</h2>
+              <p class="text-sm mt-0.5 font-medium" style="color: #2563EB; font-family: 'Inter', system-ui, sans-serif;">{{ displayEmail }}</p>
             </div>
 
             <!-- Pills -->
             <div class="flex flex-wrap justify-center gap-2 px-6 mt-4">
-              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">Computer Science</span>
-              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">200 Level</span>
-              <span class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ authStore.user?.matricNo || '2023/0451' }}</span>
+              <span v-if="profile?.department || authStore.user?.department" class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ profile?.department || authStore.user?.department }}</span>
+              <span v-if="profile?.level" class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ profile.level }} Level</span>
+              <span v-if="profile?.matricNo || authStore.user?.matricNo" class="px-3 py-1 rounded-full text-[10px] font-semibold" style="background: #EDEDED; color: #68758E; font-family: 'Inter', system-ui, sans-serif;">{{ profile?.matricNo || authStore.user?.matricNo }}</span>
             </div>
 
             <!-- Divider -->
@@ -50,9 +48,9 @@
           </div>
 
           <!-- Edit button (outside card) -->
-          <button v-if="!editMode" @click="editMode = true" class="w-full mt-4 py-3 rounded-xl text-sm font-bold border-0 cursor-pointer transition-all" style="background: #FFFFFF; color: #1A1A2E; box-shadow: 0 2px 8px rgba(0,0,0,0.04);" @mouseenter="$event.target.style.background = '#EDEDED'" @mouseleave="$event.target.style.background = '#FFFFFF'">
+          <router-link to="/settings" class="block w-full mt-4 py-3 rounded-xl text-sm font-bold text-center border-0 cursor-pointer transition-all" style="background: #FFFFFF; color: #1A1A2E; box-shadow: 0 2px 8px rgba(0,0,0,0.04);" @mouseenter="$event.target.style.background = '#EDEDED'" @mouseleave="$event.target.style.background = '#FFFFFF'">
             Edit Profile
-          </button>
+          </router-link>
         </div>
 
         <!-- RIGHT: Info Panels (3/5 width) -->
@@ -89,41 +87,53 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
-const editMode = ref(false)
-const stats = ref({ gpa: 4.52, attendanceRate: 90.1, courses: 18, streak: 3 })
+const profile = ref(null)
+const stats = ref({})
 
 const initials = computed(() => {
-  const name = authStore.user?.name || 'Adeola Johnson'
+  const name = authStore.user?.name || profile.value?.name || authStore.user?.email || '?'
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 })
 
+const displayName = computed(() => authStore.user?.name || profile.value?.name || 'Student')
+const displayEmail = computed(() => authStore.user?.email || profile.value?.email || '—')
+
 const profileStats = computed(() => [
-  { value: stats.value.gpa.toFixed(2), label: 'GPA' },
-  { value: stats.value.courses, label: 'Courses' },
-  { value: stats.value.attendanceRate + '%', label: 'Attendance' },
-  { value: stats.value.streak + 'd', label: 'Streak' },
+  { value: stats.value.gpa != null ? Number(stats.value.gpa).toFixed(2) : '—', label: 'GPA' },
+  { value: stats.value.courses ?? '—', label: 'Courses' },
+  { value: stats.value.attendanceRate != null ? stats.value.attendanceRate + '%' : '—', label: 'Attendance' },
+  { value: stats.value.streak != null ? stats.value.streak + 'd' : '—', label: 'Streak' },
 ])
 
 const personalInfo = computed(() => [
-  { label: 'Full Name', value: authStore.user?.name || 'Adeola Johnson' },
-  { label: 'Date of Birth', value: '—' },
-  { label: 'Gender', value: '—' },
-  { label: 'Phone', value: authStore.user?.phone || '—' },
+  { label: 'Full Name', value: displayName.value },
+  { label: 'Date of Birth', value: profile.value?.dateOfBirth || '—' },
+  { label: 'Gender', value: profile.value?.gender || '—' },
+  { label: 'Phone', value: profile.value?.phone || authStore.user?.phone || '—' },
 ])
 
 const academicInfo = computed(() => [
-  { label: 'Matric Number', value: authStore.user?.matricNo || '2023/0451' },
-  { label: 'Department', value: authStore.user?.department || 'Computer Science' },
-  { label: 'Faculty', value: 'Science and Technology' },
-  { label: 'Level', value: (authStore.user?.level || '200') + ' Level' },
+  { label: 'Matric Number', value: profile.value?.matricNo || authStore.user?.matricNo || '—' },
+  { label: 'Department', value: profile.value?.department || authStore.user?.department || '—' },
+  { label: 'Faculty', value: profile.value?.faculty || '—' },
+  { label: 'Level', value: profile.value?.level ? `${profile.value.level} Level` : '—' },
 ])
 
 onMounted(async () => {
   const api = (await import('../lib/api')).default
   try {
+    const res = await api.get('/auth/me')
+    if (res?.data) {
+      profile.value = res.data
+      // Keep the header in sync with the authoritative backend row.
+      if (authStore.user && res.data.name) authStore.user.name = res.data.name
+      if (authStore.user && res.data.role) authStore.user.role = res.data.role
+    }
+  } catch { /* show placeholders when the profile is unavailable */ }
+  try {
     const res = await api.get('/gamification/profile')
     if (res?.data) stats.value = { ...stats.value, ...res.data }
-  } catch { /* ignore */ }
+  } catch { /* optional stats */ }
 })
 </script>
 

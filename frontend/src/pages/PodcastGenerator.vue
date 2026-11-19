@@ -76,12 +76,13 @@
               <p><strong>Duration:</strong> {{ Math.round((generatedPodcast.script?.length || 0) / 100) }} min</p>
               <p><strong>Status:</strong> <span class="status-badge">{{ generatedPodcast.status }}</span></p>
             </div>
+            <p v-if="shareNotice" role="status" style="color: var(--color-success); font-size: 13px;">{{ shareNotice }}</p>
             <div class="action-buttons">
               <button class="btn-primary" @click="downloadPodcast">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                 </svg>
-                Download
+                Download script
               </button>
               <button class="btn-secondary" @click="sharePodcast">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -122,6 +123,7 @@ const selectedMaterial = ref(null)
 const generating = ref(false)
 const error = ref('')
 const generatedPodcast = ref(null)
+const shareNotice = ref('')
 const options = ref({
   conversational: true,
   addQuestions: false
@@ -168,12 +170,44 @@ async function generatePodcast() {
   }
 }
 
-function downloadPodcast() {
-  alert('Podcast download feature coming soon!')
+function podcastText() {
+  const script = generatedPodcast.value?.script
+  if (Array.isArray(script)) {
+    return script.map(s => `${s.speaker || s.role || ''}: ${s.text || s.line || ''}`).join('\n\n')
+  }
+  return typeof script === 'string' ? script : JSON.stringify(generatedPodcast.value, null, 2)
 }
 
-function sharePodcast() {
-  alert('Podcast sharing feature coming soon!')
+function downloadPodcast() {
+  if (!generatedPodcast.value) return
+  const blob = new Blob([podcastText()], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${(generatedPodcast.value.title || 'podcast').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase()}-script.txt`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+async function sharePodcast() {
+  if (!generatedPodcast.value) return
+  const text = podcastText()
+  const shareData = { title: generatedPodcast.value.title || 'Study podcast', text: text.slice(0, 4000) }
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData)
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      shareNotice.value = 'Script copied to clipboard.'
+      setTimeout(() => { shareNotice.value = '' }, 4000)
+    } else {
+      shareNotice.value = 'Sharing is not supported in this browser. Use Download script instead.'
+    }
+  } catch (e) {
+    if (e?.name !== 'AbortError') shareNotice.value = 'Could not share right now.'
+  }
 }
 
 function goBack() {

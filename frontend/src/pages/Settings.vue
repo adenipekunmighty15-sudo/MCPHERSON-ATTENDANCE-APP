@@ -30,8 +30,9 @@
             </div>
             <div class="divider" />
             <div class="form-group"><label class="form-label">Full Name</label><input v-model="profile.name" class="input w-full" /></div>
-            <div class="form-group"><label class="form-label">Email</label><input v-model="profile.email" class="input w-full" type="email" /></div>
-            <div class="form-group"><label class="form-label">Phone</label><input v-model="profile.phone" class="input w-full" type="tel" /></div>
+            <div class="form-group"><label class="form-label">Email</label><input v-model="profile.email" class="input w-full" type="email" readonly /></div>
+            <div class="form-group"><label class="form-label">Department</label><input v-model="profile.department" class="input w-full" /></div>
+            <p class="text-body-sm text-[var(--color-text-tertiary)]">Your email address is managed by your institution and cannot be changed here.</p>
             <button class="btn btn-primary" :disabled="saving.profile" @click="saveProfile">{{ saving.profile ? 'Saving...' : 'Save Changes' }}</button>
           </section>
 
@@ -113,6 +114,10 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useTheme } from '../composables/useTheme'
 import api from '../lib/api'
+import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/auth'
+
+const authStore = useAuthStore()
 
 const { setTheme } = useTheme()
 
@@ -124,54 +129,83 @@ const deleteConfirmText = ref('')
 const deleting = ref(false)
 const deleteError = ref('')
 
-const profile = reactive({ name: '', email: '', phone: '' })
+const profile = reactive({ name: '', email: '', department: '' })
 const notifications = reactive({ push: true, email: true, sms: false })
 const passwordForm = reactive({ current: '', new: '', confirm: '' })
 const preferences = reactive({ language: 'en', theme: 'light', fontSize: 16 })
 const saving = reactive({ profile: false, password: false, preferences: false })
 
-watch(() => { return preferences.theme }, setTheme, { immediate: true })
+const LOCAL_PREFS_KEY = 'mcu_user_preferences'
+const LOCAL_NOTIFICATIONS_KEY = 'mcu_notification_preferences'
+
+watch(() => preferences.theme, (theme) => setTheme(theme))
 
 watch(notifications, (val) => {
-  api.put('/settings', { notifications: { ...val } }).catch(() => {})
+  localStorage.setItem(LOCAL_NOTIFICATIONS_KEY, JSON.stringify(val))
 }, { deep: true })
 
 onMounted(async () => {
   loading.value = true
+  const storedPrefs = localStorage.getItem(LOCAL_PREFS_KEY)
+  if (storedPrefs) {
+    try { Object.assign(preferences, JSON.parse(storedPrefs)) } catch { /* ignore corrupt local settings */ }
+  }
+  const storedNotifications = localStorage.getItem(LOCAL_NOTIFICATIONS_KEY)
+  if (storedNotifications) {
+    try { Object.assign(notifications, JSON.parse(storedNotifications)) } catch { /* ignore corrupt local settings */ }
+  }
+  // Do not override a saved theme with the component default.
+  setTheme(preferences.theme)
+
   try {
-    const res = await api.get('/settings')
-    const data = res.data
-    if (data.profile) Object.assign(profile, data.profile)
-    if (data.notifications) Object.assign(notifications, data.notifications)
-    if (data.preferences) Object.assign(preferences, data.preferences)
-  } catch (e) { if (e.response?.status !== 404) errorMsg.value = 'Failed to load settings.' }
-  finally { loading.value = false }
+    const { data } = await api.get('/auth/me')
+    if (data) {
+      profile.name = data.name || ''
+      profile.email = data.email || ''
+      profile.department = data.department || ''
+    }
+  } catch (e) {
+    if (e.response?.status !== 503) errorMsg.value = 'Could not load your profile.'
+  } finally { loading.value = false }
 })
 
 async function saveProfile() {
   if (!profile.name.trim()) { errorMsg.value = 'Name is required'; return }
   if (!profile.email.trim()) { errorMsg.value = 'Email is required'; return }
-  saving.value.profile = true; errorMsg.value = ''
-  try { await api.put('/settings', { profile: { ...profile } }); successMsg.value = 'Profile updated'; setTimeout(() => successMsg.value = '', 3000) }
-  catch (e) { errorMsg.value = e.response?.data?.error || 'Failed to save.' }
-  finally { saving.value.profile = false }
+  saving.profile = true; errorMsg.value = ''
+  try {
+    await api.put('/auth/profile', { name: profile.name.trim(), department: profile.department.trim() || 'Computer Science' })
+    successMsg.value = 'Profile updated'; setTimeout(() => successMsg.value = '', 3000)
+  } catch (e) { errorMsg.value = e.response?.data?.error || 'Failed to save.' }
+  finally { saving.profile = false }
 }
 
 async function savePassword() {
   if (!passwordForm.current) { errorMsg.value = 'Current password required'; return }
   if (!passwordForm.new || passwordForm.new.length < 6) { errorMsg.value = 'New password (6+ chars) required'; return }
   if (passwordForm.new !== passwordForm.confirm) { errorMsg.value = 'Passwords do not match'; return }
-  saving.value.password = true; errorMsg.value = ''
-  try { await api.put('/auth/change-password', { ...passwordForm }); successMsg.value = 'Password changed'; passwordForm.current = ''; passwordForm.new = ''; passwordForm.confirm = ''; setTimeout(() => successMsg.value = '', 3000) }
-  catch (e) { errorMsg.value = e.response?.data?.error || 'Failed to change password.' }
-  finally { saving.value.password = false }
+  if (!supabase) { errorMsg.value = 'Authentication is not configured.'; return }
+  saving.password = true; errorMsg.value = ''
+  try {
+    // Re-authenticate first so an attacker with a briefly unlocked browser
+    // cannot change the password without knowing the current one.
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: profile.email, password: passwordForm.current })
+    if (signInError) throw signInError
+    const { error: updateError } = await supabase.auth.updateUser({ password: passwordForm.new })
+    if (updateError) throw updateError
+    successMsg.value = 'Password changed'; passwordForm.current = ''; passwordForm.new = ''; passwordForm.confirm = ''
+    setTimeout(() => successMsg.value = '', 3000)
+  } catch (e) { errorMsg.value = e.message || 'Failed to change password.' }
+  finally { saving.password = false }
 }
 
 async function savePreferences() {
-  saving.value.preferences = true; errorMsg.value = ''
-  try { await api.put('/settings', { preferences: { ...preferences } }); successMsg.value = 'Preferences saved'; setTimeout(() => successMsg.value = '', 3000) }
-  catch (e) { errorMsg.value = e.response?.data?.error || 'Failed to save.' }
-  finally { saving.value.preferences = false }
+  saving.preferences = true; errorMsg.value = ''
+  try {
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(preferences))
+    successMsg.value = 'Preferences saved'; setTimeout(() => successMsg.value = '', 3000)
+  } catch { errorMsg.value = 'Failed to save preferences on this device.' }
+  finally { saving.preferences = false }
 }
 
 function openDeleteModal() { deleteConfirmText.value = ''; deleteError.value = ''; showDeleteModal.value = true }
@@ -180,7 +214,11 @@ function closeDeleteModal() { showDeleteModal.value = false; deleteError.value =
 async function deleteAccount() {
   if (deleteConfirmText.value !== 'DELETE') { deleteError.value = 'Type DELETE exactly'; return }
   deleting.value = true; deleteError.value = ''
-  try { await api.delete('/auth/account'); window.location.href = '/login' }
+  try {
+    await api.delete('/auth/me')
+    await authStore.logout()
+    window.location.replace('/login')
+  }
   catch (e) { deleteError.value = e.response?.data?.error || 'Failed to delete account.' }
   finally { deleting.value = false }
 }

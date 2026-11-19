@@ -15,12 +15,16 @@
     </div>
 
     <!-- Main Grid -->
-    <div class="dashboard-grid">
+    <p v-if="error" class="dashboard-error" role="alert">
+      {{ error }}
+      <button type="button" @click="loadData">Retry</button>
+    </p>
+    <div v-else class="dashboard-grid">
       <!-- Study Plan Card -->
       <div class="dashboard-card card card-hover">
         <div class="card-header">
           <h2 class="card-title">Today's Study Plan</h2>
-          <span class="card-badge">{{ plan.recommendedDaily?.minutes || 0 }}m</span>
+          <span class="card-badge">{{ loading ? '—' : `${plan.recommendedDaily?.minutes || 0}m` }}</span>
         </div>
         <div class="card-content">
           <div v-if="loading" class="loading-skeleton">
@@ -64,7 +68,8 @@
             </div>
           </div>
           <div v-else-if="!plan.weakAreas?.length" class="empty-state">
-            <p>Great job! No weak areas detected.</p>
+            <p v-if="plan.statistics?.totalMaterials">No weak areas detected in your reviewed materials.</p>
+            <p v-else>Create study materials and review flashcards to receive recommendations here.</p>
           </div>
           <div v-else class="weak-areas-list">
             <div v-for="area in plan.weakAreas" :key="area.materialId" class="weak-area-item">
@@ -194,7 +199,7 @@ import { useRouter } from 'vue-router'
 import api from '../../lib/api'
 
 const router = useRouter()
-const loading = ref(false)
+const loading = ref(true)
 const error = ref('')
 const plan = ref({})
 const stats = ref({})
@@ -204,26 +209,24 @@ async function loadData() {
   error.value = ''
   try {
     const response = await api.get('/study/spaced-repetition-plan')
-    const { data, success } = response
-    if (success || data) {
-      plan.value = data || response
-      stats.value = data?.statistics || data
-    } else {
-      error.value = response.error || 'Failed to load study data'
-    }
+    const result = response.data
+    if (!result?.success || !result.data) throw new Error(result?.error || 'The server returned invalid study data.')
+    plan.value = result.data
+    stats.value = result.data.statistics || {}
   } catch (err) {
     console.error('Failed to load study data:', err)
-    error.value = err.message || 'Failed to load study data'
+    error.value = err?.response?.data?.error || err?.message || 'Failed to load study data'
   } finally {
     loading.value = false
   }
 }
 
 function startStudySession() {
-  if (plan.value?.cardsReady > 0) {
-    router.push({ name: 'flashcard-review', params: { type: 'due' } })
+  const materialId = plan.value?.weakAreas?.[0]?.materialId
+  if (plan.value?.cardsReady > 0 && materialId) {
+    router.push({ name: 'flashcard-review', params: { materialId }, query: { due: '1' } })
   } else {
-    alert('No cards due for review today! Great job staying on top of your studies. 🎉')
+    router.push({ name: 'StudyHub' })
   }
 }
 
@@ -238,18 +241,16 @@ function getStrengthColor(strength) {
   return '#EF4444' // Red
 }
 
-function createNewNote() {
-  // Emit event to show create note modal
-  window.dispatchEvent(new CustomEvent('show-create-note-modal'))
+function viewStudyPlan() {
+  router.push({ name: 'StudyPlan' })
 }
 
-function viewStudyPlan() {
-  router.push({ name: 'study-plan' })
+function createNewNote() {
+  router.push({ name: 'StudyHub' })
 }
 
 function createStudyGroup() {
-  // Emit event to show create group modal
-  window.dispatchEvent(new CustomEvent('show-create-group-modal'))
+  router.push({ name: 'StudyGroups' })
 }
 
 function generatePodcast() {
@@ -443,6 +444,24 @@ onMounted(() => {
   padding: 20px;
   text-align: center;
   color: var(--color-text-tertiary);
+}
+
+.dashboard-error {
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.dashboard-error button {
+  margin-left: 12px;
+  color: var(--color-primary);
+  background: none;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .weak-areas-list {

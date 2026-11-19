@@ -1,212 +1,465 @@
 <template>
-  <div class="min-h-screen" style="background: #F5F1EA;">
-    <div class="max-w-7xl mx-auto px-6 py-8">
-
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.15em]" style="color: #96A0B5;">2023/2024 &middot; SEMESTER 2</p>
-          <h1 class="text-3xl font-bold mt-1" style="color: #0F1E3D; font-family: 'Playfair Display', 'Georgia', serif;">Timetable</h1>
-        </div>
-        <div class="flex items-center gap-3">
-          <button @click="prevWeek" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all" style="background: #EDEDED; color: #68758E;" @mouseenter="$el.style.background='#E2E6ED'" @mouseleave="$el.style.background='#EDEDED'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-          </button>
-          <span class="text-sm font-semibold" style="color: #0F1E3D;">Week {{ currentWeekLabel }}</span>
-          <button @click="nextWeek" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all" style="background: #EDEDED; color: #68758E;" @mouseenter="$el.style.background='#E2E6ED'" @mouseleave="$el.style.background='#EDEDED'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-          </button>
-        </div>
+  <section class="timetable-page">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Academic schedule</p>
+        <h1>Timetable</h1>
+        <p class="page-description">Classes published to the university timetable.</p>
       </div>
+      <button class="refresh-button" type="button" :disabled="loading" @click="loadTimetable">
+        <svg :class="{ spinning: loading }" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 7v5h-5M4 17v-5h5" />
+          <path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" />
+        </svg>
+        Refresh
+      </button>
+    </header>
 
-      <!-- Course Legend -->
-      <div class="flex flex-wrap items-center gap-3 mb-6">
-        <span class="text-xs font-semibold uppercase tracking-wider" style="color: #96A0B5;">Courses</span>
-        <button v-for="c in courses" :key="c.code"
-          @click="toggleCourseFilter(c.code)"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border-0"
-          :style="{
-            background: courseFilter.includes(c.code) ? c.color + '22' : '#EDEDED',
-            color: courseFilter.includes(c.code) ? c.color : '#96A0B5',
-          }"
-        >
-          <span class="w-2 h-2 rounded-full" :style="{ background: c.color }"></span>
-          {{ c.code }}
-        </button>
+    <div v-if="loading && !entries.length" class="schedule-grid" aria-label="Loading timetable">
+      <div v-for="index in 3" :key="index" class="day-skeleton">
+        <span></span><i></i><i></i>
       </div>
-
-      <!-- 7-Day Grid -->
-      <div class="rounded-2xl overflow-hidden border" style="background: #FFFFFF; border-color: #E2E6ED;">
-        <!-- Header Row -->
-        <div class="grid" style="grid-template-columns: 72px repeat(7, 1fr);">
-          <div class="p-3" style="border-right: 1px solid #E2E6ED; border-bottom: 1px solid #E2E6ED; background: #F5F1EA;"></div>
-          <div v-for="(d, di) in days" :key="d"
-            class="p-3 text-center font-bold text-xs uppercase tracking-wider border-b transition-colors"
-            :class="{ 'today-column': di === todayCol }"
-            :style="{
-              borderRight: di < 6 ? '1px solid #E2E6ED' : 'none',
-              color: di === todayCol ? '#0F1E3D' : '#96A0B5',
-              background: di === todayCol ? '#F5F1EA' : '#FFFFFF',
-              borderBottom: di === todayCol ? '2px solid #0F1E3D' : '1px solid #E2E6ED',
-            }"
-          >
-            <span class="block text-[11px] font-bold tracking-wider">{{ d.slice(0, 3) }}</span>
-            <span class="block text-xs mt-0.5" :style="{ color: di === todayCol ? '#0F1E3D' : '#B8C0D0' }">{{ dayNumber(di) }}</span>
-          </div>
-        </div>
-
-        <!-- Time Rows -->
-        <div v-for="t in timeSlots" :key="t"
-          class="grid" style="grid-template-columns: 72px repeat(7, 1fr);"
-        >
-          <!-- Time label -->
-          <div class="relative text-right pr-4 text-[11px] font-mono font-semibold border-r" style="padding: 0 12px; height: 80px; color: #96A0B5; border-color: #E2E6ED;">
-            <span class="absolute" style="top: -6px; right: 12px;">{{ t }}</span>
-          </div>
-
-          <!-- Day cells -->
-          <div v-for="(d, di) in days" :key="d + t"
-            class="relative border-r p-1.5 transition-colors"
-            :style="{
-              borderColor: '#E2E6ED',
-              background: di === todayCol ? '#F5F1EA' : '#FFFFFF',
-              height: '80px',
-            }"
-          >
-            <div
-              v-for="cl in getClasses(d, t)" :key="cl.code + t"
-              @click="openClassDetail(cl)"
-              class="absolute inset-x-1 rounded-lg p-2 text-xs cursor-pointer transition-all hover:scale-[1.02] border shadow-sm overflow-hidden"
-              :style="{
-                background: cl.color + '18',
-                borderColor: cl.color + '44',
-                borderLeft: '3px solid ' + cl.color,
-                top: '4px',
-                bottom: '4px',
-              }"
-            >
-              <div class="font-bold text-[12px] leading-tight" :style="{ color: cl.color }">{{ cl.code }}</div>
-              <div class="text-[10px] font-medium mt-0.5" style="color: #68758E;">{{ cl.room }}</div>
-              <div class="text-[9px]" style="color: #96A0B5;">{{ cl.start }}–{{ cl.end }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Class Detail Modal -->
-      <div v-if="selectedClass" class="fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(15, 30, 61, 0.3);" @click.self="selectedClass = null">
-        <div class="rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl animate-fade-in" style="background: #FFFFFF;">
-          <div class="flex items-center gap-3 mb-4">
-            <span class="w-3 h-3 rounded-full" :style="{ background: selectedClass.color }"></span>
-            <h3 class="text-lg font-bold" style="color: #0F1E3D;">{{ selectedClass.code }}</h3>
-          </div>
-          <div class="space-y-2 text-sm" style="color: #68758E;">
-            <p><span class="font-semibold" style="color: #0F1E3D;">Course:</span> {{ selectedClass.title }}</p>
-            <p><span class="font-semibold" style="color: #0F1E3D;">Room:</span> {{ selectedClass.room }}</p>
-            <p><span class="font-semibold" style="color: #0F1E3D;">Time:</span> {{ selectedClass.day }} {{ selectedClass.start }}–{{ selectedClass.end }}</p>
-            <p><span class="font-semibold" style="color: #0F1E3D;">Lecturer:</span> {{ selectedClass.lecturer }}</p>
-          </div>
-          <button @click="selectedClass = null" class="w-full mt-5 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer transition-all" style="background: #EDEDED; color: #0F1E3D;" @mouseenter="$el.style.background='#E2E6ED'" @mouseleave="$el.style.background='#EDEDED'">Close</button>
-        </div>
-      </div>
-
     </div>
-  </div>
+    <div v-else-if="error" class="state-card error-state" role="alert">
+      <p>{{ error }}</p>
+      <button type="button" @click="loadTimetable">Try again</button>
+    </div>
+    <div v-else-if="!dayGroups.length" class="state-card">
+      <div class="empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+      </div>
+      <h2>No classes published</h2>
+      <p>There are no timetable entries available right now. Check again later.</p>
+      <button type="button" @click="loadTimetable">Refresh timetable</button>
+    </div>
+
+    <div v-else class="schedule-grid">
+      <section v-for="group in dayGroups" :key="group.day" class="day-column" :aria-label="`${group.day} classes`">
+        <header class="day-heading">
+          <h2>{{ group.day }}</h2>
+          <span>{{ group.entries.length }}</span>
+        </header>
+        <button
+          v-for="entry in group.entries"
+          :key="entry.id"
+          type="button"
+          class="class-card"
+          @click="selectedEntry = entry"
+        >
+          <span class="class-time">{{ entry.time || 'Time not specified' }}</span>
+          <strong>{{ entry.course || entry.course_code || 'Class' }}</strong>
+          <span v-if="entry.room" class="class-detail">{{ entry.room }}</span>
+          <span v-if="entry.lecturer" class="class-detail">{{ entry.lecturer }}</span>
+          <span v-if="entry.type" class="class-type">{{ entry.type }}</span>
+        </button>
+      </section>
+    </div>
+
+    <div v-if="selectedEntry" class="modal-backdrop" @click.self="selectedEntry = null">
+      <section class="details-modal" role="dialog" aria-modal="true" aria-labelledby="class-title">
+        <header>
+          <div>
+            <p class="eyebrow">{{ selectedEntry.day || 'Class details' }}</p>
+            <h2 id="class-title">{{ selectedEntry.course || selectedEntry.course_code || 'Class' }}</h2>
+          </div>
+          <button type="button" class="close-button" aria-label="Close details" @click="selectedEntry = null">×</button>
+        </header>
+        <dl>
+          <div><dt>Time</dt><dd>{{ selectedEntry.time || 'Not specified' }}</dd></div>
+          <div><dt>Room</dt><dd>{{ selectedEntry.room || 'Not specified' }}</dd></div>
+          <div><dt>Lecturer</dt><dd>{{ selectedEntry.lecturer || 'Not specified' }}</dd></div>
+          <div><dt>Type</dt><dd>{{ selectedEntry.type || 'Not specified' }}</dd></div>
+        </dl>
+        <button class="close-action" type="button" @click="selectedEntry = null">Close</button>
+      </section>
+    </div>
+  </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import api from '../lib/api'
 
-const today = new Date()
-const todayCol = ref((today.getDay() + 6) % 7)
-const weekOffset = ref(0)
+const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const entries = ref([])
+const loading = ref(true)
+const error = ref('')
+const selectedEntry = ref(null)
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
-const timeSlots = ['08:00', '10:00', '12:00', '14:00', '16:00']
-
-const courseFilter = ref(['CSC 201', 'MTH 201', 'STA 201', 'CSC 203', 'GNS 201', 'CSC 205'])
-
-const courses = [
-  { code: 'CSC 201', title: 'Introduction to Programming', color: '#3B82F6', lecturer: 'Dr. Adebayo' },
-  { code: 'MTH 201', title: 'Linear Algebra', color: '#8B5CF6', lecturer: 'Prof. Okonkwo' },
-  { code: 'STA 201', title: 'Probability & Statistics', color: '#10B981', lecturer: 'Dr. Eze' },
-  { code: 'CSC 203', title: 'Data Structures', color: '#F59E0B', lecturer: 'Dr. Adebayo' },
-  { code: 'GNS 201', title: 'Use of English', color: '#EC4899', lecturer: 'Mrs. Bello' },
-  { code: 'CSC 205', title: 'Computer Organization', color: '#06B6D4', lecturer: 'Dr. Okonkwo' },
-]
-
-const scheduleData = [
-  { day: 'Monday',    start: '08:00', end: '10:00', code: 'CSC 201', title: 'Introduction to Programming', room: 'Lab 1', lecturer: 'Dr. Adebayo' },
-  { day: 'Monday',    start: '12:00', end: '14:00', code: 'MTH 201', title: 'Linear Algebra', room: 'Hall A', lecturer: 'Prof. Okonkwo' },
-  { day: 'Tuesday',   start: '10:00', end: '12:00', code: 'STA 201', title: 'Probability & Statistics', room: 'Lab 2', lecturer: 'Dr. Eze' },
-  { day: 'Tuesday',   start: '14:00', end: '16:00', code: 'CSC 203', title: 'Data Structures', room: 'Lab 1', lecturer: 'Dr. Adebayo' },
-  { day: 'Wednesday', start: '08:00', end: '10:00', code: 'CSC 201', title: 'Introduction to Programming', room: 'Hall A', lecturer: 'Dr. Adebayo' },
-  { day: 'Wednesday', start: '10:00', end: '12:00', code: 'GNS 201', title: 'Use of English', room: 'Auditorium', lecturer: 'Mrs. Bello' },
-  { day: 'Wednesday', start: '14:00', end: '16:00', code: 'CSC 205', title: 'Computer Organization', room: 'Lab 3', lecturer: 'Dr. Okonkwo' },
-  { day: 'Thursday',  start: '08:00', end: '10:00', code: 'STA 201', title: 'Probability & Statistics', room: 'Lab 2', lecturer: 'Dr. Eze' },
-  { day: 'Thursday',  start: '12:00', end: '14:00', code: 'MTH 201', title: 'Linear Algebra', room: 'Hall B', lecturer: 'Prof. Okonkwo' },
-  { day: 'Friday',    start: '10:00', end: '12:00', code: 'CSC 203', title: 'Data Structures', room: 'Lab 1', lecturer: 'Dr. Adebayo' },
-  { day: 'Friday',    start: '14:00', end: '16:00', code: 'CSC 205', title: 'Computer Organization', room: 'Lab 3', lecturer: 'Dr. Okonkwo' },
-]
-
-const selectedClass = ref(null)
-
-const currentWeekLabel = computed(() => {
-  const n = today.getDate()
-  const m = today.getMonth()
-  const y = today.getFullYear()
-  const weekNum = Math.ceil((n + new Date(y, m, 1).getDay()) / 7) + weekOffset.value
-  return weekNum
+const dayGroups = computed(() => {
+  const normalizeDay = value => {
+    const text = String(value || '').trim().toLowerCase()
+    return weekdays.find(day => text === day.toLowerCase() || text.startsWith(day.slice(0, 3).toLowerCase())) || 'Other days'
+  }
+  const groups = weekdays
+    .map(day => ({
+      day,
+      entries: entries.value
+        .filter(entry => normalizeDay(entry.day) === day)
+        .slice()
+        .sort((a, b) => String(a.time || '').localeCompare(String(b.time || ''))),
+    }))
+    .filter(group => group.entries.length)
+  const otherEntries = entries.value
+    .filter(entry => normalizeDay(entry.day) === 'Other days')
+    .slice()
+    .sort((a, b) => String(a.day || '').localeCompare(String(b.day || '')))
+  if (otherEntries.length) groups.push({ day: 'Other days', entries: otherEntries })
+  return groups
 })
 
-function dayNumber(di) {
-  const diff = di - todayCol.value
-  const d = new Date(today)
-  d.setDate(d.getDate() + diff)
-  return d.getDate()
+async function loadTimetable() {
+  loading.value = true
+  error.value = ''
+  try {
+    const { data } = await api.get('/timetable')
+    if (!Array.isArray(data)) throw new Error('The server returned invalid timetable data.')
+    entries.value = data
+  } catch (requestError) {
+    console.error('Failed to load timetable:', requestError)
+    error.value = requestError?.response?.data?.error || 'Could not load the timetable. Please try again.'
+  } finally {
+    loading.value = false
+  }
 }
 
-function toggleCourseFilter(code) {
-  const i = courseFilter.value.indexOf(code)
-  if (i >= 0) courseFilter.value.splice(i, 1)
-  else courseFilter.value.push(code)
-}
-
-function timeToMinutes(t) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
-
-function getClasses(day, time) {
-  const tMin = timeToMinutes(time)
-  const tMax = tMin + 120
-  return scheduleData.filter(cl =>
-    cl.day === day &&
-    courseFilter.value.includes(cl.code) &&
-    timeToMinutes(cl.start) < tMax &&
-    timeToMinutes(cl.end) > tMin
-  ).map(cl => ({
-    ...cl,
-    color: courses.find(c => c.code === cl.code)?.color || '#96A0B5',
-  }))
-}
-
-function openClassDetail(cl) {
-  selectedClass.value = cl
-}
-
-function prevWeek() { weekOffset.value-- }
-function nextWeek() { weekOffset.value++ }
-
+onMounted(loadTimetable)
 </script>
 
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
+.timetable-page {
+  min-height: 100%;
+  padding: clamp(16px, 3vw, 32px);
+  color: var(--color-text-primary);
 }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.page-description {
+  margin: 7px 0 0;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.refresh-button,
+.state-card button,
+.close-action {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.refresh-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.spinning {
+  animation: spin 0.9s linear infinite;
+}
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.day-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.day-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 3px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.day-heading h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.day-heading span {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.class-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 11px;
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.class-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-primary);
+}
+
+.class-time {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.class-card strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.class-detail,
+.class-type {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+}
+
+.class-type {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  text-transform: capitalize;
+}
+
+.state-card {
+  display: flex;
+  min-height: 250px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 16px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.state-card h2 {
+  margin: 14px 0 0;
+  font-size: 16px;
+}
+
+.state-card p {
+  max-width: 370px;
+  margin: 8px 0 16px;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.error-state p {
+  color: var(--color-error, #b91c1c);
+}
+
+.empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.empty-icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.day-skeleton {
+  display: flex;
+  min-height: 150px;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.day-skeleton span,
+.day-skeleton i {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--color-surface-elevated);
+}
+
+.day-skeleton span {
+  width: 45%;
+}
+
+.day-skeleton i:last-child {
+  width: 75%;
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.details-modal {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  box-shadow: 0 20px 70px rgba(15, 23, 42, 0.2);
+}
+
+.details-modal header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.details-modal h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--color-surface-elevated);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 21px;
+}
+
+.details-modal dl {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.details-modal dl div {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+}
+
+.details-modal dt {
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+}
+
+.details-modal dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 11px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.close-action {
+  width: 100%;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 540px) {
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .refresh-button {
+    min-width: 40px;
+    padding: 0 10px;
+    font-size: 0;
+  }
+
+  .refresh-button svg {
+    width: 18px;
+    height: 18px;
+  }
 }
 </style>

@@ -1,2620 +1,1234 @@
 <template>
-  <div class="messages-page" :class="{ 'show-new-chat': showNewChat }">
-    <!-- ===== LEFT PANEL: CHAT LIST ===== -->
-    <aside class="msg-list-panel">
-      <div class="mlp-header">
-        <h2 class="mlp-title">{{ authStore.user?.name?.split(' ')[0] || 'Messages' }}</h2>
-        <button class="mlp-new-btn" @click="showNewChat = !showNewChat" title="New conversation">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 8v8M8 12h8"/></svg>
+  <section class="messages-page" aria-label="Messages">
+    <aside class="conversation-panel" :class="{ 'conversation-panel-hidden': store.activeConversationId }">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Connect</p>
+          <h1>Messages</h1>
+        </div>
+        <button class="icon-button primary-icon" type="button" aria-label="New conversation" title="New conversation" @click="showNewChat = true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      </header>
+
+      <label class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input v-model="store.searchQuery" type="search" placeholder="Search conversations" aria-label="Search conversations" />
+      </label>
+
+      <div class="filter-tabs" role="group" aria-label="Filter conversations">
+        <button type="button" :class="{ selected: store.filterMode === 'all' }" @click="store.filterMode = 'all'">All</button>
+        <button type="button" :class="{ selected: store.filterMode === 'unread' }" @click="store.filterMode = 'unread'">
+          Unread <span v-if="store.unreadTotal" class="filter-count">{{ store.unreadTotal }}</span>
         </button>
       </div>
-      <p class="messaging-notice" role="note">
-        Demo only: conversations stay on this device and are not delivered to other users.
-      </p>
 
-      <div class="mlp-search">
-        <svg class="mlp-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input v-model="store.searchQuery" class="mlp-search-input" placeholder="Search messages or people..." />
+      <div v-if="store.error" class="inline-error" role="alert">
+        <span>{{ store.error }}</span>
+        <button type="button" @click="retry">Retry</button>
       </div>
 
-      <div class="mlp-tabs" v-if="!store.searchQuery">
-        <button v-for="tab in filterTabs" :key="tab.key" class="mlp-tab" :class="{ active: store.filterMode === tab.key }" @click="store.filterMode = tab.key">
-          {{ tab.label }}
-          <span v-if="tab.count !== undefined" class="mlp-tab-count">{{ tab.count }}</span>
+      <div v-if="store.loading && !store.conversations.length" class="conversation-list" aria-label="Loading conversations">
+        <div v-for="index in 4" :key="index" class="conversation-skeleton">
+          <span></span><div><i></i><i></i></div>
+        </div>
+      </div>
+      <div v-else-if="store.filteredConversations.length === 0" class="list-empty">
+        <div class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" /></svg>
+        </div>
+        <p>{{ store.filterMode === 'unread' ? 'No unread messages' : store.searchQuery ? 'No conversations match your search' : 'Your inbox is empty' }}</p>
+        <button v-if="store.filterMode !== 'unread' && !store.searchQuery" type="button" class="text-button" @click="showNewChat = true">
+          Start a conversation
         </button>
       </div>
-
-      <div class="mlp-list" ref="listRef">
-        <template v-if="store.loading">
-          <div v-for="n in 5" :key="n" class="mlp-skeleton">
-            <div class="sk-avatar" />
-            <div class="sk-lines">
-              <div class="sk-line w-40" />
-              <div class="sk-line w-70" />
-            </div>
-          </div>
-        </template>
-
-        <template v-else-if="store.filteredConversations.length === 0">
-          <div class="mlp-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <p>No conversations yet</p>
-            <button class="mlp-start-btn" @click="showNewChat = true">Start a chat</button>
-          </div>
-        </template>
-
-        <template v-else>
-          <button v-for="conv in store.filteredConversations" :key="conv.id" class="mlp-item" :class="{ active: conv.id === store.activeConversationId }" @click="store.setActiveConversation(conv.id)">
-            <div class="mlp-item-avatar" :class="{ 'group-avatar': conv.type === 'group' }">
-              <template v-if="conv.type === 'group'">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </template>
-              <template v-else>
-                {{ getContactInitials(conv) }}
-              </template>
-              <span v-if="!conv.type && getContact(conv)?.online" class="online-dot" />
-            </div>
-            <div class="mlp-item-body">
-              <div class="mlp-item-top">
-                <span class="mlp-item-name">{{ conv.type === 'group' ? conv.groupName : getContact(conv)?.name || 'Unknown' }}</span>
-                <span class="mlp-item-time">{{ store.formatTime(conv.lastMessage?.timestamp) }}</span>
-              </div>
-              <div class="mlp-item-bottom">
-                <div class="mlp-item-preview">
-                  <span v-if="conv.lastMessage?.senderId === 'me'" class="mlp-item-me">You: </span>
-                  <span class="mlp-item-text">{{ conv.lastMessage?.content || 'No messages yet' }}</span>
-                </div>
-                <div class="mlp-item-meta">
-                  <span v-if="conv.pinned" class="pin-icon" title="Pinned">📌</span>
-                  <span v-if="conv.unreadCount > 0" class="mlp-badge">{{ conv.unreadCount > 9 ? '9+' : conv.unreadCount }}</span>
-                  <span v-if="conv.type === 'group'" class="member-count">{{ conv.participants.length }}</span>
-                </div>
-              </div>
-            </div>
-          </button>
-        </template>
-      </div>
+      <nav v-else class="conversation-list" aria-label="Conversations">
+        <button
+          v-for="conversation in store.filteredConversations"
+          :key="conversation.id"
+          type="button"
+          class="conversation-item"
+          :class="{ active: conversation.id === store.activeConversationId }"
+          :aria-current="conversation.id === store.activeConversationId ? 'page' : undefined"
+          @click="store.setActiveConversation(conversation.id)"
+        >
+          <span class="avatar" :class="avatarTone(conversation.partner?.role)">
+            {{ initials(partnerFor(conversation)?.name) }}
+          </span>
+          <span class="conversation-copy">
+            <span class="conversation-topline">
+              <span class="conversation-name">{{ partnerFor(conversation)?.name || 'User' }}</span>
+              <time v-if="conversation.lastMessage?.timestamp" class="conversation-time">{{ store.formatTimestamp(conversation.lastMessage.timestamp) }}</time>
+            </span>
+            <span class="conversation-bottomline">
+              <span class="conversation-preview">
+                <span v-if="conversation.lastMessage?.senderId === 'me'">You: </span>
+                {{ conversation.lastMessage?.content || 'Start a conversation' }}
+              </span>
+              <span v-if="conversation.unreadCount" class="unread-badge">{{ conversation.unreadCount > 99 ? '99+' : conversation.unreadCount }}</span>
+            </span>
+          </span>
+        </button>
+      </nav>
     </aside>
 
-    <!-- ===== RIGHT PANEL: CONVERSATION ===== -->
-    <div class="msg-thread-panel">
-      <!-- Landing State -->
-      <div v-if="!store.activeConversationId && !showNewChat" class="mtp-landing">
-        <div class="mtp-landing-graphic">
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.15"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <h3>Your Messages</h3>
-        <p>Select a conversation or start a new one</p>
-        <button class="mtp-landing-btn" @click="showNewChat = true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 8v8M8 12h8"/></svg>
-          New Conversation
-        </button>
-      </div>
-
-      <!-- Active Chat -->
-      <template v-if="store.activeConversationId">
-        <div class="mtp-thread-header">
-          <button class="mtp-back-btn" @click="store.activeConversationId = null">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <main class="thread-panel">
+      <template v-if="store.activeConversation">
+        <header class="thread-header">
+          <button type="button" class="icon-button mobile-back" aria-label="Back to conversations" @click="store.activeConversationId = null">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
           </button>
-          <div class="mtp-thread-avatar" :class="{ 'group-avatar': store.activeConversation?.type === 'group' }">
-            <template v-if="store.activeConversation?.type === 'group'">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </template>
-            <template v-else>{{ getActiveContactInitials() }}</template>
+          <span class="avatar" :class="avatarTone(activePartner?.role)">{{ initials(activePartner?.name) }}</span>
+          <div class="thread-person">
+            <h2>{{ activePartner?.name || 'User' }}</h2>
+            <p>{{ [activePartner?.role, activePartner?.department].filter(Boolean).join(' · ') || 'Direct conversation' }}</p>
           </div>
-          <div class="mtp-thread-info">
-            <span class="mtp-thread-name">{{ store.activeConversation?.type === 'group' ? store.activeConversation.groupName : getActiveContact()?.name || 'Unknown' }}</span>
-            <span class="mtp-thread-status" v-if="store.isTyping(store.activeConversationId)">
-              <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
-            </span>
-            <span class="mtp-thread-status" v-else-if="getActiveContact()?.online">Online</span>
-            <span class="mtp-thread-status" v-else-if="getActiveContact()?.lastSeen">{{ formatLastSeen(getActiveContact()?.lastSeen) }}</span>
-            <span class="mtp-thread-dept" v-else-if="store.activeConversation?.type === 'group'">{{ store.activeConversation.participants.length }} members</span>
-          </div>
-          <div class="mtp-thread-actions">
-            <button class="mtp-action-btn" @click="showContactInfo = !showContactInfo" title="Contact info">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-            </button>
-            <button class="mtp-action-btn" @click="store.deleteChat(store.activeConversationId)" title="Delete chat">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
-          </div>
-        </div>
+          <button type="button" class="icon-button thread-action" aria-label="Hide conversation" title="Hide conversation" @click="hideConversation">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" /></svg>
+          </button>
+        </header>
 
-        <!-- Contact Info Sidebar -->
-        <div v-if="showContactInfo && !store.activeConversation?.type" class="mtp-contact-info-backdrop" @click="showContactInfo = false">
-          <div class="mtp-contact-info" @click.stop>
-            <button class="mtp-ci-close-top" @click="showContactInfo = false">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-            <div class="mtp-ci-header">
-              <div class="mtp-ci-avatar">{{ getActiveContactInitials() }}</div>
-              <h3>{{ getActiveContact()?.name }}</h3>
-            </div>
-            <div class="mtp-ci-details">
-              <div class="mtp-ci-row">
-                <span class="mtp-ci-label">Department</span>
-                <span class="mtp-ci-value">{{ getActiveContact()?.department }}</span>
-              </div>
-              <div class="mtp-ci-row">
-                <span class="mtp-ci-label">Faculty</span>
-                <span class="mtp-ci-value">{{ getActiveContact()?.faculty }}</span>
-              </div>
-              <div class="mtp-ci-row">
-                <span class="mtp-ci-label">Year</span>
-                <span class="mtp-ci-value">{{ getActiveContact()?.year ? `Year ${getActiveContact().year}` : '—' }}</span>
-              </div>
-              <div class="mtp-ci-row">
-                <span class="mtp-ci-label">Role</span>
-                <span class="mtp-ci-value" :class="{ 'is-lecturer': getActiveContact()?.role === 'lecturer' }">{{ getActiveContact()?.role === 'lecturer' ? 'Lecturer' : 'Student' }}</span>
-              </div>
-              <div class="mtp-ci-row" v-if="getActiveContact()?.courses?.length">
-                <span class="mtp-ci-label">Courses</span>
-                <div class="mtp-ci-courses">
-                  <span v-for="c in getActiveContact()?.courses" :key="c" class="mtp-ci-course-tag">{{ c }}</span>
-                </div>
-              </div>
-            </div>
+        <div ref="threadRef" class="message-history" role="log" aria-label="Message history" aria-live="polite">
+          <div v-if="store.loadingMessages && !store.activeMessages.length" class="thread-empty">
+            <span class="loading-spinner" aria-hidden="true"></span>
+            <p>Loading messages…</p>
           </div>
-        </div>
-
-        <!-- Messages Thread -->
-        <div class="mtp-thread" ref="threadRef" @scroll="onThreadScroll">
-          <div class="mtp-thread-scroll">
-            <template v-for="(group, gi) in groupedMessages" :key="gi">
-              <div class="mtp-date-divider">
-                <span>{{ group.date }}</span>
-              </div>
-              <div v-for="msg in group.messages" :key="msg.id" class="msg-row" :class="{ 'msg-mine': msg.senderId === 'me', 'msg-theirs': msg.senderId !== 'me', 'msg-system': msg.type === 'system' }">
-                <!-- Reply preview -->
-                <div v-if="msg.replyTo" class="msg-reply-preview" @click="scrollToMessage(msg.replyTo)">
-                  <div class="msg-reply-bar" :class="{ 'bar-mine': msg.senderId === 'me' }" />
-                  <div class="msg-reply-content">
-                    <span class="msg-reply-sender">{{ getReplySenderName(msg.replyTo) }}</span>
-                    <span class="msg-reply-text">{{ getReplyPreview(msg.replyTo) }}</span>
+          <div v-else-if="!store.activeMessages.length" class="thread-empty">
+            <div class="empty-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" /></svg>
+            </div>
+            <p>No messages yet</p>
+            <span>Send a message to get the conversation started.</span>
+          </div>
+          <template v-else>
+            <div v-for="group in groupedMessages" :key="group.label" class="message-day">
+              <span>{{ group.label }}</span>
+              <article
+                v-for="message in group.messages"
+                :key="message.id"
+                class="message-row"
+                :class="{ mine: message.senderId === 'me' }"
+              >
+                <div class="message-bubble">
+                  <div v-if="replyPreview(message)" class="reply-preview">
+                    <strong>{{ message.replyPreview?.senderId === 'me' || replyPreview(message)?.senderId === 'me' ? 'You' : activePartner?.name }}</strong>
+                    <span>{{ message.replyPreview?.content || replyPreview(message)?.content }}</span>
                   </div>
+                  <p class="message-content">{{ message.content }}</p>
+                  <footer class="message-meta">
+                    <time>{{ store.formatTime(message.timestamp) }}</time>
+                    <span v-if="message.senderId === 'me' && message.status" :style="{ color: store.getStatusColor(message.status) }" :aria-label="message.status">
+                      {{ store.getStatusIcon(message.status) }}
+                    </span>
+                  </footer>
                 </div>
-
-                <!-- System message -->
-                <div v-if="msg.type === 'system'" class="msg-system-bubble">{{ msg.content }}</div>
-
-                <!-- Normal message -->
-                <div v-else class="msg-bubble-wrap msg-animate" :style="getMsgAnimationDelay(gi * 5 + msgIndex(msg))" :data-msg-id="msg.id" @mouseenter="hoveredMsg = msg.id" @mouseleave="hoveredMsg = null">
-                  <div class="msg-bubble" :class="{ 'has-reactions': hasActiveReactions(msg) }" @click="handleMsgClick(msg, $event)" @contextmenu.prevent="openContextMenu(msg, $event)">
-                    <!-- Voice message -->
-                    <div v-if="msg.type === 'voice'" class="msg-voice" @click.stop>
-                      <button class="voice-play-btn" @click="playVoice(msg)">
-                        <svg v-if="playingVoice !== msg.id" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                      </button>
-                      <div class="voice-waveform">
-                        <span v-for="n in 24" :key="n" class="vw-bar" :style="{ height: Math.sin(n * 0.5) * 10 + 6 + 'px', opacity: playingVoice === msg.id ? 1 : 0.5 }"></span>
-                      </div>
-                      <span class="voice-duration">{{ msg.content.replace('🎤 Voice (', '').replace(')', '') }}</span>
-                    </div>
-
-                    <!-- File/Image message -->
-                    <div v-else-if="msg.type === 'file'" class="msg-file" @click.stop>
-                      <template v-if="isImageFile(msg.content)">
-                        <img :src="getFileUrl(msg.content)" class="msg-thumb" @load="onImgLoad" @click="openPreview(getFileUrl(msg.content))" alt="attachment" />
-                      </template>
-                      <template v-else>
-                        <div class="file-attach" @click="openPreview(getFileUrl(msg.content))">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                          <span class="file-name">{{ msg.content.replace('📎 ', '') }}</span>
-                        </div>
-                      </template>
-                    </div>
-
-                    <!-- Text message -->
-                    <div v-else class="msg-text" v-safe-html="linkify(msg.content)"></div>
-
-                    <div class="msg-meta">
-                      <span class="msg-time">{{ formatTime(msg.timestamp) }}</span>
-                      <span v-if="msg.senderId === 'me'" class="msg-status" :style="{ color: store.getStatusColor(msg.status) }">
-                        {{ store.getStatusIcon(msg.status) }}
-                      </span>
-                    </div>
-                    <!-- Reactions -->
-                    <div v-if="hasActiveReactions(msg)" class="msg-reactions" @click.stop>
-                      <span v-for="(users, emoji) in msg.reactions" :key="emoji" class="msg-reaction" :class="{ 'mine': users.includes('me') }" @click="store.toggleReaction(msg.id, emoji)">
-                        {{ emoji }}
-                        <span class="reaction-count">{{ users.length }}</span>
-                      </span>
-                    </div>
-                  </div>
-                  <button v-if="hoveredMsg === msg.id" class="msg-reply-btn" @click="store.setReplyTo(msg.id); focusInput()" :title="'Reply to ' + getMessageSenderName(msg.senderId)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  </button>
-                </div>
-
-                <!-- Reaction picker -->
-                <div v-if="showReactionPicker === msg.id" class="reaction-picker" @mouseleave="showReactionPicker = null">
-                  <button v-for="emoji in reactionEmojis" :key="emoji" class="rp-emoji" :class="{ active: hasReaction(msg, emoji) }" @click="store.toggleReaction(msg.id, emoji); showReactionPicker = null">
-                    {{ emoji }}
-                  </button>
-                </div>
-              </div>
-            </template>
-
-            <!-- Typing indicator -->
-            <div v-if="store.isTyping(store.activeConversationId)" class="typing-indicator">
-              <div class="typing-avatar">{{ getActiveContactInitials() }}</div>
-              <div class="typing-bubble">
-                <span class="typing-dot" /><span class="typing-dot" /><span class="typing-dot" />
-              </div>
+                <button
+                  type="button"
+                  class="reply-button"
+                  :aria-label="`Reply to message: ${message.content.slice(0, 60)}`"
+                  title="Reply"
+                  @click="store.setReplyTo(message.id)"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 17-5-5 5-5M4 12h9a7 7 0 0 1 7 7" /></svg>
+                </button>
+              </article>
             </div>
-          </div>
+          </template>
         </div>
 
-        <!-- Reply Preview Bar -->
-        <div v-if="store.replyToMessage" class="reply-preview-bar">
-          <div class="reply-bar-info">
-            <span class="reply-bar-label">Replying to <strong>{{ store.replyToMessage.senderId === 'me' ? 'yourself' : getMessageSenderName(store.replyToMessage.senderId) }}</strong></span>
-            <span class="reply-bar-text">{{ store.replyToMessage.content }}</span>
+        <div v-if="store.error" class="composer-error" role="alert">{{ store.error }}</div>
+        <form class="composer" @submit.prevent="send">
+          <div v-if="store.replyToMessage" class="replying-to">
+            <span>Replying to {{ store.replyToMessage.senderId === 'me' ? 'yourself' : activePartner?.name }}</span>
+            <span class="replying-content">{{ store.replyToMessage.content }}</span>
+            <button type="button" aria-label="Cancel reply" @click="store.clearReplyTo()">×</button>
           </div>
-          <button class="reply-bar-close" @click="store.clearReplyTo()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-
-        <!-- Message Input -->
-        <div class="mtp-input-area">
-          <button class="mia-btn" @click="showEmojiPicker = !showEmojiPicker" title="Emoji">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/></svg>
-          </button>
-          <label class="mia-btn" title="Attach file">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-            <input type="file" hidden @change="handleFileAttach" />
-          </label>
-          <div class="mia-input-wrap" ref="inputWrapRef">
-            <input ref="inputRef" v-model="messageText" class="mia-input" placeholder="Type a message..." @keydown.enter.prevent="sendMsg" />
+          <div class="composer-row">
+            <textarea
+              v-model="messageText"
+              rows="1"
+              maxlength="5000"
+              placeholder="Write a message…"
+              aria-label="Write a message"
+              :disabled="store.sending"
+              @keydown.enter.exact.prevent="send"
+            ></textarea>
+            <button class="send-button" type="submit" :disabled="!messageText.trim() || store.sending" aria-label="Send message">
+              <span v-if="store.sending" class="loading-spinner" aria-hidden="true"></span>
+              <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+            </button>
           </div>
-          <button v-if="messageText.trim()" class="mia-send-btn" @click="sendMsg" title="Send">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-          </button>
-          <button v-else class="mia-btn" :class="{ recording: isRecording }" @mousedown="startRecording" @mouseup="stopRecording" @mouseleave="stopRecording" @touchstart.prevent="startRecording" @touchend="stopRecording" title="Hold to dictate message">
-            <svg v-if="!isRecording" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-            <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-          </button>
-        </div>
-
-        <!-- Recording indicator -->
-        <div v-if="isRecording" class="recording-bar">
-          <span class="recording-dot"></span>
-          <span class="recording-timer">{{ recordingTimer }}</span>
-          <div class="recording-wave">
-            <span v-for="n in 20" :key="n" class="rw-bar" :style="{ height: Math.random() * 24 + 4 + 'px' }"></span>
-          </div>
-          <span class="recording-label">Release to transcribe</span>
-        </div>
-        <p v-if="composerNotice" class="composer-notice" role="status">{{ composerNotice }}</p>
-
-        <!-- Emoji Picker -->
-        <div v-if="showEmojiPicker" class="emoji-picker">
-          <button v-for="emoji in commonEmojis" :key="emoji" class="ep-emoji" @click="messageText += emoji; showEmojiPicker = false">{{ emoji }}</button>
-        </div>
+          <p class="composer-hint">Text messages are sent securely to this conversation.</p>
+        </form>
       </template>
-    </div>
 
-    <!-- Media Preview Modal -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="previewUrl" class="media-preview-overlay" @click="previewUrl = ''">
-          <div class="media-preview-container" @click.stop>
-            <button class="media-preview-close" @click="previewUrl = ''">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-            <img v-if="previewUrl.match(/\.(png|jpe?g|gif|webp|svg)/i)" :src="previewUrl" class="media-preview-img" alt="preview" />
-            <div v-else class="media-preview-file">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <p>{{ previewUrl.replace(/^.*[\\/]/, '') }}</p>
-            </div>
-          </div>
+      <div v-else class="welcome-panel">
+        <div class="welcome-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" /></svg>
         </div>
-      </Transition>
-    </Teleport>
-
-    <!-- ===== NEW CHAT OVERLAY ===== -->
-    <Transition name="slide">
-      <div v-if="showNewChat" class="new-chat-overlay" @click="showNewChat = false">
-        <div class="new-chat-panel" @click.stop>
-          <div class="ncp-header">
-            <h3>New Conversation</h3>
-            <button class="ncp-close" @click="showNewChat = false">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="ncp-search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input v-model="newChatSearch" class="ncp-search-input" placeholder="Search contacts..." />
-          </div>
-          <div class="ncp-list">
-            <template v-if="filteredContactGroups.length === 0">
-              <div class="ncp-empty">No contacts found</div>
-            </template>
-            <template v-for="(group, gi) in filteredContactGroups" :key="gi">
-              <div class="ncp-group-label">{{ group.label }}</div>
-              <button v-for="contact in group.contacts" :key="contact.id" class="ncp-contact" @click="startNewChat(contact.id)">
-                <div class="ncp-contact-avatar" :class="{ 'lecturer-avatar': contact.role === 'lecturer' }">
-                  {{ contact.name.charAt(0) }}
-                  <span v-if="contact.online" class="online-dot" />
-                </div>
-                <div class="ncp-contact-info">
-                  <span class="ncp-contact-name">{{ contact.name }}</span>
-                  <span class="ncp-contact-dept">{{ contact.department }}{{ contact.year ? ` · Year ${contact.year}` : '' }}</span>
-                </div>
-                <span v-if="contact.role === 'lecturer'" class="lecturer-badge">Faculty</span>
-              </button>
-            </template>
-          </div>
-        </div>
+        <h2>Your conversations, in one place</h2>
+        <p>Choose a conversation or start a new one with a student or lecturer.</p>
+        <button type="button" class="new-conversation-button" @click="showNewChat = true">New conversation</button>
       </div>
-    </Transition>
-  </div>
+    </main>
+
+    <div v-if="showNewChat" class="dialog-backdrop" @click.self="showNewChat = false">
+      <section class="contacts-dialog" role="dialog" aria-modal="true" aria-labelledby="new-conversation-title">
+        <header class="dialog-header">
+          <div>
+            <p class="eyebrow">Messages</p>
+            <h2 id="new-conversation-title">New conversation</h2>
+          </div>
+          <button type="button" class="icon-button" aria-label="Close" @click="showNewChat = false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12" /></svg>
+          </button>
+        </header>
+        <label class="search-box">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+          <input v-model="newChatSearch" type="search" placeholder="Search people by name or department" aria-label="Search people" />
+        </label>
+        <p v-if="store.error" class="inline-error" role="alert">{{ store.error }}</p>
+        <div class="contact-list">
+          <template v-for="group in filteredContactGroups" :key="group.label">
+            <h3 class="contact-group-title">{{ group.label }}</h3>
+            <button
+              v-for="contact in group.contacts"
+              :key="contact.id"
+              type="button"
+              class="contact-item"
+              :disabled="openingContactId === contact.id"
+              @click="startNewChat(contact.id)"
+            >
+              <span class="avatar" :class="avatarTone(contact.role)">{{ initials(contact.name) }}</span>
+              <span class="contact-copy">
+                <strong>{{ contact.name }}</strong>
+                <span>{{ [contact.role, contact.department].filter(Boolean).join(' · ') || 'MCU member' }}</span>
+              </span>
+              <span class="contact-open">{{ openingContactId === contact.id ? 'Opening…' : 'Message' }}</span>
+            </button>
+          </template>
+          <div v-if="!filteredContactGroups.length" class="list-empty contact-empty">
+            <p>{{ newChatSearch ? 'No people match your search.' : 'No active students or lecturers are available yet.' }}</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMessagingStore } from '../stores/messaging'
-import { useAuthStore } from '../stores/auth'
-import api from '../lib/api'
 
 const store = useMessagingStore()
-const authStore = useAuthStore()
 const messageText = ref('')
 const showNewChat = ref(false)
 const newChatSearch = ref('')
-const showContactInfo = ref(false)
-const showEmojiPicker = ref(false)
-const showReactionPicker = ref(null)
-const hoveredMsg = ref(null)
+const openingContactId = ref(null)
 const threadRef = ref(null)
-const inputRef = ref(null)
-const listRef = ref(null)
-const inputWrapRef = ref(null)
-const shouldAutoScroll = ref(true)
-const composerNotice = ref('')
+let messagePollingTimer = null
 
-const commonEmojis = ['😊', '😂', '❤️', '🔥', '👍', '🎉', '😍', '🤔', '🙏', '👋', '✨', '💯', '😭', '🥺', '🤩', '😤', '💀', '👀']
-const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '🎉']
+const activePartner = computed(() => {
+  const conversation = store.activeConversation
+  if (!conversation) return null
+  return conversation.partner || store.contactMap[conversation.participants[0]] || null
+})
 
-// Voice recording
-const isRecording = ref(false)
-const recordingTimer = ref('0:00')
-let mediaRecorder = null
-let audioChunks = []
-let recordingInterval = null
-let recordingStartTime = null
-
-// Media preview
-const previewUrl = ref('')
-
-// Message animations (staggered delay applied via style binding)
-
-// Voice playback
-const playingVoice = ref(null)
-let voiceAudio = null
-
-function playVoice(msg) {
-  if (playingVoice.value === msg.id) {
-    voiceAudio?.pause()
-    playingVoice.value = null
-    return
-  }
-  voiceAudio?.pause()
-  playingVoice.value = msg.id
-  const duration = parseInt(msg.content.match(/\((\d+):(\d+)\)/)?.[1] || '0') * 60 + parseInt(msg.content.match(/\((\d+):(\d+)\)/)?.[2] || '3')
-  setTimeout(() => { playingVoice.value = null }, duration * 1000)
-}
-
-function msgIndex(msg) {
-  const msgs = store.activeMessages
-  return msgs.indexOf(msg)
-}
-
-function onImgLoad() {
-  // trigger reflow for smooth image display
-}
-
-function linkify(text) {
-  if (!text) return ''
-  const urlRegex = /(https?:\/\/[^\s<]+)/g
-  return text.replace(urlRegex, (url) => {
-    const display = url.length > 50 ? url.slice(0, 47) + '...' : url
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="msg-link" @click.stop>${display}</a>`
-  })
-}
-
-function isImageFile(content) {
-  return /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(content)
-}
-
-function getFileUrl(content) {
-  const match = content.match(/📎 (.+)/)
-  return match ? match[1] : ''
-}
-
-function openPreview(url) {
-  previewUrl.value = url
-}
-
-async function startRecording() {
-  try {
-    composerNotice.value = ''
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
-    audioChunks = []
-    isRecording.value = true
-    recordingStartTime = Date.now()
-    recordingTimer.value = '0:00'
-
-    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data)
-    mediaRecorder.onstop = async () => {
-      const blob = new Blob(audioChunks, { type: 'audio/webm' })
-      stream.getTracks().forEach(t => t.stop())
-      isRecording.value = false
-      if (!blob.size) return
-
-      const formData = new FormData()
-      formData.append('audio', blob, 'message.webm')
-      try {
-        const { data } = await api.post('/voice/stt', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        const transcript = typeof data?.transcript === 'string' ? data.transcript.trim() : ''
-        if (!transcript) throw new Error('No speech was recognized')
-        messageText.value = [messageText.value.trim(), transcript].filter(Boolean).join(' ')
-        focusInput()
-      } catch (error) {
-        console.error('[Messages] Voice transcription failed:', error)
-        composerNotice.value = error.response?.data?.error || 'Voice transcription failed. Type your message instead.'
-      }
-    }
-
-    mediaRecorder.start()
-    recordingInterval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000)
-      recordingTimer.value = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
-      if (elapsed >= 30) stopRecording()
-    }, 200)
-  } catch (error) {
-    console.warn('[Messages] Could not start voice recording:', error)
-    composerNotice.value = 'Microphone access is unavailable. Type your message instead.'
-  }
-}
-
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    mediaRecorder.stop()
-    clearInterval(recordingInterval)
-  }
-  isRecording.value = false
-}
-
-function getMsgAnimationDelay(index) {
-  return { '--msg-delay': `${index * 0.04}s` }
-}
-
-const filterTabs = computed(() => [
-  { key: 'all', label: 'All', count: store.conversations.length },
-  { key: 'department', label: 'Department' },
-  { key: 'faculty', label: 'Faculty' },
-  { key: 'courses', label: 'Courses' },
-])
-
-function getContact(conv) {
-  if (conv.type === 'group') return null
-  return store.contactMap[conv.participants[0]] || null
-}
-
-function getActiveContact() {
-  if (!store.activeConversation) return null
-  if (store.activeConversation.type === 'group') return null
-  return store.contactMap[store.activeConversation.participants[0]] || null
-}
-
-function getContactInitials(conv) {
-  const contact = getContact(conv)
-  if (!contact) return '?'
-  return contact.name.split(' ').map(w => w.charAt(0)).join('').slice(0, 2).toUpperCase()
-}
-
-function getActiveContactInitials() {
-  const contact = getActiveContact()
-  if (!contact) return '?'
-  return contact.name.split(' ').map(w => w.charAt(0)).join('').slice(0, 2).toUpperCase()
-}
-
-function formatLastSeen(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const now = new Date()
-  const diff = now - d
-  const mins = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `Last seen ${mins}m ago`
-  if (hours < 24) return `Last seen ${hours}h ago`
-  if (days < 7) return `Last seen ${d.toLocaleDateString('en-US', { weekday: 'long' })}`
-  return `Last seen ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-}
-
-function formatTime(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-}
+const filteredContactGroups = computed(() => {
+  const search = newChatSearch.value.trim().toLowerCase()
+  return store.contactsByGroup
+    .map(group => ({
+      ...group,
+      contacts: group.contacts.filter(contact =>
+        !search || [contact.name, contact.department, contact.role]
+          .some(value => value?.toLowerCase().includes(search))
+      ),
+    }))
+    .filter(group => group.contacts.length)
+})
 
 const groupedMessages = computed(() => {
-  const msgs = store.activeMessages
-  if (!msgs.length) return []
   const groups = []
-  let currentGroup = null
-  for (const msg of msgs) {
-    const date = store.formatTimestamp(msg.timestamp)
-    if (!currentGroup || currentGroup.date !== date) {
-      currentGroup = { date, messages: [] }
-      groups.push(currentGroup)
+  for (const message of store.activeMessages) {
+    const date = new Date(message.timestamp)
+    const key = Number.isNaN(date.getTime()) ? 'unknown' : date.toDateString()
+    let group = groups[groups.length - 1]
+    if (!group || group.key !== key) {
+      group = { key, label: formatDay(date), messages: [] }
+      groups.push(group)
     }
-    currentGroup.messages.push(msg)
+    group.messages.push(message)
   }
   return groups
 })
 
-const filteredContactGroups = computed(() => {
-  const q = newChatSearch.value.toLowerCase()
-  const groups = store.contactsByGroup
-  if (!q) return groups
-  return groups.map(g => ({
-    ...g,
-    contacts: g.contacts.filter(c => c.name.toLowerCase().includes(q) || c.department.toLowerCase().includes(q)),
-  })).filter(g => g.contacts.length > 0)
+function formatDay(date) {
+  if (Number.isNaN(date.getTime())) return ''
+  const today = new Date()
+  if (date.toDateString() === today.toDateString()) return 'Today'
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
+  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+function partnerFor(conversation) {
+  return conversation.partner || store.contactMap[conversation.participants[0]]
+}
+
+function initials(name) {
+  return (name || 'U')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part.charAt(0))
+    .join('')
+    .toUpperCase()
+}
+
+function avatarTone(role) {
+  return role === 'lecturer' ? 'lecturer-tone' : ''
+}
+
+function replyPreview(message) {
+  return message.replyPreview || store.activeMessages.find(item => item.id === message.replyTo)
+}
+
+async function scrollToLatest() {
+  await nextTick()
+  if (threadRef.value) threadRef.value.scrollTop = threadRef.value.scrollHeight
+}
+
+async function send() {
+  const text = messageText.value.trim()
+  if (!text || store.sending) return
+  try {
+    await store.sendMessage(text)
+    messageText.value = ''
+    await scrollToLatest()
+  } catch {
+    // The store exposes the server error in the composer.
+  }
+}
+
+async function startNewChat(contactId) {
+  openingContactId.value = contactId
+  try {
+    await store.startConversation(contactId)
+    showNewChat.value = false
+    newChatSearch.value = ''
+  } catch {
+    // The store exposes the server error in the dialog.
+  } finally {
+    openingContactId.value = null
+  }
+}
+
+async function hideConversation() {
+  const conversationId = store.activeConversationId
+  if (!conversationId) return
+  try {
+    await store.deleteChat(conversationId)
+  } catch {
+    // The store exposes the server error in the conversation list.
+  }
+}
+
+async function retry() {
+  await store.init()
+  if (store.activeConversationId) await store.loadMessages(store.activeConversationId)
+}
+
+watch(
+  () => [store.activeConversationId, store.activeMessages.length],
+  scrollToLatest
+)
+
+onMounted(async () => {
+  await store.init()
+  messagePollingTimer = window.setInterval(() => {
+    if (store.activeConversationId) {
+      store.loadMessages(store.activeConversationId)
+    } else {
+      store.refreshConversations()
+    }
+  }, 5000)
 })
 
-function sendMsg() {
-  if (!messageText.value.trim()) return
-  store.sendMessage(messageText.value)
-  messageText.value = ''
-  showEmojiPicker.value = false
-  nextTick(() => scrollToBottom())
-}
-
-function scrollToBottom() {
-  if (!threadRef.value) return
-  nextTick(() => {
-    threadRef.value.scrollTop = threadRef.value.scrollHeight
-  })
-}
-
-function onThreadScroll() {
-  if (!threadRef.value) return
-  const el = threadRef.value
-  const threshold = 100
-  shouldAutoScroll.value = el.scrollHeight - el.scrollTop - el.clientHeight < threshold
-}
-
-function handleMsgClick(msg, e) {
-  const target = e.target.closest('.msg-reaction, .reaction-count')
-  if (target) {
-    return
-  }
-
-  if (showReactionPicker.value === msg.id) {
-    showReactionPicker.value = null
-  } else {
-    showReactionPicker.value = msg.id
-  }
-}
-
-function openContextMenu(msg) {
-  store.setReplyTo(msg.id)
-}
-
-function hasActiveReactions(msg) {
-  return msg.reactions && Object.keys(msg.reactions).length > 0
-}
-
-function hasReaction(msg, emoji) {
-  return msg.reactions?.[emoji]?.includes('me') || false
-}
-
-function getMessageSenderName(senderId) {
-  if (senderId === 'me') return 'You'
-  const contact = store.contactMap[senderId]
-  return contact?.name?.split(' ')[0] || 'Unknown'
-}
-
-function getReplySenderName(msgId) {
-  for (const key in store.messages) {
-    const msg = store.messages[key].find(m => m.id === msgId)
-    if (msg) return getMessageSenderName(msg.senderId)
-  }
-  return 'Unknown'
-}
-
-function getReplyPreview(msgId) {
-  for (const key in store.messages) {
-    const msg = store.messages[key].find(m => m.id === msgId)
-    if (msg) return msg.content?.slice(0, 80) + (msg.content?.length > 80 ? '...' : '')
-  }
-  return ''
-}
-
-function scrollToMessage(msgId) {
-  const el = threadRef.value?.querySelector(`[data-msg-id="${msgId}"]`)
-  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-}
-
-function startNewChat(contactId) {
-  store.startConversation(contactId)
-  showNewChat.value = false
-}
-
-function handleFileAttach(e) {
-  const file = e.target.files?.[0]
-  if (file) {
-    composerNotice.value = 'File sharing is not available yet. The selected file was not uploaded or sent.'
-  }
-  e.target.value = ''
-}
-
-function focusInput() {
-  nextTick(() => inputRef.value?.focus())
-}
-
-watch(() => store.activeMessages.length, () => {
-  if (shouldAutoScroll.value) {
-    nextTick(() => scrollToBottom())
-  }
-})
-
-watch(() => store.activeConversationId, () => {
-  showContactInfo.value = false
-  showReactionPicker.value = null
-  shouldAutoScroll.value = true
-  nextTick(() => scrollToBottom())
-})
-
-watch(() => store.replyToId, () => {
-  if (store.replyToId) focusInput()
-})
-
-onMounted(() => {
-  store.init()
-  scrollToBottom()
+onUnmounted(() => {
+  if (messagePollingTimer) window.clearInterval(messagePollingTimer)
 })
 </script>
 
 <style scoped>
 .messages-page {
-  display: flex;
-  gap: 0;
-  position: absolute;
-  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+  min-height: min(760px, calc(100dvh - 112px));
+  height: calc(100dvh - 112px);
   overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
   background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 12px 40px rgba(15, 30, 61, 0.06);
 }
 
-.messaging-notice {
-  margin: 0;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-.composer-notice {
-  margin: 8px 0 0;
-  color: var(--color-danger, #c62828);
-  font-size: 12px;
-}
-
-@media (min-width: 1025px) {
-  .messages-page {
-    border-radius: 0;
-  }
-}
-
-/* ── LEFT PANEL ── */
-.msg-list-panel {
-  width: 320px;
-  min-width: 320px;
+.conversation-panel {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
-.mlp-header {
+.panel-header,
+.thread-header,
+.dialog-header {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.panel-header {
   justify-content: space-between;
-  padding: 16px 16px 12px;
+  padding: 24px 22px 18px;
 }
 
-.mlp-title {
-  font-size: 18px;
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
   font-weight: 800;
-  color: var(--color-text-primary);
-  letter-spacing: -0.03em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.mlp-new-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.mlp-new-btn:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  border-color: var(--color-border-accent);
-}
-
-.mlp-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 12px 8px;
-  padding: 8px 12px;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
-
-.mlp-search:focus-within {
-  border-color: var(--color-border-accent);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
-}
-
-.mlp-search-icon {
-  flex-shrink: 0;
-  color: var(--color-text-quaternary);
-}
-
-.mlp-search-input {
-  flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  color: var(--color-text-primary);
-  font-family: inherit;
-}
-
-.mlp-search-input::placeholder {
-  color: var(--color-text-quaternary);
-}
-
-.mlp-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 12px 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.mlp-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.mlp-tab {
-  padding: 5px 12px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.mlp-tab:hover {
-  color: var(--color-text-secondary);
-  background: var(--color-primary-soft);
-}
-
-.mlp-tab.active {
-  background: var(--color-primary);
-  color: var(--color-surface);
-}
-
-.mlp-tab-count {
-  font-size: 9px;
-  font-weight: 700;
-  opacity: 0.7;
-}
-
-.mlp-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 8px 8px;
-}
-
-.mlp-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.mlp-list::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-}
-
-.mlp-skeleton {
-  display: flex;
-  gap: 12px;
-  padding: 12px 8px;
-  align-items: center;
-}
-
-.sk-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-border);
-  flex-shrink: 0;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.sk-lines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sk-line {
-  height: 10px;
-  border-radius: 5px;
-  background: var(--color-border);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.sk-line.w-40 { width: 40%; }
-.sk-line.w-70 { width: 70%; }
-
-.mlp-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  gap: 12px;
-  color: var(--color-text-tertiary);
-  text-align: center;
-}
-
-.mlp-empty p {
-  font-size: 13px;
+.panel-header h1,
+.dialog-header h2 {
   margin: 0;
+  color: var(--color-text-primary);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
 }
 
-.mlp-start-btn {
-  padding: 8px 20px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border-accent);
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.mlp-start-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.mlp-item {
-  display: flex;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: 100%;
-  text-align: left;
-  align-items: center;
-  font-family: inherit;
-  color: inherit;
-}
-
-.mlp-item:hover {
-  background: var(--color-primary-soft);
-}
-
-.mlp-item.active {
-  background: var(--color-primary-muted);
-}
-
-.mlp-item-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
+.icon-button {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.mlp-item-avatar.group-avatar {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 
-.online-dot {
-  position: absolute;
-  bottom: 1px;
-  right: 1px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #22c55e;
-  border: 2px solid var(--color-surface);
-}
-
-.mlp-item-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.mlp-item-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.mlp-item-name {
-  font-size: 13px;
-  font-weight: 700;
+.icon-button:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-elevated);
   color: var(--color-text-primary);
-  letter-spacing: -0.01em;
 }
 
-.mlp-item-time {
-  font-size: 10px;
-  color: var(--color-text-quaternary);
-  flex-shrink: 0;
+.icon-button svg,
+.search-box svg,
+.empty-icon svg,
+.welcome-icon svg,
+.send-button svg,
+.reply-button svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
-.mlp-item-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.mlp-item-preview {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  gap: 3px;
-  font-size: 12px;
-  color: var(--color-text-quaternary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mlp-item-me {
-  color: var(--color-text-tertiary);
-  font-weight: 600;
-}
-
-.mlp-item-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mlp-item-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.pin-icon {
-  font-size: 10px;
-}
-
-.mlp-badge {
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
+.primary-icon {
+  border-color: var(--color-primary);
   background: var(--color-primary);
   color: #fff;
-  font-size: 10px;
-  font-weight: 800;
+}
+
+.primary-icon:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-hover, var(--color-primary));
+  color: #fff;
+}
+
+.search-box {
   display: flex;
+  height: 42px;
+  align-items: center;
+  gap: 9px;
+  margin: 0 18px 16px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-elevated);
+  color: var(--color-text-tertiary);
+}
+
+.search-box svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.search-box input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 12px;
+}
+
+.search-box input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 0 18px 14px;
+}
+
+.filter-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.filter-tabs button.selected {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.filter-count,
+.unread-badge {
+  display: inline-flex;
+  min-width: 19px;
+  height: 19px;
   align-items: center;
   justify-content: center;
   padding: 0 5px;
-}
-
-.member-count {
-  font-size: 10px;
-  color: var(--color-text-quaternary);
-}
-
-/* ── THREAD PANEL ── */
-.msg-thread-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.mtp-landing {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--color-text-tertiary);
-  padding: 40px;
-}
-
-.mtp-landing-graphic svg {
-  opacity: 0.15;
-}
-
-.mtp-landing h3 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.mtp-landing p {
-  font-size: 13px;
-  margin: 0;
-}
-
-.mtp-landing-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
-  border-radius: 10px;
-  border: none;
+  border-radius: 999px;
   background: var(--color-primary);
   color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  margin-top: 8px;
-}
-
-.mtp-landing-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.mtp-thread-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-  position: relative;
-  z-index: 2;
-}
-
-.mtp-back-btn {
-  display: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-}
-
-.mtp-thread-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.mtp-thread-avatar.group-avatar {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  border-radius: 10px;
-}
-
-.mtp-thread-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.mtp-thread-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
-}
-
-.mtp-thread-status {
-  font-size: 11px;
-  color: var(--color-text-quaternary);
-}
-
-.typing-dots {
-  display: inline-flex;
-  gap: 2px;
-  align-items: center;
-}
-
-.typing-dots span {
-  animation: typingDot 1.4s infinite;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--color-primary);
-}
-
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes typingDot {
-  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
-  30% { opacity: 1; transform: translateY(-4px); }
-}
-
-.mtp-thread-dept {
-  font-size: 11px;
-  color: var(--color-text-quaternary);
-}
-
-.mtp-thread-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.mtp-action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.mtp-action-btn:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-text-secondary);
-}
-
-/* Contact Info Sidebar */
-.mtp-contact-info-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.2);
-  backdrop-filter: blur(2px);
-  z-index: 20;
-  display: flex;
-  justify-content: flex-end;
-  animation: fadeIn 0.15s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.mtp-contact-info {
-  width: 300px;
-  height: 100%;
-  background: var(--color-surface);
-  border-left: 1px solid var(--color-border);
-  padding: 24px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  overflow-y: auto;
-  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-}
-
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-.mtp-ci-close-top {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.mtp-ci-close-top:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-text-secondary);
-}
-
-.mtp-ci-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding-top: 20px;
-}
-
-.mtp-ci-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 22px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mtp-ci-header h3 {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0;
-  color: var(--color-text-primary);
-}
-
-.mtp-ci-details {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mtp-ci-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.mtp-ci-label {
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-text-quaternary);
+  font-weight: 800;
 }
 
-.mtp-ci-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.mtp-ci-value.is-lecturer {
-  color: var(--color-primary);
-}
-
-.mtp-ci-courses {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.mtp-ci-course-tag {
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-/* ── THREAD ── */
-.mtp-thread {
+.conversation-list {
+  min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 16px 40px;
-  position: relative;
+  padding: 0 10px 12px;
 }
 
-.mtp-thread::-webkit-scrollbar {
-  width: 4px;
-}
-
-.mtp-thread::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-}
-
-.mtp-thread-scroll {
+.conversation-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mtp-date-divider {
-  display: flex;
-  justify-content: center;
-  margin: 16px 0 12px;
-}
-
-.mtp-date-divider span {
-  padding: 4px 14px;
-  border-radius: 8px;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-tertiary);
-}
-
-.msg-row {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  max-width: 65%;
-  margin-bottom: 4px;
-}
-
-.msg-mine {
-  align-self: flex-end;
-  align-items: flex-end;
-}
-
-.msg-theirs {
-  align-self: flex-start;
-  align-items: flex-start;
-}
-
-.msg-system {
-  align-self: center;
-  max-width: 100%;
-}
-
-.msg-system-bubble {
-  padding: 6px 16px;
-  border-radius: 8px;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  font-style: italic;
-  text-align: center;
-}
-
-.msg-reply-preview {
-  display: flex;
-  gap: 8px;
-  padding: 6px 10px;
-  margin-bottom: 2px;
-  border-radius: 8px;
-  background: var(--color-surface-elevated);
-  cursor: pointer;
-  max-width: 100%;
-  width: fit-content;
-}
-
-.msg-mine .msg-reply-preview {
-  background: rgba(0,0,0,0.08);
-}
-
-.msg-reply-bar {
-  width: 3px;
-  border-radius: 2px;
-  background: var(--color-text-quaternary);
-  flex-shrink: 0;
-}
-
-.msg-reply-bar.bar-mine {
-  background: var(--color-primary-light);
-}
-
-.msg-reply-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.msg-reply-sender {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.msg-reply-text {
-  font-size: 11px;
-  color: var(--color-text-quaternary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.msg-bubble {
-  padding: 8px 14px 6px;
-  border-radius: 18px;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.msg-mine .msg-bubble {
-  background: var(--color-primary);
-  color: #fff;
-  border-bottom-right-radius: 4px;
-}
-
-.msg-theirs .msg-bubble {
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  border-bottom-left-radius: 4px;
-}
-
-.msg-bubble:hover {
-  filter: brightness(1.05);
-}
-
-.msg-bubble-wrap {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.msg-reply-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: all 0.2s ease;
-  z-index: 5;
-}
-
-.msg-mine .msg-reply-btn {
-  right: -40px;
-}
-
-.msg-theirs .msg-reply-btn {
-  left: -40px;
-}
-
-.msg-reply-btn:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  border-color: var(--color-border-accent);
-  transform: translateY(-50%) scale(1.1);
-}
-
-.msg-text {
-  font-size: 13px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-}
-
-.msg-meta {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-}
-
-.msg-time {
-  font-size: 10px;
-  opacity: 0.6;
-}
-
-.msg-mine .msg-time {
-  color: rgba(255,255,255,0.7);
-}
-
-.msg-theirs .msg-time {
-  color: var(--color-text-quaternary);
-}
-
-.msg-status {
-  font-size: 12px;
-  line-height: 1;
-}
-
-.msg-reactions {
-  display: flex;
-  gap: 2px;
-  margin-top: 4px;
-  flex-wrap: wrap;
-}
-
-.msg-reaction {
-  padding: 2px 6px;
-  border-radius: 12px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-}
-
-.msg-reaction.mine {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-.msg-reaction:hover {
-  transform: scale(1.1);
-}
-
-.reaction-count {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--color-text-quaternary);
-}
-
-.msg-mine .reaction-count {
-  color: var(--color-text-primary);
-}
-
-.reaction-picker {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 2px;
-  padding: 6px 8px;
-  border-radius: 20px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-accent);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-  z-index: 20;
-  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.msg-mine .reaction-picker {
-  left: auto;
-  right: 0;
-  transform: none;
-}
-
-@keyframes popIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.rp-emoji {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rp-emoji:hover {
-  background: var(--color-primary-soft);
-  transform: scale(1.2);
-}
-
-.rp-emoji.active {
-  background: var(--color-primary-muted);
-}
-
-/* Typing Indicator */
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  align-self: flex-start;
-}
-
-.typing-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-size: 9px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.typing-bubble {
-  padding: 10px 16px;
-  border-radius: 16px;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  border-bottom-left-radius: 4px;
-}
-
-.typing-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--color-text-quaternary);
-  animation: typingBounce 1.4s infinite;
-}
-
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-6px); opacity: 1; }
-}
-
-/* Reply Preview Bar */
-.reply-preview-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: var(--color-surface-elevated);
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.reply-bar-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.reply-bar-label {
-  font-size: 11px;
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.reply-bar-text {
-  font-size: 11px;
-  color: var(--color-text-quaternary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reply-bar-close {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.reply-bar-close:hover {
-  background: var(--color-primary-soft);
-}
-
-/* ── INPUT AREA ── */
-.mtp-input-area {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px 10px;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.mia-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.mia-btn:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-text-secondary);
-}
-
-.mia-input-wrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  padding: 0 14px;
-  transition: all 0.2s ease;
-}
-
-.mia-input-wrap:focus-within {
-  border-color: var(--color-border-accent);
-}
-
-.mia-input {
   width: 100%;
-  height: 36px;
-  background: none;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  color: var(--color-text-primary);
-  font-family: inherit;
-}
-
-.mia-input::placeholder {
-  color: var(--color-text-quaternary);
-}
-
-.mia-send-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: var(--color-primary);
-  color: #fff;
-  cursor: pointer;
-  display: flex;
+  min-width: 0;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.mia-send-btn:hover {
-  opacity: 0.9;
-  transform: scale(1.05);
-}
-
-/* Emoji Picker */
-.emoji-picker {
-  position: absolute;
-  bottom: 100%;
-  left: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 0;
   border-radius: 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-accent);
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-  z-index: 20;
-  max-width: 280px;
-  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
 }
 
-.ep-emoji {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
+.conversation-item:hover,
+.conversation-item.active {
+  background: var(--color-surface-elevated);
+}
+
+.conversation-item.active {
+  box-shadow: inset 3px 0 var(--color-primary);
+}
+
+.avatar {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-}
-
-.ep-emoji:hover {
+  border-radius: 50%;
   background: var(--color-primary-soft);
-  transform: scale(1.15);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 800;
 }
 
-/* ── NEW CHAT OVERLAY ── */
-.new-chat-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.3);
-  backdrop-filter: blur(4px);
-  z-index: 50;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 60px;
+.avatar.lecturer-tone {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
 }
 
-.new-chat-panel {
-  width: 420px;
-  max-height: 70vh;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-accent);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+.conversation-copy,
+.contact-copy {
   display: flex;
+  min-width: 0;
+  flex: 1;
   flex-direction: column;
-  overflow: hidden;
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 5px;
 }
 
-.ncp-header {
+.conversation-topline,
+.conversation-bottomline {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.conversation-name,
+.conversation-preview,
+.conversation-time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-name {
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.conversation-time {
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+}
+
+.conversation-preview {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+}
+
+.unread-badge {
+  min-width: 18px;
+  height: 18px;
+}
+
+.inline-error,
+.composer-error {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.06);
+  color: var(--color-error, #b91c1c);
+  font-size: 11px;
+}
+
+.inline-error {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-}
-
-.ncp-header h3 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.ncp-close {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  border: none;
-  background: none;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ncp-close:hover {
-  background: var(--color-primary-soft);
-}
-
-.ncp-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 16px 12px;
-  padding: 8px 12px;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-}
-
-.ncp-search svg {
-  color: var(--color-text-quaternary);
-  flex-shrink: 0;
-}
-
-.ncp-search-input {
-  flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  color: var(--color-text-primary);
-  font-family: inherit;
-}
-
-.ncp-search-input::placeholder {
-  color: var(--color-text-quaternary);
-}
-
-.ncp-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 8px 12px;
-}
-
-.ncp-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.ncp-list::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-}
-
-.ncp-group-label {
-  padding: 8px 12px 4px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-text-quaternary);
-}
-
-.ncp-contact {
-  display: flex;
-  align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: none;
+}
+
+.inline-error button {
+  border: 0;
   background: transparent;
+  color: inherit;
   cursor: pointer;
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
-  transition: all 0.2s ease;
+  font: inherit;
+  font-weight: 800;
 }
 
-.ncp-contact:hover {
-  background: var(--color-primary-soft);
-}
-
-.ncp-contact-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-size: 14px;
-  font-weight: 700;
+.list-empty,
+.thread-empty,
+.welcome-panel {
   display: flex;
+  flex: 1;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  position: relative;
+  padding: 26px;
+  color: var(--color-text-tertiary);
+  text-align: center;
 }
 
-.ncp-contact-avatar.lecturer-avatar {
-  background: var(--color-primary-muted);
-  color: var(--color-primary);
+.list-empty p,
+.thread-empty p,
+.welcome-panel p {
+  margin: 10px 0 0;
+  font-size: 12px;
 }
 
-.ncp-contact-info {
-  flex: 1;
-  min-width: 0;
+.empty-icon,
+.welcome-icon {
   display: flex;
-  flex-direction: column;
-}
-
-.ncp-contact-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.ncp-contact-dept {
-  font-size: 11px;
-  color: var(--color-text-quaternary);
-}
-
-.lecturer-badge {
-  padding: 2px 8px;
-  border-radius: 6px;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 17px;
   background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
 }
 
-.ncp-empty {
-  text-align: center;
-  padding: 24px;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
+.empty-icon svg,
+.welcome-icon svg {
+  width: 23px;
+  height: 23px;
 }
 
-/* ── VOICE RECORDING ── */
-.recording-bar {
+.text-button {
+  margin-top: 8px;
+  padding: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.thread-panel {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  background: var(--color-surface-elevated);
-  border-top: 1px solid var(--color-border);
-  animation: slideUp 0.2s ease;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse at 50% 0, var(--color-primary-soft) 0, transparent 38%),
+    var(--color-bg);
 }
 
-.recording-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ef4444;
-  animation: pulse-dot 1s ease-in-out infinite;
+.thread-header {
+  min-height: 72px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
 }
 
-.recording-timer {
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+.thread-header .avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.thread-person {
+  min-width: 0;
+  flex: 1;
+}
+
+.thread-person h2 {
+  overflow: hidden;
+  margin: 0;
   color: var(--color-text-primary);
-  min-width: 36px;
-}
-
-.recording-wave {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 28px;
-}
-
-.rw-bar {
-  flex: 1;
-  background: var(--color-primary);
-  border-radius: 2px;
-  opacity: 0.6;
-  animation: wave 0.5s ease-in-out infinite alternate;
-}
-
-.rw-bar:nth-child(odd) { animation-delay: 0.1s; }
-.rw-bar:nth-child(3n) { animation-delay: 0.2s; }
-.rw-bar:nth-child(4n+1) { animation-delay: 0.3s; }
-
-.recording-label {
-  font-size: 10px;
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mia-btn.recording {
-  background: #ef4444 !important;
-  color: white !important;
-  animation: pulse-btn 1s ease-in-out infinite;
-}
-
-/* ── VOICE MESSAGE ── */
-.msg-voice {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.voice-play-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.voice-play-btn:hover {
-  background: var(--color-primary);
-  color: white;
-  transform: scale(1.05);
-}
-
-.voice-waveform {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 24px;
-}
-
-.vw-bar {
-  flex: 1;
-  background: var(--color-primary);
-  border-radius: 2px;
-  transition: opacity 0.3s ease;
-}
-
-.voice-duration {
-  font-size: 11px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
+.thread-person p {
+  overflow: hidden;
+  margin: 4px 0 0;
   color: var(--color-text-tertiary);
-  min-width: 32px;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: capitalize;
 }
 
-/* ── FILE / IMAGE ATTACHMENTS ── */
-.msg-file {
-  margin: 2px 0;
-}
-
-.msg-thumb {
-  max-width: 200px;
-  max-height: 160px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: block;
-  object-fit: cover;
-}
-
-.msg-thumb:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-}
-
-.file-attach {
+.message-history {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--color-surface-elevated);
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  padding: 22px clamp(14px, 5vw, 56px);
+}
+
+.thread-empty {
+  min-height: 220px;
+}
+
+.thread-empty span:not(.loading-spinner) {
+  margin-top: 5px;
+  font-size: 11px;
+}
+
+.message-day {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message-day > span {
+  align-self: center;
+  padding: 5px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--color-text-secondary);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+  font-weight: 700;
 }
 
-.file-attach:hover {
+.message-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.message-row.mine {
+  justify-content: flex-end;
+}
+
+.message-bubble {
+  max-width: min(72%, 560px);
+  padding: 10px 12px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 15px 15px 15px 4px;
+  background: var(--color-surface);
+  box-shadow: 0 2px 6px rgba(15, 30, 61, 0.04);
+}
+
+.mine .message-bubble {
   border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  border-radius: 15px 15px 4px 15px;
+  background: var(--color-primary);
+  color: #fff;
 }
 
-.file-name {
+.message-content {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   font-size: 12px;
-  font-weight: 500;
+  line-height: 1.55;
+}
+
+.message-meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-top: 5px;
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+}
+
+.mine .message-meta {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.reply-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: -2px 0 8px;
+  padding: 5px 8px;
+  border-left: 2px solid currentColor;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.1);
+  font-size: 9px;
+  opacity: 0.85;
+}
+
+.reply-preview span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 160px;
 }
 
-/* ── LINK STYLING ── */
-:deep(.msg-link) {
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  word-break: break-all;
-}
-
-:deep(.msg-link:hover) {
-  opacity: 0.8;
-}
-
-/* ── MEDIA PREVIEW MODAL ── */
-.media-preview-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
+.reply-button {
+  display: inline-flex;
+  width: 27px;
+  height: 27px;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.2s ease;
-}
-
-.media-preview-container {
-  position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.media-preview-close {
-  position: absolute;
-  top: -40px;
-  right: -8px;
-  background: none;
-  border: none;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
   cursor: pointer;
-  padding: 8px;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
-.media-preview-close:hover { opacity: 1; }
-
-.media-preview-img {
-  max-width: 90vw;
-  max-height: 85vh;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  object-fit: contain;
+.message-row:hover .reply-button,
+.reply-button:focus-visible {
+  opacity: 1;
 }
 
-.media-preview-file {
+.reply-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.composer {
+  padding: 12px 20px 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.composer-row {
   display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 15px;
+  background: var(--color-surface-elevated);
+}
+
+.composer textarea {
+  width: 100%;
+  max-height: 140px;
+  min-height: 38px;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.composer textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.send-button {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 11px;
+  background: var(--color-primary);
+  color: #fff;
+  cursor: pointer;
+}
+
+.send-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.send-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.composer-hint {
+  margin: 7px 3px 0;
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+}
+
+.replying-to {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 7px;
+  background: var(--color-primary-soft);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+
+.replying-content {
+  overflow: hidden;
+  flex: 1;
+  color: var(--color-text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.replying-to button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.composer-error {
+  margin: 10px 20px 0;
+}
+
+.welcome-panel {
+  min-height: 100%;
+}
+
+.welcome-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+}
+
+.welcome-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.welcome-panel h2 {
+  margin: 20px 0 0;
+  color: var(--color-text-primary);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.welcome-panel p {
+  max-width: 350px;
+  line-height: 1.6;
+}
+
+.new-conversation-button {
+  margin-top: 18px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--color-primary);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(5px);
+}
+
+.contacts-dialog {
+  display: flex;
+  width: min(480px, 100%);
+  max-height: min(680px, 90dvh);
   flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+}
+
+.dialog-header {
+  justify-content: space-between;
+  padding: 22px 22px 16px;
+}
+
+.contact-list {
+  min-height: 120px;
+  overflow-y: auto;
+  padding: 0 12px 14px;
+}
+
+.contact-group-title {
+  margin: 13px 10px 7px;
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.contact-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.contact-item:hover:not(:disabled) {
+  background: var(--color-surface-elevated);
+}
+
+.contact-item:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.contact-item .avatar {
+  width: 38px;
+  height: 38px;
+}
+
+.contact-copy strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-copy span {
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.contact-open {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.contact-empty {
+  min-height: 120px;
+}
+
+.conversation-skeleton {
+  display: flex;
   align-items: center;
   gap: 12px;
-  color: white;
-  padding: 32px;
+  padding: 12px 10px;
 }
 
-.media-preview-file p {
-  font-size: 14px;
-  max-width: 300px;
-  text-align: center;
-  word-break: break-all;
-}
-
-/* ── MESSAGE ENTRANCE ANIMATION ── */
-.msg-animate {
-  animation: msgEnter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  animation-delay: var(--msg-delay, 0s);
-}
-
-@keyframes msgEnter {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-@keyframes pulse-btn {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-
-@keyframes wave {
-  from { height: 4px; }
-  to { height: 28px; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-
-/* ── TRANSITIONS ── */
-.slide-enter-active, .slide-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.slide-enter-from, .slide-leave-to {
-  opacity: 0;
-}
-
-.slide-enter-active .new-chat-panel {
-  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* ── WIDE LAPTOP / DESKTOP ── */
-@media (min-width: 1281px) {
-  .msg-list-panel {
-    width: 340px;
-    min-width: 340px;
-  }
-
-  .mtp-thread {
-    padding: 20px 48px;
-  }
-
-  .msg-row {
-    max-width: 60%;
-  }
-
-  .mlp-title {
-    font-size: 20px;
-  }
-
-  .mlp-item {
-    padding: 12px 16px;
-  }
-
-  .mlp-item-name {
-    font-size: 14px;
-  }
-
-  .mlp-item-preview {
-    font-size: 13px;
-  }
-}
-
-/* ── LAPTOP ── */
-@media (min-width: 1025px) and (max-width: 1280px) {
-  .msg-list-panel {
-    width: 300px;
-    min-width: 300px;
-  }
-
-  .mtp-thread {
-    padding: 16px 32px;
-  }
-
-  .msg-row {
-    max-width: 65%;
-  }
-}
-
-/* ── SMALL LAPTOP / TABLET ── */
-@media (max-width: 1024px) {
-  .msg-list-panel {
-    width: 280px;
-    min-width: 280px;
-  }
-
-  .mtp-thread {
-    padding: 14px 24px;
-  }
-
-  .msg-row {
-    max-width: 72%;
-  }
-
-  .msg-reply-btn {
-    display: none !important;
-  }
-}
-
-/* ── TABLET PORTRAIT ── */
-@media (max-width: 820px) {
-  .msg-list-panel {
-    width: 240px;
-    min-width: 240px;
-  }
-
-  .mlp-tabs {
-    gap: 2px;
-  }
-
-  .mlp-tab {
-    padding: 4px 8px;
-    font-size: 10px;
-  }
-}
-
-/* ── MOBILE ── */
-@media (max-width: 768px) {
-  .messages-page {
-    height: 100%;
-    min-height: auto;
-    border-radius: 0;
-    border: none;
-  }
-
-  .msg-list-panel {
-    width: 100%;
-    min-width: 0;
-    border-right: none;
-  }
-
-  .msg-thread-panel {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: var(--color-surface);
-    display: none;
-  }
-
-  .msg-thread-panel:has(.mtp-thread-header) {
-    display: flex;
-  }
-
-  .msg-list-panel:has(~ .msg-thread-panel .mtp-thread-header) {
-    display: none;
-  }
-
-  .mtp-back-btn {
-    display: flex;
-  }
-
-  .mtp-thread {
-    padding: 12px 16px;
-  }
-
-  .msg-row {
-    max-width: 85%;
-  }
-
-  .mtp-contact-info-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-  }
-
-  .mtp-contact-info {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .new-chat-panel {
-    width: calc(100% - 32px);
-    max-height: 80vh;
-  }
-
-  .new-chat-overlay {
-    padding-top: 40px;
-  }
-
-  .msg-reply-btn {
-    display: none !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .mtp-thread {
-    padding: 8px 10px;
-  }
-}
-
-/* ── LIST ITEM HOVER DEPTH ── */
-.mlp-item {
-  transition: all 0.2s var(--ease-out);
-}
-.mlp-item:hover {
-  transform: translateX(4px);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ── UNREAD BADGE PULSE ── */
-.mlp-badge {
-  animation: badgePulse 2s ease-in-out infinite;
-}
-.bn-badge {
-  animation: badgePulse 2s ease-in-out infinite;
-}
-@keyframes badgePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(15, 30, 61, 0.3); }
-  50% { box-shadow: 0 0 6px 3px rgba(15, 30, 61, 0.12); }
-}
-
-/* ── TYPING INDICATOR ── */
-.typing-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-.typing-dots span {
-  width: 6px;
-  height: 6px;
+.conversation-skeleton > span {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--color-text-tertiary);
-  animation: typingDot 1.4s ease-in-out infinite;
-}
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typingDot {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-4px); opacity: 1; }
+  background: var(--color-surface-elevated);
 }
 
-/* ── SKELETON PULSE ── */
-.mlp-skeleton {
-  animation: skeletonFade 1.5s ease-in-out infinite;
-}
-@keyframes skeletonFade {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.conversation-skeleton div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
 }
 
-/* ── ACTIVE CHAT HIGHLIGHT ── */
-.mlp-item.active {
-  border-left: 3px solid var(--color-primary);
-  background: var(--color-primary-soft);
+.conversation-skeleton i {
+  height: 8px;
+  border-radius: 5px;
+  background: var(--color-surface-elevated);
 }
 
-/* ── NEW CHAT BUTTON HOVER ── */
-.mlp-new-btn {
-  transition: all 0.2s var(--ease-spring);
-}
-.mlp-new-btn:hover {
-  transform: scale(1.1) rotate(90deg);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+.conversation-skeleton i:last-child {
+  width: 65%;
 }
 
-/* ── SEARCH INPUT FOCUS ── */
-.mlp-search-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.mobile-back {
+  display: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+  .messages-page {
+    position: relative;
+    display: block;
+    height: calc(100dvh - 142px);
+    min-height: 470px;
+    border-radius: 14px;
+  }
+
+  .conversation-panel {
+    height: 100%;
+    border-right: 0;
+  }
+
+  .conversation-panel-hidden {
+    display: none;
+  }
+
+  .thread-panel {
+    display: flex;
+    height: 100%;
+  }
+
+  .thread-header {
+    gap: 9px;
+    padding: 11px 12px;
+  }
+
+  .mobile-back {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+  }
+
+  .message-history {
+    padding: 16px 12px;
+  }
+
+  .message-bubble {
+    max-width: 82%;
+  }
+
+  .reply-button {
+    display: none;
+  }
+
+  .composer {
+    padding: 10px 10px 12px;
+  }
+
+  .composer-error {
+    margin: 8px 10px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 </style>
-

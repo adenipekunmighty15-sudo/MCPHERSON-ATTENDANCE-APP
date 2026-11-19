@@ -20,7 +20,7 @@
       <p>Loading your study plan...</p>
     </div>
 
-    <div v-else class="plan-content">
+    <div v-else-if="!error" class="plan-content">
       <!-- Daily Recommendation -->
       <div class="section">
         <h2 class="section-title">Today's Recommendation</h2>
@@ -52,7 +52,8 @@
       <div class="section">
         <h2 class="section-title">Areas Needing Focus</h2>
         <div v-if="!plan.weakAreas?.length" class="empty-section">
-          <p>✓ No weak areas identified! Keep up the great work.</p>
+          <p v-if="plan.statistics?.totalMaterials">No weak areas identified in your reviewed materials.</p>
+          <p v-else>Create study materials and review their flashcards to receive recommendations here.</p>
         </div>
         <div v-else class="weak-areas-grid">
           <div v-for="area in plan.weakAreas" :key="area.materialId" class="weak-area-card card card-hover">
@@ -146,10 +147,9 @@ async function loadPlan() {
   error.value = ''
   try {
     const response = await api.get('/study/spaced-repetition-plan')
-    const { data, success } = response
-    if (success || data) {
-      plan.value = data || response
-    }
+    const result = response.data
+    if (!result?.success || !result.data) throw new Error(result?.error || 'The server returned an invalid study plan.')
+    plan.value = result.data
   } catch (err) {
     console.error('Failed to load study plan:', err)
     error.value = err.message || 'Failed to load study plan'
@@ -166,7 +166,12 @@ function getStrengthColor(strength) {
 }
 
 function startStudy() {
-  router.push({ name: 'flashcard-review', params: { type: 'due' } })
+  const materialId = plan.value?.weakAreas?.[0]?.materialId
+  if (materialId) {
+    router.push({ name: 'flashcard-review', params: { materialId }, query: { due: '1' } })
+  } else {
+    router.push({ name: 'StudyHub' })
+  }
 }
 
 function studyArea(materialId) {

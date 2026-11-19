@@ -4,7 +4,7 @@ import { pool, query } from '../../lib/db.js'
 import { randomUUID } from 'crypto'
 import { aiChat, transcribeAudio } from '../services/aiService.js'
 import { getAiResponse, getAvailableProviders } from '../config/ai.js'
-import { getYouTubeTranscript, extractTextFromDoc, buildStudyPack } from '../services/studyPack.js'
+import { getYouTubeTranscript, extractTextFromDoc } from '../services/studyPack.js'
 import multer from 'multer'
 import { uploadFile } from '../services/storage.js'
 import { 
@@ -247,7 +247,6 @@ router.post('/api/study-materials', authenticate, async (req, res) => {
 
   let pack = null
   let councilInfo = null
-  let aiUsed = false
 
   const systemInstruction = `You are an expert study assistant. Your job is to deeply analyze the given material and produce a high-quality study pack.
 First, thoroughly read and understand the material. Identify:
@@ -312,7 +311,6 @@ CRITICAL RULES:
           if (result && result.final) {
             pack = await tryParseResponse(result.final)
             if (pack) {
-              aiUsed = true
               log('AI', 'Path A: council produced valid pack')
             } else {
               log('AI', 'Path A: council output unparseable, raw length=' + result.final.length)
@@ -354,7 +352,6 @@ CRITICAL RULES:
           if (result) {
             pack = await tryParseResponse(result)
             if (pack) {
-              aiUsed = true
               log('AI', `Path B: ${fp} produced valid pack`)
               break
             } else {
@@ -366,15 +363,14 @@ CRITICAL RULES:
     }
   } catch (e) { log('AI', `Phase 1: ${e.message}`) }
 
-  // Phase 2: Smart fallback (only if ALL AI failed)
+  // Retry available providers with a simpler prompt before reporting failure.
   if (!pack) {
-    log('FALLBACK', 'All AI paths exhausted — using smart keyword extraction')
+    log('AI', 'Primary generation paths exhausted; trying simplified prompts')
     if (combinedText.length > 100) {
-      // Attempt one more time with a simpler prompt on ANY remaining provider
       const providers = getAvailableProviders()
       for (const fp of providers) {
         try {
-          log('FALLBACK', `Last-ditch attempt with ${fp}`)
+          log('AI', `Retrying with simplified prompt via ${fp}`)
           const simplePrompt = `Read this material and return ONLY a JSON object with "summary", "improvedNote", "keyPoints", "flashcards", and "quiz". Material: ${combinedText.slice(0, 8000)}`
           const result = await Promise.race([
             getAiResponse(fp, [{ role: 'user', content: simplePrompt }], { temperature: 0.5 }),
@@ -382,20 +378,19 @@ CRITICAL RULES:
           ])
           if (result) {
             pack = await tryParseResponse(result)
-            if (pack) { aiUsed = true; log('FALLBACK', `Last-ditch ${fp} succeeded`); break }
+            if (pack) { log('AI', `Simplified prompt succeeded via ${fp}`); break }
           }
-        } catch {}
+        } catch (e) { log('AI', `Simplified prompt failed via ${fp}: ${e.message}`) }
       }
     }
-    // Ultimate fallback
-    if (!pack) {
-      pack = buildStudyPack(combinedText, flashcardCount, quizCount, keyPointCount)
-      log('FALLBACK', 'Keyword extraction used')
-    }
+  }
+  if (!pack) {
+    log('AI', 'Study-pack generation unavailable; no provider returned a valid pack')
+    return res.status(503).json({ error: 'AI study-pack generation is temporarily unavailable. Please try again later.' })
   }
 
   const aiTime = Date.now() - startTime
-  log('PACK', `Ready in ${aiTime}ms, AI: ${aiUsed ? 'OK' : 'fallback'}`)
+  log('PACK', `Ready in ${aiTime}ms using AI`)
 
   // Phase 3: DB persist (best-effort, does not block response)
   let savedId = null
@@ -532,7 +527,6 @@ router.post('/api/study-materials/upload', authenticate, upload.fields([
   const deadline = Date.now() + DEADLINE_MS
   let pack = null
   let councilInfo = null
-  let aiUsed = false
 
   const uploadSystemInstruction = `You are an expert study assistant. Your job is to deeply analyze the given material and produce a high-quality study pack.
 First, thoroughly read and understand the material. Identify:
@@ -595,7 +589,7 @@ CRITICAL RULES:
         ])
         if (result && result.final) {
           pack = await tryParseResponse(result.final)
-          if (pack) { aiUsed = true; log('AI', 'Path A: council produced valid pack') }
+          if (pack) log('AI', 'Path A: council produced valid pack')
           else log('AI', 'Path A: council unparseable')
           if (result.council) councilInfo = result.council.map(c => ({
             provider: c.provider,
@@ -630,7 +624,7 @@ CRITICAL RULES:
           ])
           if (result) {
             pack = await tryParseResponse(result)
-            if (pack) { aiUsed = true; log('AI', `Path B: ${fp} OK`); break }
+            if (pack) { log('AI', `Path B: ${fp} OK`); break }
             else log('AI', `Path B: ${fp} unparseable`)
           }
         } catch (e) { log('AI', `Path B: ${fp} error: ${e.message}`) }
@@ -642,27 +636,27 @@ CRITICAL RULES:
       const providers = getAvailableProviders()
       for (const fp of providers) {
         try {
-          log('FALLBACK', `Last-ditch ${fp}`)
+          log('AI', `Retrying with simplified prompt via ${fp}`)
           const r = await Promise.race([
             getAiResponse(fp, [{ role: 'user', content: `Return JSON with summary, improvedNote, keyPoints, flashcards, quiz for:\n${combinedText.slice(0, 8000)}` }], { temperature: 0.5 }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
           ])
           if (r) {
             pack = await tryParseResponse(r)
-            if (pack) { aiUsed = true; log('FALLBACK', `Last-ditch ${fp} OK`); break }
+            if (pack) { log('AI', `Simplified prompt succeeded via ${fp}`); break }
           }
-        } catch {}
+        } catch (e) { log('AI', `Simplified prompt failed via ${fp}: ${e.message}`) }
       }
     }
   } catch (e) { log('AI', `Failed: ${e.message}`) }
 
   if (!pack) {
-    log('FALLBACK', 'All AI exhausted — smart keyword extraction')
-    pack = buildStudyPack(combinedText, flashcardCount, quizCount, keyPointCount)
+    log('AI', 'Study-pack generation unavailable; no provider returned a valid pack')
+    return res.status(503).json({ error: 'AI study-pack generation is temporarily unavailable. Please try again later.' })
   }
 
   const aiTime = Date.now() - startTime
-  log('PACK', `Ready in ${aiTime}ms, AI: ${aiUsed ? 'OK' : 'fallback'}`)
+  log('PACK', `Ready in ${aiTime}ms using AI`)
 
   // DB persist (best-effort)
   let savedId = null

@@ -74,7 +74,10 @@ function toggleTracking() {
   if (tracking.value) {
     locationTracker.stopTracking()
     tracking.value = false
+    position.value = null
+    accuracy.value = null
   } else {
+    locationError.value = ''
     locationTracker.startTracking()
     tracking.value = locationTracker.watchId !== null
   }

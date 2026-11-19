@@ -1,463 +1,437 @@
 <template>
-  <div class="live-tracking page-wide">
+  <section class="location-page">
     <header class="page-header">
-      <h1>Live Campus Tracking</h1>
-      <p class="subtitle">GPS-based position estimates and 3D campus mapping (no UWB hardware)</p>
+      <div>
+        <p class="eyebrow">Campus information</p>
+        <h1>Campus venues</h1>
+        <p class="page-description">Venue details come from the university database. Your device location stays on this device.</p>
+      </div>
+      <button class="refresh-button" type="button" :disabled="venuesLoading" @click="loadVenues">
+        {{ venuesLoading ? 'Refreshing…' : 'Refresh venues' }}
+      </button>
     </header>
 
-    <div v-if="locationError" class="location-banner" role="alert">
-      {{ locationError }}
+    <div class="location-grid">
+      <section class="location-card">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">This device</p>
+            <h2>GPS location</h2>
+          </div>
+          <span class="status-chip" :class="{ active: tracking }">{{ tracking ? 'Active' : 'Off' }}</span>
+        </div>
+
+        <div v-if="position" class="coordinates">
+          <strong>{{ position.lat.toFixed(6) }}, {{ position.lng.toFixed(6) }}</strong>
+          <span>Accuracy ±{{ Math.round(position.accuracy) }} m</span>
+        </div>
+        <p v-else class="location-empty">{{ tracking ? 'Waiting for an accurate GPS fix…' : 'Location is not being read.' }}</p>
+        <p v-if="locationError" class="error-message" role="alert">{{ locationError }}</p>
+        <button class="tracking-button" type="button" @click="toggleTracking">
+          {{ tracking ? 'Stop reading location' : 'Read my location' }}
+        </button>
+        <p class="privacy-note">Location is shown only in this browser and is not shared from this page.</p>
+      </section>
+
+      <section class="venues-card">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">Verified venue records</p>
+            <h2>Available venues</h2>
+          </div>
+          <span v-if="venues.length" class="venue-count">{{ venues.length }}</span>
+        </div>
+
+        <p v-if="venuesError" class="error-message" role="alert">{{ venuesError }}</p>
+        <div v-else-if="venuesLoading && !venues.length" class="venue-loading" aria-label="Loading venues">
+          <span v-for="index in 3" :key="index"></span>
+        </div>
+        <div v-else-if="!venues.length" class="venues-empty">
+          <h3>No venues are configured</h3>
+          <p>Ask an administrator or lecturer to add campus venues with verified coordinates.</p>
+        </div>
+        <ul v-else class="venue-list">
+          <li v-for="venue in venues" :key="venue.id" class="venue-item">
+            <span class="venue-marker" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
+            </span>
+            <span class="venue-copy">
+              <strong>{{ venue.name }}</strong>
+              <span>{{ venue.roomCode || 'Room code not set' }}<template v-if="venue.radiusMeters"> · {{ venue.radiusMeters }} m radius</template></span>
+              <span v-if="hasCoordinates(venue)" class="venue-coordinates">
+                {{ Number(venue.latitude).toFixed(5) }}, {{ Number(venue.longitude).toFixed(5) }}
+              </span>
+              <span v-else class="venue-coordinates">Coordinates not configured</span>
+            </span>
+            <span v-if="distanceTo(venue) !== null" class="venue-distance">~{{ distanceTo(venue) }} m</span>
+          </li>
+        </ul>
+      </section>
     </div>
-
-    <div class="tracking-layout">
-      <div class="map-section">
-        <div class="map-container">
-          <CampusMap3D
-            :showPath="showPath"
-            :showBuildings="true"
-            :showAnchors="showAnchors"
-            :showDevice="true"
-            :autoRotate="autoRotate"
-          />
-        </div>
-        <div class="map-controls">
-          <span class="gps-status" :class="{ active: hasRealPosition }">
-            {{ hasRealPosition ? 'GPS active' : 'GPS unavailable — no position shown' }}
-          </span>
-          <button class="ctrl-btn" :class="{ active: showPath }" @click="showPath = !showPath">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-            SLAM Path
-          </button>
-          <button class="ctrl-btn" :class="{ active: showAnchors }" @click="showAnchors = !showAnchors">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v4m0 12v4m-10-10h4m12 0h4" />
-            </svg>
-            Anchors
-          </button>
-          <button class="ctrl-btn" :class="{ active: autoRotate }" @click="autoRotate = !autoRotate">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
-            Auto-Rotate
-          </button>
-        </div>
-      </div>
-
-      <div class="sidebar">
-        <GeofenceAttendance />
-
-        <div class="route-planner">
-          <div class="section-title">Route Planner</div>
-          <div class="route-controls">
-            <select v-model="routeFrom" class="route-select">
-              <option value="">From...</option>
-              <option v-for="b in buildings" :key="b.id" :value="b.id">{{ b.name }}</option>
-            </select>
-            <select v-model="routeTo" class="route-select">
-              <option value="">To...</option>
-              <option v-for="b in buildings" :key="b.id" :value="b.id">{{ b.name }}</option>
-            </select>
-            <button class="route-btn" :disabled="!routeFrom || !routeTo" @click="calculateRoute">
-              Plan Route
-            </button>
-          </div>
-          <div v-if="routeResult" class="route-result">
-            <div class="route-stats">
-              <div class="stat">
-                <span class="stat-label">Distance</span>
-                <span class="stat-value">{{ routeResult.distance.toFixed(0) }}m</span>
-              </div>
-              <div class="stat">
-                <span class="stat-label">Est. Time</span>
-                <span class="stat-value">{{ routeResult.estimatedMinutes }} min</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="campus-directory">
-          <div class="section-title">Campus Directory</div>
-          <div v-for="b in buildings" :key="b.id" class="dir-item" @click="focusBuilding(b)">
-            <div class="dir-badge" :style="{ background: buildingColors[b.id] }"></div>
-            <div class="dir-info">
-              <div class="dir-name">{{ b.name }}</div>
-              <div class="dir-floors">{{ b.floors }} floors</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import CampusMap3D from '../components/CampusMap3D.vue'
-import GeofenceAttendance from '../components/GeofenceAttendance.vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import api from '../lib/api'
 import { locationTracker } from '../services/LocationService.js'
-import { supabase } from '../lib/supabase.js'
 
-const initialLocation = locationTracker.getLocationStatus()
-const hasRealPosition = ref(initialLocation.available)
-const locationError = ref(initialLocation.error?.message || '')
+const venues = ref([])
+const venuesLoading = ref(false)
+const venuesError = ref('')
+const tracking = ref(false)
+const position = ref(locationTracker.getLocationStatus().position)
+const locationError = ref('')
+let unsubscribe = null
+
+function hasCoordinates(venue) {
+  const latitude = Number(venue.latitude)
+  const longitude = Number(venue.longitude)
+  return Number.isFinite(latitude) && Number.isFinite(longitude) &&
+    latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180 &&
+    !(latitude === 0 && longitude === 0)
+}
+
+function distanceTo(venue) {
+  if (!position.value || !hasCoordinates(venue)) return null
+  const distance = locationTracker.haversine(
+    position.value.lat,
+    position.value.lng,
+    Number(venue.latitude),
+    Number(venue.longitude)
+  )
+  return Number.isFinite(distance) ? Math.round(distance) : null
+}
+
+async function loadVenues() {
+  venuesLoading.value = true
+  venuesError.value = ''
+  try {
+    const { data } = await api.get('/venues')
+    if (!Array.isArray(data)) throw new Error('The server returned invalid venue data.')
+    venues.value = data
+  } catch (error) {
+    console.error('Failed to load venues:', error)
+    venuesError.value = error?.response?.data?.error || 'Could not load campus venues. Please try again.'
+  } finally {
+    venuesLoading.value = false
+  }
+}
 
 function onLocationUpdate(event) {
-  if (event?.type === 'position') {
+  if (event.type === 'position') {
+    position.value = event.data
     locationError.value = ''
-    hasRealPosition.value = true
-  } else if (event?.type === 'error') {
-    locationError.value = typeof event.data === 'string' ? event.data : 'Location unavailable.'
-    hasRealPosition.value = false
+  } else if (event.type === 'error') {
+    position.value = null
+    tracking.value = false
+    locationError.value = event.data
   }
 }
 
-const showPath = ref(true)
-const showAnchors = ref(true)
-const autoRotate = ref(false)
-
-const buildings = ref(locationTracker.getBuildings())
-const routeFrom = ref('')
-const routeTo = ref('')
-const routeResult = ref(null)
-
-const buildingColors = {
-  'main-hall': '#1D4ED8',
-  'science-block': '#2563EB',
-  'library': '#F59E0B',
-  'admin-building': '#DC2626',
-  'engineering-block': '#3B82F6',
-  'student-center': '#60A5FA',
-}
-
-function calculateRoute() {
-  const from = buildings.value.find(b => b.id === routeFrom.value)
-  const to = buildings.value.find(b => b.id === routeTo.value)
-  if (!from || !to) return
-  const result = locationTracker.planRoute(from.lat, from.lng, to.lat, to.lng)
-  routeResult.value = result
-}
-
-function focusBuilding(b) {
-  routeFrom.value = b.id
-}
-
-let positionChannel = null
-let unsubscribeLocation = null
-
-onMounted(async () => {
-  unsubscribeLocation = locationTracker.onPositionUpdate(onLocationUpdate)
-  await locationTracker.loadVenues()
-  if (supabase) {
-    positionChannel = supabase
-      .channel('live-positions')
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await positionChannel.track({ online_at: new Date().toISOString() })
-        }
-      })
+function toggleTracking() {
+  if (tracking.value) {
+    locationTracker.stopTracking()
+    tracking.value = false
+    position.value = null
+  } else {
+    locationTracker.startTracking()
+    tracking.value = locationTracker.watchId !== null
+    if (locationTracker.error) locationError.value = locationTracker.error.message
   }
+}
+
+onMounted(() => {
+  unsubscribe = locationTracker.onPositionUpdate(onLocationUpdate)
+  loadVenues()
 })
 
 onUnmounted(() => {
-  if (unsubscribeLocation) unsubscribeLocation()
-  if (positionChannel) supabase.removeChannel(positionChannel)
+  if (unsubscribe) unsubscribe()
+  if (tracking.value) locationTracker.stopTracking()
 })
 </script>
 
 <style scoped>
-.live-tracking {
-  padding: 24px;
+.location-page {
+  min-height: 100%;
+  padding: clamp(16px, 3vw, 32px);
+  color: var(--color-text-primary);
+}
+
+.page-header,
+.card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
 .page-header h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-text);
   margin: 0;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 850;
+  letter-spacing: -0.04em;
 }
 
-.subtitle {
-  font-size: 14px;
-  color: var(--color-text-muted);
-  margin-top: 4px;
+.page-description {
+  max-width: 600px;
+  margin: 7px 0 0;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-.tracking-layout {
+.refresh-button,
+.tracking-button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.location-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 24px;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 16px;
 }
 
-.map-section {
+.location-card,
+.venues-card {
+  min-width: 0;
+  padding: clamp(16px, 2.5vw, 24px);
+  border: 1px solid var(--color-border);
+  border-radius: 17px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 26px rgba(15, 30, 61, 0.04);
+}
+
+.card-heading {
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-heading h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.status-chip,
+.venue-count {
+  display: inline-flex;
+  min-width: 28px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--color-surface-elevated);
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.status-chip.active {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.venue-count {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.coordinates {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 15px;
+  border-radius: 12px;
+  background: var(--color-surface-elevated);
+}
+
+.coordinates strong {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+
+.coordinates span,
+.location-empty,
+.privacy-note {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+}
+
+.location-empty {
+  min-height: 49px;
+  margin: 0;
+  padding: 15px;
+  border-radius: 12px;
+  background: var(--color-surface-elevated);
+}
+
+.tracking-button {
+  width: 100%;
+  margin-top: 13px;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.privacy-note {
+  margin: 11px 2px 0;
+  line-height: 1.5;
+}
+
+.error-message {
+  margin: 10px 0;
+  color: var(--color-error, #b91c1c);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.venue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.venue-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.venue-item:last-child {
+  border-bottom: 0;
+}
+
+.venue-marker {
+  display: grid;
+  width: 37px;
+  height: 37px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.venue-marker svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.venue-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.venue-copy strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.venue-copy span {
+  color: var(--color-text-tertiary);
+  font-size: 9px;
+}
+
+.venue-coordinates {
+  font-family: var(--font-mono, monospace);
+}
+
+.venue-distance {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.venues-empty {
+  padding: 24px 12px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.venues-empty h3 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.venues-empty p {
+  margin: 7px auto 0;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.venue-loading {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.map-container {
-  height: 600px;
-  border-radius: 16px;
-  overflow: hidden;
+.venue-loading span {
+  height: 48px;
+  border-radius: 10px;
+  background: var(--color-surface-elevated);
 }
 
-.map-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.gps-status {
-  padding: 8px 12px;
-  border: 1px solid var(--color-error);
-  border-radius: 8px;
-  color: var(--color-error);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.gps-status.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.ctrl-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.ctrl-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-text);
-}
-
-.ctrl-btn.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.route-planner, .campus-directory {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.section-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 12px;
-}
-
-.route-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.route-select {
-  padding: 10px 12px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  color: var(--color-text);
-  font-size: 13px;
-  outline: none;
-  cursor: pointer;
-}
-
-.route-select:focus {
-  border-color: var(--color-primary);
-}
-
-.route-btn {
-  padding: 10px;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.route-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.route-btn:not(:disabled):hover {
-  filter: brightness(1.15);
-}
-
-.route-result {
-  margin-top: 12px;
-  padding: 12px;
-  background: var(--color-bg);
-  border-radius: 8px;
-}
-
-.route-stats {
-  display: flex;
-  gap: 16px;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-label {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-}
-
-.stat-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.campus-directory {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.dir-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.dir-item:last-child {
-  border-bottom: none;
-}
-
-.dir-item:hover {
-  opacity: 0.8;
-  transform: translateX(4px);
-}
-
-.dir-badge {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dir-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.dir-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.dir-floors {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.location-banner {
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-error);
-  border-radius: 8px;
-  color: var(--color-error);
-  background: var(--color-card);
-  font-size: 13px;
-}
-
-.staff-locations {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.panel-message {
-  margin: 12px 0 0;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.panel-message.error {
-  color: var(--color-error);
-}
-
-.location-list {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-}
-
-.location-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
-}
-
-.location-item:last-child {
-  border-bottom: none;
-}
-
-.location-name {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.location-meta {
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
-@media (max-width: 1024px) {
-  .tracking-layout {
+@media (max-width: 780px) {
+  .location-grid {
     grid-template-columns: 1fr;
   }
-  .map-container {
-    height: 400px;
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

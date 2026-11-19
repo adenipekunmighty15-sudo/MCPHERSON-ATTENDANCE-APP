@@ -383,6 +383,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkScreen)
   window.removeEventListener('mousemove', onResize)
   window.removeEventListener('mouseup', stopResize)
+  messagingStore.stopPolling()
 })
 </script>
 

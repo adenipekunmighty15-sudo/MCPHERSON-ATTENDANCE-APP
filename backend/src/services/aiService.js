@@ -403,16 +403,6 @@ async function aiChat(messages, options = {}) {
     }
   }
 
-  if (process.env.AI_SAFE_MODE === 'true') {
-    console.log('[AI SAFE MODE] Bypassing AI Council calls')
-    return {
-      final: 'This is a simulated response from the McPherson AI Council. [AI_SAFE_MODE is enabled]',
-      council: [{ provider: 'safe-mode', thinking: 'Simulated', answer: 'Simulated council response.' }],
-      finalThinking: 'Bypassed — AI_SAFE_MODE enabled',
-      followUps: [],
-    }
-  }
-
   // ── TURBO MODE: fastest single response, no council ──
   if (turboMode) {
     const providers = getWorkingProviders()

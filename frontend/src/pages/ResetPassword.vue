@@ -64,6 +64,14 @@ onMounted(async () => {
   })
   authListener = subscription
 
+  // Newer Supabase recovery links arrive with ?code=... and must be exchanged
+  // before getSession()/updateUser() will have a recovery session to use.
+  const code = new URLSearchParams(window.location.search).get('code')
+  if (code) {
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    if (exchangeError) console.warn('[reset] Code exchange failed:', exchangeError.message)
+  }
+
   const { data: { session } } = await supabase.auth.getSession()
   validLink.value = !!session?.user && (isRecoveryUrl() || authStore.isAuthenticated)
   checking.value = false
