@@ -53,3 +53,4 @@ Desktop.ini
 .vercel
 frontend/public/design/assets.zip
 frontend/public/design/mockups/
+.env*
