@@ -79,6 +79,15 @@ test('profile creation ignores client-supplied role and user id', () => {
   assert.doesNotMatch(profileRoute, /userRole/)
 })
 
+test('user schema supplies the columns required by token authentication', () => {
+  const script = read('scripts/create-university-structure.mjs')
+  assert.match(script, /is_active BOOLEAN NOT NULL DEFAULT true/)
+  assert.match(script, /avatar_url TEXT NOT NULL DEFAULT ''/)
+  assert.match(script, /face_consent_at TIMESTAMPTZ NOT NULL DEFAULT/)
+  const middleware = read('src/middleware/auth.js')
+  assert.match(middleware, /is_active AS "isActive"/)
+})
+
 test('registration auto-confirms allowed domains and signs the user straight in', () => {
   const auth = read('src/routes/auth.routes.js')
   const start = auth.indexOf("router.post('/api/auth/register'")

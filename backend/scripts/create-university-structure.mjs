@@ -123,6 +123,9 @@ const statements = [
   `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS department_id TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS programme_id TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS expected_graduation_date DATE NOT NULL DEFAULT CURRENT_DATE`,
+  `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`,
+  `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS face_consent_at TIMESTAMPTZ NOT NULL DEFAULT TIMESTAMPTZ '1970-01-01 00:00:00+00'`,
   // Indexes for every relationship the API filters/joins on.
   `CREATE INDEX IF NOT EXISTS idx_faculties_code ON public.faculties(code)`,
   `CREATE INDEX IF NOT EXISTS idx_departments_faculty_id ON public.departments(faculty_id)`,

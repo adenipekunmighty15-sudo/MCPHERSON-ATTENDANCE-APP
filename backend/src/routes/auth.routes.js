@@ -257,7 +257,7 @@ router.put('/api/auth/face', authenticate, async (req, res) => {
 router.delete('/api/auth/face', authenticate, async (req, res) => {
   try {
     await query(
-      "UPDATE public.users SET face_descriptor = '', face_consent_at = NULL WHERE id = $1",
+      "UPDATE public.users SET face_descriptor = '', face_consent_at = TIMESTAMPTZ '1970-01-01 00:00:00+00' WHERE id = $1",
       [req.user.id]
     )
     res.status(200).json({ success: true })
