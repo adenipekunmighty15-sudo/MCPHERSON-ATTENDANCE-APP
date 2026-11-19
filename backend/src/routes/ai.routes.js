@@ -464,7 +464,7 @@ const PROV_MODELS = {
   'deepseek-v4-pro': 'deepseek-ai/deepseek-v4-pro',
   'nemotron-ultra': 'nvidia/nemotron-3-ultra-550b-a55b',
   'llama-3.3': 'meta/llama-3.3-70b-instruct',
-  kimi: 'moonshotai/kimi-k2.6',
+  kimi: process.env.KIMI_MODEL || 'moonshotai/kimi-k3.1-pro',
   inkling: 'thinkingmachines/inkling',
   poolside: 'poolside/laguna-xs-2.1',
 }

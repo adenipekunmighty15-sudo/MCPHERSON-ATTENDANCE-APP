@@ -422,7 +422,8 @@ function getAvailableProviders() {
   if (process.env.NVIDIA_SUPER_49B_V1_KEY) available.push('nemotron-super-49b-v1')
   if (process.env.NVIDIA_NANO_KEY_2) available.push('nemotron-nano-8b')
   // mistral-nemotron-2 intentionally excluded: identical model to mistral-nemotron
-  if (process.env.KIMI_KEY) available.push('kimi')
+  // The master NVIDIA key can also reach Kimi, so do not require a second key.
+  if (process.env.KIMI_KEY || process.env.NVIDIA_API_KEY) available.push('kimi')
   if (process.env.INKLING_KEY) available.push('inkling')
   if (process.env.POOLSIDE_KEY) available.push('poolside')
   if (process.env.OPENROUTER_API_KEY) available.push('openrouter')
