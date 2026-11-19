@@ -263,7 +263,7 @@ onUnmounted(() => {
 
 .id-front {
   background: linear-gradient(160deg, #1a2744, #14203d 50%, #0e1a35);
-  border: 1px solid rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(73, 160, 120, 0.15);
   box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 30px rgba(30, 64, 175, 0.1) inset;
   display: flex;
   flex-direction: column;
@@ -272,7 +272,7 @@ onUnmounted(() => {
 
 .id-back {
   background: linear-gradient(160deg, #0e1a35, #14203d 50%, #0c162e);
-  border: 1px solid rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(73, 160, 120, 0.12);
   transform: rotateY(180deg);
   display: flex;
   flex-direction: column;

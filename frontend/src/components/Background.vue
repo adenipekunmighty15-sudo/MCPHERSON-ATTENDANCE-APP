@@ -114,7 +114,7 @@ function initNeuralCanvas() {
       nodes.slice(i + 1).forEach((otherNode) => {
         const dist = Math.hypot(node.x - otherNode.x, node.y - otherNode.y)
         if (dist < 150) {
-          ctx.strokeStyle = `rgba(96, 165, 250, ${0.3 * (1 - dist / 150)})`
+          ctx.strokeStyle = `rgba(101, 201, 154, ${0.3 * (1 - dist / 150)})`
           ctx.lineWidth = 1
           ctx.beginPath()
           ctx.moveTo(node.x, node.y)
@@ -126,7 +126,7 @@ function initNeuralCanvas() {
 
     // Draw nodes
     nodes.forEach((node) => {
-      ctx.fillStyle = 'rgba(96, 165, 250, 0.8)'
+      ctx.fillStyle = 'rgba(101, 201, 154, 0.8)'
       ctx.beginPath()
       ctx.arc(node.x, node.y, 3, 0, Math.PI * 2)
       ctx.fill()
@@ -187,16 +187,16 @@ onUnmounted(() => {
 }
 
 .background-grid {
-  background: linear-gradient(0deg, rgba(96, 165, 250, 0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(96, 165, 250, 0.03) 1px, transparent 1px);
+  background: linear-gradient(0deg, rgba(101, 201, 154, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(101, 201, 154, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
 .grid-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, rgba(96, 165, 250, 0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(96, 165, 250, 0.03) 1px, transparent 1px);
+  background: linear-gradient(0deg, rgba(101, 201, 154, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(101, 201, 154, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 

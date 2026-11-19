@@ -94,7 +94,7 @@
             </div>
           </div>
           <div class="stat-card card card-hover">
-            <div class="stat-icon" style="background:rgba(59,130,246,0.1);color:#3B82F6">
+            <div class="stat-icon" style="background:rgba(59,130,246,0.1);color:#49A078">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
               </svg>

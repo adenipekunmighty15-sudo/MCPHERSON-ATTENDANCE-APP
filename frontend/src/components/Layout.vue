@@ -1106,7 +1106,7 @@ onUnmounted(() => {
 }
 .sidebar-resize-handle:hover,
 .sidebar-resize-handle:active {
-  background: rgba(96, 165, 250, 0.15);
+  background: rgba(101, 201, 154, 0.15);
 }
 .resize-grip {
   width: 2px;
@@ -1734,8 +1734,8 @@ onUnmounted(() => {
 
 .layout-bg {
   background-image:
-    linear-gradient(rgba(30, 58, 138, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(30, 58, 138, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(23, 107, 77, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 107, 77, 0.025) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: linear-gradient(to bottom, black, transparent 72%);
 }
@@ -2230,7 +2230,7 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1E3A8A, #D97706);
+  background: linear-gradient(135deg, #176B4D, #D97706);
   color: #FFFFFF;
   font-size: 13px;
   font-weight: 800;

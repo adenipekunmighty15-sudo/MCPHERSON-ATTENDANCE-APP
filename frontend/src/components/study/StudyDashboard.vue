@@ -116,7 +116,7 @@
               </div>
             </div>
             <div class="stat-item">
-              <span class="stat-icon" style="background:rgba(59,130,246,0.1);color:#3B82F6">
+              <span class="stat-icon" style="background:rgba(59,130,246,0.1);color:#49A078">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
                 </svg>

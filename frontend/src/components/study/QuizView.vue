@@ -14,7 +14,7 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold truncate" style="color: #0F1E3D;">{{ m.title }}</p>
+              <p class="text-sm font-bold truncate" style="color: #163E2B;">{{ m.title }}</p>
               <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                 <span class="text-[11px] font-semibold" style="color: #96A0B5;">{{ m.quiz.length }} questions</span>
                 <span v-if="m.bestScore != null" class="text-[11px] font-semibold" style="color: #10B981;">Best: {{ m.bestScore }}%</span>
@@ -40,7 +40,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
             Quit
           </button>
-          <h3 class="text-sm font-bold mt-1" style="color: #0F1E3D;">{{ activeMaterial.title }}</h3>
+          <h3 class="text-sm font-bold mt-1" style="color: #163E2B;">{{ activeMaterial.title }}</h3>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs font-semibold" style="color: #96A0B5;">{{ currentIndex + 1 }} / {{ activeQuiz.length }}</span>
@@ -54,7 +54,7 @@
       </div>
 
       <div class="rounded-2xl border p-6" style="background: #FFFFFF; border-color: #E2E6ED;">
-        <p class="text-sm font-bold mb-5" style="color: #0F1E3D;">{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
+        <p class="text-sm font-bold mb-5" style="color: #163E2B;">{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
 
         <div class="space-y-2.5">
           <div v-for="(opt, oi) in currentQuestion.options" :key="oi"
@@ -90,8 +90,8 @@
           </p>
           <p v-if="currentQuestion.explanation" class="text-xs mt-1 leading-relaxed" style="color: #68758E;">{{ currentQuestion.explanation }}</p>
           <button v-if="currentIndex < activeQuiz.length - 1" @click="nextQuestion"
-            class="mt-4 px-5 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #0F1E3D; color: #FFFFFF;"
-            @mouseenter="$el.style.background='#1A2D52'" @mouseleave="$el.style.background='#0F1E3D'"
+            class="mt-4 px-5 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #163E2B; color: #FFFFFF;"
+            @mouseenter="$el.style.background='#1A2D52'" @mouseleave="$el.style.background='#163E2B'"
           >Next question &rarr;</button>
           <button v-else @click="finishQuiz"
             class="mt-4 px-5 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #10B981; color: #FFFFFF;"
@@ -107,15 +107,15 @@
         <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" :style="{ background: scorePercent >= 70 ? '#F0FDF4' : scorePercent >= 40 ? '#FEF3C7' : '#FEF2F2' }">
           <span class="text-2xl font-bold" :style="{ color: scorePercent >= 70 ? '#10B981' : scorePercent >= 40 ? '#F59E0B' : '#EF4444' }">{{ scorePercent }}%</span>
         </div>
-        <p class="text-sm font-bold" style="color: #0F1E3D;">{{ scoreLabel }}</p>
+        <p class="text-sm font-bold" style="color: #163E2B;">{{ scoreLabel }}</p>
         <p class="text-xs mt-1" style="color: #96A0B5;">{{ correctCount }} of {{ activeQuiz.length }} correct</p>
 
         <div class="mt-6 flex items-center justify-center gap-3">
-          <button @click="retakeQuiz" class="px-5 py-2 rounded-xl text-xs font-bold border cursor-pointer transition-all" style="background: transparent; border-color: #D0D6E0; color: #0F1E3D;"
+          <button @click="retakeQuiz" class="px-5 py-2 rounded-xl text-xs font-bold border cursor-pointer transition-all" style="background: transparent; border-color: #D0D6E0; color: #163E2B;"
             @mouseenter="$el.style.borderColor='#68758E'" @mouseleave="$el.style.borderColor='#D0D6E0'"
           >Retake</button>
-          <button @click="screen = 'picker'" class="px-5 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #0F1E3D; color: #FFFFFF;"
-            @mouseenter="$el.style.background='#1A2D52'" @mouseleave="$el.style.background='#0F1E3D'"
+          <button @click="screen = 'picker'" class="px-5 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #163E2B; color: #FFFFFF;"
+            @mouseenter="$el.style.background='#1A2D52'" @mouseleave="$el.style.background='#163E2B'"
           >Back to quizzes</button>
         </div>
       </div>
@@ -125,7 +125,7 @@
         <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: #96A0B5;">Questions to review</h4>
         <div class="space-y-2">
           <div v-for="(q, i) in missedQuestions" :key="i" class="rounded-xl border p-4" style="background: #FFFFFF; border-color: #E2E6ED;">
-            <p class="text-xs font-bold" style="color: #0F1E3D;">{{ q.question }}</p>
+            <p class="text-xs font-bold" style="color: #163E2B;">{{ q.question }}</p>
             <p class="text-[11px] mt-1" style="color: #10B981;">Correct answer: {{ q.options[q.answerIndex] }}</p>
             <p v-if="q.explanation" class="text-[11px] mt-0.5" style="color: #68758E;">{{ q.explanation }}</p>
           </div>
@@ -302,9 +302,9 @@ function getOptionRadioBg(oi) {
 }
 function getOptionTextColor(oi) {
   const q = currentQuestion.value
-  if (q.selectedIndex === undefined) return '#0F1E3D'
+  if (q.selectedIndex === undefined) return '#163E2B'
   if (oi === q.answerIndex) return '#065F46'
   if (oi === q.selectedIndex && oi !== q.answerIndex) return '#991B1B'
-  return '#0F1E3D'
+  return '#163E2B'
 }
 </script>

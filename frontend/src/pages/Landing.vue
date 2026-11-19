@@ -113,7 +113,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   color: #0f172a;
   background:
     radial-gradient(ellipse at 86% 22%, rgba(245, 158, 11, 0.1), transparent 28rem),
-    radial-gradient(ellipse at 4% 88%, rgba(30, 58, 138, 0.06), transparent 32rem),
+    radial-gradient(ellipse at 4% 88%, rgba(23, 107, 77, 0.06), transparent 32rem),
     #f8fafc;
 }
 
@@ -143,7 +143,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   height: 44px;
   display: grid;
   place-items: center;
-  color: #1e3a8a;
+  color: #176b4d;
 }
 
 .brand-wordmark {
@@ -208,7 +208,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 
 .landing-signin:hover,
 .landing-secondary:hover {
-  color: #1e3a8a;
+  color: #176b4d;
 }
 
 .landing-create,
@@ -221,8 +221,8 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   padding: 0 17px;
   border-radius: 12px;
   color: #fff;
-  background: #1e3a8a;
-  box-shadow: 0 8px 18px rgba(30, 58, 138, 0.16);
+  background: #176b4d;
+  box-shadow: 0 8px 18px rgba(23, 107, 77, 0.16);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -232,7 +232,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 .landing-create:hover,
 .landing-primary:hover {
   transform: translateY(-2px);
-  background: #172554;
+  background: #11543C;
 }
 
 .landing-hero {
@@ -282,7 +282,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .landing-copy h1 em {
-  color: #1e3a8a;
+  color: #176b4d;
   font-weight: 500;
 }
 
@@ -321,7 +321,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   place-items: center;
   border: 1px solid #dbe5f1;
   border-radius: 11px;
-  color: #1e3a8a;
+  color: #176b4d;
   background: #fff;
 }
 
@@ -353,14 +353,14 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   width: min(78%, 430px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(30, 58, 138, 0.13), rgba(30, 58, 138, 0.04) 48%, transparent 72%);
+  background: radial-gradient(circle, rgba(23, 107, 77, 0.13), rgba(23, 107, 77, 0.04) 48%, transparent 72%);
 }
 
 .art-orbit {
   position: absolute;
   width: min(88%, 500px);
   aspect-ratio: 1;
-  border: 1px solid rgba(30, 58, 138, 0.14);
+  border: 1px solid rgba(23, 107, 77, 0.14);
   border-radius: 50%;
   transform: rotate(-24deg) scaleY(0.74);
 }
@@ -380,7 +380,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.15);
   border-radius: 48% 48% 44% 44% / 25% 25% 58% 58%;
-  background: linear-gradient(145deg, #1e3a8a, #0f172a 76%);
+  background: linear-gradient(145deg, #176b4d, #0f172a 76%);
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2), inset 0 0 0 9px rgba(248, 250, 252, 0.035);
   color: #f8fafc;
 }
@@ -466,7 +466,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .pulse-item > strong {
-  color: #1e3a8a;
+  color: #176b4d;
   font-family: var(--font-display);
   font-size: 20px;
   font-variant-numeric: tabular-nums;
@@ -512,7 +512,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   border-radius: 11px;
 }
 
-.feature-blue { color: #1e3a8a; background: rgba(30, 58, 138, 0.08); }
+.feature-blue { color: #176b4d; background: rgba(23, 107, 77, 0.08); }
 .feature-gold { color: #b45309; background: rgba(245, 158, 11, 0.13); }
 .feature-green { color: #047857; background: rgba(16, 185, 129, 0.1); }
 
@@ -544,7 +544,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .landing-footer a {
-  color: #1e3a8a;
+  color: #176b4d;
   font-weight: 700;
   text-decoration: none;
 }

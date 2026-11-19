@@ -73,7 +73,23 @@ router.get('/api/courses/enrolled', authenticate, async (req, res) => {
     LEFT JOIN public.departments d ON d.id = c.department_id
     WHERE (e.user_id = $1 AND COALESCE(e.status, 'active') <> 'dropped')
        OR c.lecturer_id = $1
-    ORDER BY c.code NULLS LAST, e.course_name, c.title`
+    UNION
+    SELECT DISTINCT
+      c.id, c.code, c.title, c.level, c.units AS "creditUnits",
+      c.department_id AS "departmentId", c.lecturer_id AS "lecturerId",
+      c.id::text AS "courseId", c.title AS "courseName", 'active'::text AS status,
+      lecturer.name AS lecturer,
+      d.name AS "departmentName"
+    FROM public.users student
+    JOIN public.departments d ON (
+      d.id::text = student.department_id::text OR
+      lower(d.name) = lower(student.department) OR
+      lower(d.code) = lower(student.department)
+    )
+    JOIN public.courses c ON c.department_id::text = d.id::text
+    LEFT JOIN public.users lecturer ON lecturer.id = c.lecturer_id
+    WHERE student.id = $1
+    ORDER BY code NULLS LAST, "courseName", title`
 
   try {
     const { rows } = await query(baseSql, [req.user.id])

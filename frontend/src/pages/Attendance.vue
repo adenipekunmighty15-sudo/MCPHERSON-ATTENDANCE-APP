@@ -12,7 +12,7 @@
           @click="checkIn"
           :disabled="checkingIn || !activeSession || !/^\d{6}$/.test(checkinCode)"
           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-200 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          style="background: #2563EB; font-family: 'Inter', system-ui, sans-serif;"
+          style="background: #2F855A; font-family: 'Inter', system-ui, sans-serif;"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           {{ checkingIn ? 'Checking in…' : 'Check In with GPS' }}
@@ -74,7 +74,7 @@
           </label>
         </div>
         <div class="mt-4 flex flex-wrap items-center gap-3">
-          <button @click="startSession" :disabled="startingSession || !selectedCourseId || !selectedTimetableId" class="rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50" style="background: #2563EB;">
+          <button @click="startSession" :disabled="startingSession || !selectedCourseId || !selectedTimetableId" class="rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50" style="background: #2F855A;">
             {{ startingSession ? 'Starting…' : 'Start session' }}
           </button>
           <span v-if="lecturerOptionsLoading" class="text-xs" style="color: #68758E;">Loading courses, timetable, and venues…</span>
@@ -137,7 +137,7 @@
       <!-- Stat Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-          <div class="text-3xl font-bold" style="color: #2563EB; font-family: 'Fraunces', Georgia, serif;">{{ overallRate == null ? '—' : `${overallRate}%` }}</div>
+          <div class="text-3xl font-bold" style="color: #2F855A; font-family: 'Fraunces', Georgia, serif;">{{ overallRate == null ? '—' : `${overallRate}%` }}</div>
           <div class="text-sm font-semibold mt-0.5" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">Overall Attendance</div>
           <div class="text-[11px] font-medium mt-1" :style="{ color: examEligible == null ? '#68758E' : examEligible ? '#22C55E' : '#EF4444' }" style="font-family: 'Inter', system-ui, sans-serif;">{{ examEligible == null ? 'No attendance records' : examEligible ? 'Exam eligible' : 'Below eligibility threshold' }}</div>
         </div>
@@ -165,7 +165,7 @@
           <input v-model="globalFilter" type="text" placeholder="Search course or date..." class="w-full text-sm rounded-xl py-2.5 pl-9 pr-4 border-0 outline-none" style="background: #F5F1EA; color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;" />
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <button v-for="f in filters" :key="f" @click="filterStatus = f" class="px-4 py-1.5 rounded-full text-xs font-semibold border-0 cursor-pointer transition-all" :style="filterStatus === f ? { background: '#2563EB', color: '#FFFFFF' } : { background: 'transparent', color: '#68758E' }">{{ f }}</button>
+          <button v-for="f in filters" :key="f" @click="filterStatus = f" class="px-4 py-1.5 rounded-full text-xs font-semibold border-0 cursor-pointer transition-all" :style="filterStatus === f ? { background: '#2F855A', color: '#FFFFFF' } : { background: 'transparent', color: '#68758E' }">{{ f }}</button>
         </div>
         <button
           v-if="isLecturer"
@@ -173,7 +173,7 @@
           @click="exportAttendance"
           :disabled="!filteredRows.length"
           class="ml-auto rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-50"
-          style="background: #1E3A8A; color: #FFFFFF;"
+          style="background: #176B4D; color: #FFFFFF;"
         >Export CSV</button>
       </div>
 
@@ -196,7 +196,7 @@
                   <span v-else-if="col.key === 'status'">—</span>
                   <span v-else-if="col.key === 'student'" class="font-mono text-xs">{{ row.studentId }}</span>
                   <span v-else-if="row.status === 'Absent' && ['timeIn','timeOut','method','location'].includes(col.key)">&mdash;</span>
-                  <span v-else-if="col.key === 'location'" style="color: #2563EB;">{{ row[col.key] }}</span>
+                  <span v-else-if="col.key === 'location'" style="color: #2F855A;">{{ row[col.key] }}</span>
                   <span v-else-if="['timeIn','timeOut'].includes(col.key)" style="font-family: 'JetBrains Mono', 'Fira Code', monospace;">{{ row[col.key] }}</span>
                   <span v-else>{{ row[col.key] || '—' }}</span>
                 </td>
@@ -737,7 +737,7 @@ onUnmounted(() => {
   padding: 18px 22px;
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 14px;
-  background: linear-gradient(110deg, #0f172a, #172554);
+  background: linear-gradient(110deg, #0f172a, #11543C);
   color: #f8fafc;
 }
 

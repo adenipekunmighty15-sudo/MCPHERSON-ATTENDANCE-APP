@@ -82,6 +82,15 @@
                 rows="5" :disabled="generating" />
 
               <div class="composer-tools">
+                <label class="tool-btn course-tool">
+                  <BookOpen :size="15" />
+                  <select v-model="selectedCourseId" :disabled="generating">
+                    <option value="">General study pack</option>
+                    <option v-for="course in courses" :key="course.id" :value="String(course.id)">
+                      {{ course.code }} · {{ course.title }}
+                    </option>
+                  </select>
+                </label>
                 <label class="tool-btn">
                   <Paperclip :size="15" /> Add files
                   <input ref="fileInput" type="file" multiple hidden
@@ -149,7 +158,12 @@
               </div>
               <button class="primary-btn small" @click="goWorkspace"><Plus :size="15" /> New pack</button>
             </div>
-            <div v-if="packs.length" class="pack-grid">
+            <div v-if="packsError" class="inline-error library-error" role="alert">
+              <AlertCircle :size="15" /> {{ packsError }}
+              <button class="ghost-btn" @click="loadPacks">Retry</button>
+            </div>
+            <div v-else-if="packsLoading" class="library-loading" role="status">Loading your study packs…</div>
+            <div v-if="!packsError && packs.length" class="pack-grid">
               <button v-for="pack in packs" :key="pack.id" class="pack-card" @click="openPack(pack.id)">
                 <div class="pack-card-top">
                   <span class="pack-icon"><FileText :size="18" /></span>
@@ -164,7 +178,7 @@
                 </div>
               </button>
             </div>
-            <div v-else class="empty-state">
+            <div v-else-if="!packsError && !packsLoading" class="empty-state">
               <Library :size="34" />
               <h3>Your library is empty</h3>
               <p>Generate your first study pack and it will appear here.</p>
@@ -382,6 +396,10 @@ const router = useRouter()
 /* ── Workspace state ── */
 const view = ref('workspace')
 const packs = ref([])
+const courses = ref([])
+const selectedCourseId = ref('')
+const packsLoading = ref(false)
+const packsError = ref('')
 const activePack = ref(null)
 const activity = ref('notes')
 const sourceText = ref('')
@@ -414,7 +432,7 @@ const suggestions = [
 ]
 
 onMounted(async () => {
-  await Promise.all([loadPacks(), loadGoals()])
+  await Promise.all([loadPacks(), loadGoals(), loadCourses()])
 })
 onUnmounted(() => {
   if (interval) { clearInterval(interval); interval = null }
@@ -458,11 +476,25 @@ function friendlyError(e) {
 }
 
 async function loadPacks() {
+  packsLoading.value = true
+  packsError.value = ''
   try {
     const { data } = await api.get('/study-materials')
     packs.value = Array.isArray(data) ? data : []
   } catch (e) {
     console.warn('[StudyHub] Load packs failed:', e)
+    packsError.value = friendlyError(e)
+  } finally {
+    packsLoading.value = false
+  }
+}
+
+async function loadCourses() {
+  try {
+    const { data } = await api.get('/courses/enrolled')
+    courses.value = Array.isArray(data) ? data.filter(course => course.id && course.code) : []
+  } catch (e) {
+    console.warn('[StudyHub] Load courses failed:', e)
   }
 }
 
@@ -479,6 +511,7 @@ async function generatePack() {
   const form = new FormData()
   form.append('sourceText', sourceText.value.trim())
   form.append('title', deriveTitle())
+  if (selectedCourseId.value) form.append('courseId', selectedCourseId.value)
   if (sourceUrl.value.trim()) form.append('youtubeUrl', sourceUrl.value.trim())
   for (const file of files.value) form.append(fieldFor(file), file)
 
@@ -554,6 +587,18 @@ const quizScore = computed(() => quiz.value.filter((q, i) => quizAnswers.value[i
 function answerQuiz(qi, oi) {
   if (quizAnswers.value[qi] !== undefined) return
   quizAnswers.value = { ...quizAnswers.value, [qi]: oi }
+  const answers = { ...quizAnswers.value, [qi]: oi }
+  if (Object.keys(answers).length === quiz.value.length && activePack.value?.id) {
+    const correctAnswers = quiz.value.filter((question, index) => answers[index] === Number(question.answerIndex)).length
+    api.post('/study-sessions', {
+      materialId: activePack.value.id,
+      sessionType: 'quiz',
+      score: Math.round((correctAnswers / quiz.value.length) * 100),
+      totalQuestions: quiz.value.length,
+      correctAnswers,
+      stats: { answers },
+    }).catch(e => console.warn('[StudyHub] Save quiz result failed:', e))
+  }
 }
 
 /* ── Podcast ── */
@@ -759,6 +804,9 @@ watch(goals, saveGoals, { deep: true })
 .composer-tools { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .tool-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; font-size: 11px; font-weight: 600; color: #5A657A; background: #fff; cursor: pointer; }
 .tool-btn:hover { border-color: #C7CEDA; }
+.course-tool select { min-width: 210px; max-width: 310px; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
+.library-error { justify-content: space-between; }
+.library-loading { padding: 28px; text-align: center; color: #7C879B; font-size: 12px; }
 .url-tool { flex: 1; min-width: 200px; }
 .url-tool input { border: 0; outline: none; flex: 1; font-size: 11px; color: var(--ink); background: transparent; }
 .file-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }

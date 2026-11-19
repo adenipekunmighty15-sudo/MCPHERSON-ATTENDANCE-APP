@@ -9,20 +9,20 @@
   --color-surface-raised: #ffffff;
   --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
-  --color-border-accent: rgba(30, 58, 138, 0.18);
+  --color-border-accent: rgba(23, 107, 77, 0.18);
   --color-text-primary: #0f172a;
   --color-text-secondary: #334155;
   --color-text-tertiary: #64748b;
   --color-text-quaternary: #94a3b8;
-  --color-primary: #1e3a8a;
-  --color-primary-hover: #172554;
-  --color-primary-soft: rgba(30, 58, 138, 0.08);
-  --color-primary-glow: rgba(30, 58, 138, 0.16);
-  --color-primary-muted: rgba(30, 58, 138, 0.1);
-  --color-primary-light: #3b82f6;
-  --color-accent: #d97706;
-  --color-accent-hover: #b45309;
-  --color-accent-soft: rgba(217, 119, 6, 0.1);
+  --color-primary: #176b4d;
+  --color-primary-hover: #11543C;
+  --color-primary-soft: rgba(23, 107, 77, 0.08);
+  --color-primary-glow: rgba(23, 107, 77, 0.16);
+  --color-primary-muted: rgba(23, 107, 77, 0.1);
+  --color-primary-light: #49a078;
+  --color-accent: #c26d45;
+  --color-accent-hover: #a45332;
+  --color-accent-soft: rgba(194, 109, 69, 0.1);
   --color-secondary: #334155;
   --color-secondary-soft: rgba(51, 65, 85, 0.08);
   --color-deep: #0f172a;
@@ -33,10 +33,10 @@
   --color-error-soft: rgba(239, 68, 68, 0.1);
   --color-warning: #f59e0b;
   --color-warning-soft: rgba(245, 158, 11, 0.12);
-  --color-info: #2563eb;
+  --color-info: #2f855a;
   --color-info-soft: rgba(37, 99, 235, 0.1);
-  --color-gold: #d97706;
-  --color-gold-soft: rgba(217, 119, 6, 0.1);
+  --color-gold: #c26d45;
+  --color-gold-soft: rgba(194, 109, 69, 0.1);
 
   --font-display: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -65,7 +65,7 @@
   --glass-bg: rgba(255, 255, 255, 0.9);
   --glass-blur: 18px;
   --glass-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
-  --focus-ring: 0 0 0 3px rgba(30, 58, 138, 0.25);
+  --focus-ring: 0 0 0 3px rgba(23, 107, 77, 0.25);
   --duration-fast: 150ms;
   --duration-normal: 220ms;
   --duration-slow: 350ms;
@@ -84,20 +84,20 @@
   --color-surface-raised: #152137;
   --color-border: #26354d;
   --color-border-strong: #3b4e6a;
-  --color-border-accent: rgba(147, 197, 253, 0.22);
+  --color-border-accent: rgba(155, 229, 189, 0.22);
   --color-text-primary: #f8fafc;
   --color-text-secondary: #dbe4f0;
   --color-text-tertiary: #a7b5c8;
   --color-text-quaternary: #718198;
-  --color-primary: #93c5fd;
-  --color-primary-hover: #bfdbfe;
-  --color-primary-soft: rgba(147, 197, 253, 0.1);
-  --color-primary-glow: rgba(147, 197, 253, 0.18);
-  --color-primary-muted: rgba(147, 197, 253, 0.12);
-  --color-primary-light: #bfdbfe;
-  --color-accent: #fbbf24;
-  --color-accent-hover: #fcd34d;
-  --color-accent-soft: rgba(251, 191, 36, 0.14);
+  --color-primary: #9be5bd;
+  --color-primary-hover: #c1f0d5;
+  --color-primary-soft: rgba(155, 229, 189, 0.1);
+  --color-primary-glow: rgba(155, 229, 189, 0.18);
+  --color-primary-muted: rgba(155, 229, 189, 0.12);
+  --color-primary-light: #c1f0d5;
+  --color-accent: #e6a17e;
+  --color-accent-hover: #f0b798;
+  --color-accent-soft: rgba(230, 161, 126, 0.14);
   --color-secondary: #cbd5e1;
   --color-secondary-soft: rgba(203, 213, 225, 0.1);
   --color-deep: #020617;
@@ -108,17 +108,17 @@
   --color-error-soft: rgba(248, 113, 113, 0.12);
   --color-warning: #fbbf24;
   --color-warning-soft: rgba(251, 191, 36, 0.12);
-  --color-info: #60a5fa;
-  --color-info-soft: rgba(96, 165, 250, 0.12);
-  --color-gold: #fbbf24;
-  --color-gold-soft: rgba(251, 191, 36, 0.12);
+  --color-info: #65c99a;
+  --color-info-soft: rgba(101, 201, 154, 0.12);
+  --color-gold: #e6a17e;
+  --color-gold-soft: rgba(230, 161, 126, 0.12);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.16);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.22);
   --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.28);
   --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.35);
   --glass-bg: rgba(17, 27, 46, 0.9);
   --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
-  --focus-ring: 0 0 0 3px rgba(147, 197, 253, 0.35);
+  --focus-ring: 0 0 0 3px rgba(155, 229, 189, 0.35);
 }
 
 html {
@@ -211,23 +211,23 @@ textarea {
   background-color: var(--color-surface) !important;
 }
 
-.app-root [style*="background: #0F1E3D"],
-.app-root [style*="background:#0F1E3D"],
+.app-root [style*="background: #163E2B"],
+.app-root [style*="background:#163E2B"],
 .app-root [style*="background: rgb(15, 30, 61)"],
-.app-root [style*="background: #2563EB"],
-.app-root [style*="background:#2563EB"],
+.app-root [style*="background: #2F855A"],
+.app-root [style*="background:#2F855A"],
 .app-root [style*="background: rgb(37, 99, 235)"] {
   background-color: var(--color-primary) !important;
 }
 
-.app-root [style*="color: #2563EB"],
-.app-root [style*="color:#2563EB"],
+.app-root [style*="color: #2F855A"],
+.app-root [style*="color:#2F855A"],
 .app-root [style*="color: rgb(37, 99, 235)"] {
   color: var(--color-primary) !important;
 }
 
-.app-root [style*="color: #0F1E3D"],
-.app-root [style*="color:#0F1E3D"],
+.app-root [style*="color: #163E2B"],
+.app-root [style*="color:#163E2B"],
 .app-root [style*="color: rgb(15, 30, 61)"],
 .app-root [style*="color: #1A1A2E"],
 .app-root [style*="color:#1A1A2E"],
@@ -263,17 +263,17 @@ textarea {
   border-color: var(--color-border) !important;
 }
 
-[data-theme='dark'] .app-root [style*="background: #0F1E3D"][style*="color: #FFFFFF"],
-[data-theme='dark'] .app-root [style*="background:#0F1E3D"][style*="color:#FFFFFF"],
+[data-theme='dark'] .app-root [style*="background: #163E2B"][style*="color: #FFFFFF"],
+[data-theme='dark'] .app-root [style*="background:#163E2B"][style*="color:#FFFFFF"],
 [data-theme='dark'] .app-root [style*="background: rgb(15, 30, 61)"][style*="color: rgb(255, 255, 255)"],
-[data-theme='dark'] .app-root [style*="background: #2563EB"][style*="color: #FFFFFF"],
-[data-theme='dark'] .app-root [style*="background:#2563EB"][style*="color:#FFFFFF"],
+[data-theme='dark'] .app-root [style*="background: #2F855A"][style*="color: #FFFFFF"],
+[data-theme='dark'] .app-root [style*="background:#2F855A"][style*="color:#FFFFFF"],
 [data-theme='dark'] .app-root [style*="background: rgb(37, 99, 235)"][style*="color: rgb(255, 255, 255)"] {
   color: #0b1220 !important;
 }
 
-[data-theme='dark'] .app-root [style*="background: #0F1E3D"][style*="color: #0F1E3D"],
-[data-theme='dark'] .app-root [style*="background:#0F1E3D"][style*="color:#0F1E3D"],
+[data-theme='dark'] .app-root [style*="background: #163E2B"][style*="color: #163E2B"],
+[data-theme='dark'] .app-root [style*="background:#163E2B"][style*="color:#163E2B"],
 [data-theme='dark'] .app-root [style*="background: rgb(15, 30, 61)"][style*="color: rgb(15, 30, 61)"] {
   color: #0b1220 !important;
 }

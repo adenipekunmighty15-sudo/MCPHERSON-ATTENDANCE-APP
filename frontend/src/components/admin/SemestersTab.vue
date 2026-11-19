@@ -111,11 +111,11 @@
             <input v-model="form.exam_end" type="date" class="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)]" />
           </div>
           <div class="flex items-center gap-2">
-            <input v-model="form.is_current" type="checkbox" id="sem-current" class="rounded border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] focus:ring-[#93C5FD]" />
+            <input v-model="form.is_current" type="checkbox" id="sem-current" class="rounded border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] focus:ring-[#9BE5BD]" />
             <label for="sem-current" class="text-sm text-[var(--color-text-primary)]">Current Semester</label>
           </div>
           <div class="flex items-center gap-2">
-            <input v-model="form.is_active" type="checkbox" id="sem-active" class="rounded border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] focus:ring-[#93C5FD]" />
+            <input v-model="form.is_active" type="checkbox" id="sem-active" class="rounded border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] focus:ring-[#9BE5BD]" />
             <label for="sem-active" class="text-sm text-[var(--color-text-primary)]">Active</label>
           </div>
           <div class="flex justify-end gap-3 pt-2">

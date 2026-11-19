@@ -43,7 +43,7 @@ const orbs = computed(() => [
     opacity: 0.2,
     blur: 100,
     duration: 30,
-    gradient: 'radial-gradient(circle at 70% 20%, var(--color-primary), #1D4ED8)',
+    gradient: 'radial-gradient(circle at 70% 20%, var(--color-primary), #246B45)',
   },
   {
     id: 3,
@@ -53,7 +53,7 @@ const orbs = computed(() => [
     opacity: 0.22,
     blur: 70,
     duration: 20,
-    gradient: 'radial-gradient(circle at 50% 50%, #3B82F6, var(--color-primary))',
+    gradient: 'radial-gradient(circle at 50% 50%, #49A078, var(--color-primary))',
   },
   {
     id: 4,

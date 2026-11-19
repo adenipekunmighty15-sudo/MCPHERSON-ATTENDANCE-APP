@@ -17,7 +17,7 @@
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold truncate" style="color: #0F1E3D;">{{ m.title }}</p>
+            <p class="text-sm font-bold truncate" style="color: #163E2B;">{{ m.title }}</p>
             <p class="text-xs mt-0.5" style="color: #96A0B5;">
               {{ m.flashcardCount || 0 }} flashcards
               <template v-if="m.podcastUrl">&middot; Podcast ready</template>
@@ -35,7 +35,7 @@
               :disabled="generatingId === m.id"
               class="mt-3 px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all inline-flex items-center gap-2 podcast-btn"
               :style="{
-                background: generatingId === m.id ? '#EDEDED' : '#0F1E3D',
+                background: generatingId === m.id ? '#EDEDED' : '#163E2B',
                 color: generatingId === m.id ? '#96A0B5' : '#FFFFFF',
               }"
             >

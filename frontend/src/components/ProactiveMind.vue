@@ -231,7 +231,7 @@ onUnmounted(() => {
 }
 .insight-icon.type-flashcards_due { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); }
 .insight-icon.type-quiz_drop { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); }
-.insight-icon.type-study_today { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+.insight-icon.type-study_today { background: rgba(73, 160, 120, 0.15); border-color: rgba(73, 160, 120, 0.3); }
 .insight-icon.type-study_streak { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); }
 .insight-icon.type-podcast_available { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
 .insight-icon.type-exam_approaching { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); }

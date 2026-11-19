@@ -566,7 +566,7 @@ onBeforeUnmount(() => {
   border-radius: 26px;
   background:
     radial-gradient(ellipse at 82% 40%, rgba(245, 158, 11, 0.2), transparent 34%),
-    linear-gradient(115deg, #0f172a 5%, #1e3a8a 62%, #172554 100%);
+    linear-gradient(115deg, #0f172a 5%, #176b4d 62%, #11543C 100%);
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
   color: #f8fafc;
 }

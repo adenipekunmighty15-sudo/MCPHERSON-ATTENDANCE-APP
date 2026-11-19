@@ -12,20 +12,20 @@
     --color-surface-raised: #FFFFFF;
     --color-border: #E2E8F0;
     --color-border-strong: #CBD5E1;
-    --color-border-accent: rgba(30, 58, 138, 0.18);
+    --color-border-accent: rgba(23, 107, 77, 0.18);
     --color-text-primary: #0F172A;
     --color-text-secondary: #334155;
     --color-text-tertiary: #64748B;
     --color-text-quaternary: #94A3B8;
-    --color-primary: #1E3A8A;
-    --color-primary-hover: #172554;
-    --color-primary-soft: rgba(30, 58, 138, 0.08);
-    --color-primary-glow: rgba(30, 58, 138, 0.16);
-    --color-primary-muted: rgba(30, 58, 138, 0.1);
-    --color-primary-light: #3B82F6;
-    --color-accent: #D97706;
-    --color-accent-hover: #B45309;
-    --color-accent-soft: rgba(217, 119, 6, 0.1);
+    --color-primary: #176B4D;
+    --color-primary-hover: #11543C;
+    --color-primary-soft: rgba(23, 107, 77, 0.08);
+    --color-primary-glow: rgba(23, 107, 77, 0.16);
+    --color-primary-muted: rgba(23, 107, 77, 0.1);
+    --color-primary-light: #49A078;
+    --color-accent: #C26D45;
+    --color-accent-hover: #A45332;
+    --color-accent-soft: rgba(194, 109, 69, 0.1);
     --color-secondary: #334155;
     --color-secondary-soft: rgba(51, 65, 85, 0.08);
     --color-deep: #0F172A;
@@ -36,10 +36,10 @@
     --color-error-soft: rgba(239, 68, 68, 0.1);
     --color-warning: #F59E0B;
     --color-warning-soft: rgba(245, 158, 11, 0.12);
-    --color-info: #2563EB;
+    --color-info: #2F855A;
     --color-info-soft: rgba(37, 99, 235, 0.1);
-    --color-gold: #D97706;
-    --color-gold-soft: rgba(217, 119, 6, 0.1);
+    --color-gold: #C26D45;
+    --color-gold-soft: rgba(194, 109, 69, 0.1);
 
     /* Spacing scale */
     --space-1: 4px;  --space-2: 8px; --space-3: 12px; --space-4: 16px;
@@ -106,22 +106,22 @@
     --color-surface-raised: #111C34;
     --color-border: #1B2A47;
     --color-border-strong: #26405E;
-    --color-border-accent: rgba(96, 165, 250, 0.15);
+    --color-border-accent: rgba(101, 201, 154, 0.15);
     --color-text-primary: #F0F4FA;
     --color-text-secondary: #BAC8DA;
     --color-text-tertiary: #8DA2B7;
     --color-text-quaternary: #60748F;
-    --color-primary: #60A5FA;
-    --color-primary-hover: #93C5FD;
-    --color-primary-soft: rgba(59, 130, 246, 0.12);
-    --color-primary-glow: rgba(59, 130, 246, 0.18);
-    --color-primary-muted: rgba(59, 130, 246, 0.15);
-    --color-primary-light: #93C5FD;
-    --color-accent: #E8B83A;
-    --color-accent-hover: #D4A42E;
-    --color-accent-soft: rgba(232, 184, 58, 0.12);
-    --color-secondary: #1E4A7A;
-    --color-secondary-soft: rgba(30, 74, 122, 0.15);
+    --color-primary: #65C99A;
+    --color-primary-hover: #9BE5BD;
+    --color-primary-soft: rgba(73, 160, 120, 0.12);
+    --color-primary-glow: rgba(73, 160, 120, 0.18);
+    --color-primary-muted: rgba(73, 160, 120, 0.15);
+    --color-primary-light: #9BE5BD;
+    --color-accent: #E6A17E;
+    --color-accent-hover: #F0B798;
+    --color-accent-soft: rgba(230, 161, 126, 0.12);
+    --color-secondary: #245840;
+    --color-secondary-soft: rgba(36, 88, 64, 0.15);
     --color-deep: #060D1A;
     --color-muted: #1B2A47;
     --color-success: #4ADE80;
@@ -130,10 +130,10 @@
     --color-error-soft: rgba(248, 113, 113, 0.12);
     --color-warning: #E8B83A;
     --color-warning-soft: rgba(232, 184, 58, 0.12);
-    --color-info: #60A5FA;
-    --color-info-soft: rgba(96, 165, 250, 0.12);
-    --color-gold: #E8B83A;
-    --color-gold-soft: rgba(232, 184, 58, 0.1);
+    --color-info: #65C99A;
+    --color-info-soft: rgba(101, 201, 154, 0.12);
+    --color-gold: #E6A17E;
+    --color-gold-soft: rgba(230, 161, 126, 0.1);
 
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.02);
     --shadow-md: 0 4px 10px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.2);
@@ -141,7 +141,7 @@
     --shadow-xl: 0 16px 40px rgba(0,0,0,0.55), 0 8px 16px rgba(0,0,0,0.3);
 
     --glass-shadow: 0 4px 16px rgba(0,0,0,0.3);
-    --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.4);
+    --focus-ring: 0 0 0 3px rgba(73, 160, 120, 0.4);
   }
 
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }

@@ -13,11 +13,11 @@
         <div class="lg:col-span-2">
           <div class="rounded-xl overflow-hidden" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
             <!-- Gradient banner -->
-            <div class="h-24 relative" style="background: linear-gradient(135deg, #2563EB, #1D4ED8, #0F1E3D);"></div>
+            <div class="h-24 relative" style="background: linear-gradient(135deg, #2F855A, #246B45, #163E2B);"></div>
 
             <!-- Avatar overlapping -->
             <div class="flex justify-center -mt-10 mb-3">
-              <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold border-4" style="border-color: #FFFFFF; background: #2563EB; color: #FFFFFF; font-family: 'Fraunces', Georgia, serif;">
+              <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold border-4" style="border-color: #FFFFFF; background: #2F855A; color: #FFFFFF; font-family: 'Fraunces', Georgia, serif;">
                 {{ initials }}
               </div>
             </div>
@@ -25,7 +25,7 @@
             <!-- Name & Email -->
             <div class="text-center px-6">
               <h2 class="text-xl font-bold" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">{{ displayName }}</h2>
-              <p class="text-sm mt-0.5 font-medium" style="color: #2563EB; font-family: 'Inter', system-ui, sans-serif;">{{ displayEmail }}</p>
+              <p class="text-sm mt-0.5 font-medium" style="color: #2F855A; font-family: 'Inter', system-ui, sans-serif;">{{ displayEmail }}</p>
             </div>
 
             <!-- Pills -->

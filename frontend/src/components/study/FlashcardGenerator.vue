@@ -13,7 +13,7 @@
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#96A0B5" stroke-width="1.5" class="mx-auto mb-3">
         <path d="M12 3v12m0-12 4 4m-4-4-4 4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/>
       </svg>
-      <p class="text-sm font-semibold" style="color: #0F1E3D;">Drop a PDF or audio file, or click to browse</p>
+      <p class="text-sm font-semibold" style="color: #163E2B;">Drop a PDF or audio file, or click to browse</p>
       <p class="text-xs mt-1" style="color: #96A0B5;">We'll extract text and generate flashcards, quizzes, and more</p>
       <input ref="fileInput" type="file" accept=".pdf,.mp3,.wav,.m4a,.docx" class="hidden" @change="handleFile" />
       <div v-if="lastDeck" class="mt-4 pt-4 border-t" style="border-color: #E2E6ED;">
@@ -24,11 +24,11 @@
 
     <!-- PROCESSING -->
     <div v-else-if="state === 'processing'" class="rounded-2xl border p-10 text-center" style="background: #FFFFFF; border-color: #E2E6ED;">
-      <div class="w-10 h-10 mx-auto mb-3 rounded-full border-3 border-t-transparent animate-spin" style="border-color: #E2E6ED; border-top-color: #3B82F6;"></div>
-      <p class="text-sm font-semibold" style="color: #0F1E3D;">{{ processingStep }}</p>
+      <div class="w-10 h-10 mx-auto mb-3 rounded-full border-3 border-t-transparent animate-spin" style="border-color: #E2E6ED; border-top-color: #49A078;"></div>
+      <p class="text-sm font-semibold" style="color: #163E2B;">{{ processingStep }}</p>
       <p class="text-xs font-mono mt-1" style="color: #96A0B5;">{{ fileName }}</p>
       <div class="flex justify-center gap-1 mt-3">
-        <span v-for="i in 3" :key="i" class="w-2 h-2 rounded-full" :style="{ background: i <= stepIndex ? '#3B82F6' : '#E2E6ED', opacity: i <= stepIndex ? 1 : 0.4 }"></span>
+        <span v-for="i in 3" :key="i" class="w-2 h-2 rounded-full" :style="{ background: i <= stepIndex ? '#49A078' : '#E2E6ED', opacity: i <= stepIndex ? 1 : 0.4 }"></span>
       </div>
     </div>
 
@@ -36,20 +36,20 @@
     <div v-else-if="state === 'error'" class="rounded-2xl border p-10 text-center" style="background: #FFFFFF; border-color: #E2E6ED;">
       <p class="text-sm font-bold" style="color: #EF4444;">Couldn't generate flashcards</p>
       <p class="text-xs mt-1" style="color: #96A0B5;">{{ errorMessage }}</p>
-      <button @click="reset" class="mt-4 px-5 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer btn-ghost" style="background: #EDEDED; color: #0F1E3D;">Try again</button>
+      <button @click="reset" class="mt-4 px-5 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer btn-ghost" style="background: #EDEDED; color: #163E2B;">Try again</button>
     </div>
 
     <!-- STEP 1: FLASHCARD REVIEW (flip grid) -->
     <div v-else-if="state === 'review-flashcards'">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h3 class="text-sm font-bold" style="color: #0F1E3D;">{{ cards.length }} flashcards generated</h3>
+          <h3 class="text-sm font-bold" style="color: #163E2B;">{{ cards.length }} flashcards generated</h3>
           <p class="text-xs font-mono mt-0.5" style="color: #96A0B5;">{{ courseDisplay }} &middot; {{ fileName }}</p>
         </div>
         <div class="flex gap-2">
           <button @click="reset" class="px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer btn-ghost" style="background: #EDEDED; color: #68758E;">Discard</button>
-          <button @click="goToQuizPreview" class="px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #0F1E3D; color: #FFFFFF;"
-            @mouseenter="$el.style.background='#1A2D52'" @mouseleave="$el.style.background='#0F1E3D'">
+          <button @click="goToQuizPreview" class="px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #163E2B; color: #FFFFFF;"
+            @mouseenter="$el.style.background='#1A2D52'" @mouseleave="$el.style.background='#163E2B'">
             Review quiz &rarr;
           </button>
         </div>
@@ -66,11 +66,11 @@
           >
             <div class="absolute inset-0 p-4 flex flex-col gap-2" style="backface-visibility: hidden;">
               <span class="text-[10px] font-mono font-bold" style="color: #96A0B5;">Q{{ i + 1 }}</span>
-              <p class="text-xs leading-relaxed" style="color: #0F1E3D;">{{ card.front || card.question }}</p>
+              <p class="text-xs leading-relaxed" style="color: #163E2B;">{{ card.front || card.question }}</p>
             </div>
             <div class="absolute inset-0 p-4 flex flex-col gap-2" style="backface-visibility: hidden; transform: rotateY(180deg); background: #F0FDF4;">
               <span class="text-[10px] font-mono font-bold" style="color: #10B981;">Answer</span>
-              <p class="text-xs leading-relaxed" style="color: #0F1E3D;">{{ card.back || card.answer }}</p>
+              <p class="text-xs leading-relaxed" style="color: #163E2B;">{{ card.back || card.answer }}</p>
             </div>
           </div>
         </button>
@@ -81,12 +81,12 @@
     <div v-else-if="state === 'review-quiz'">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h3 class="text-sm font-bold" style="color: #0F1E3D;">{{ quiz.length }} quiz questions from the same material</h3>
+          <h3 class="text-sm font-bold" style="color: #163E2B;">{{ quiz.length }} quiz questions from the same material</h3>
           <p class="text-xs font-mono mt-0.5" style="color: #96A0B5;">Try a few sample questions before saving</p>
         </div>
         <div class="flex gap-2">
           <button @click="state = 'review-flashcards'" class="px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer btn-ghost" style="background: #EDEDED; color: #68758E;">&larr; Back to cards</button>
-          <button @click="saveDeck" :disabled="saving" class="save-btn px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #0F1E3D; color: #FFFFFF;">
+          <button @click="saveDeck" :disabled="saving" class="save-btn px-4 py-2 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all" style="background: #163E2B; color: #FFFFFF;">
             {{ saving ? 'Saving…' : 'Save to library' }}
           </button>
         </div>
@@ -94,7 +94,7 @@
 
       <div class="space-y-4">
         <div v-for="(q, i) in quiz" :key="i" class="rounded-xl border p-4" style="background: #FFFFFF; border-color: #E2E6ED;">
-          <p class="text-sm font-bold mb-3" style="color: #0F1E3D;">{{ i + 1 }}. {{ q.question }}</p>
+          <p class="text-sm font-bold mb-3" style="color: #163E2B;">{{ i + 1 }}. {{ q.question }}</p>
           <div class="space-y-2">
             <label v-for="(opt, oi) in q.options" :key="oi"
               class="flex items-center gap-3 p-2.5 rounded-lg text-xs cursor-pointer transition-all border"
@@ -115,7 +115,7 @@
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
                 </span>
               </span>
-              <span :style="{ color: q.selectedIndex === oi ? (oi === q.answerIndex ? '#065F46' : '#991B1B') : '#0F1E3D' }">{{ opt }}</span>
+              <span :style="{ color: q.selectedIndex === oi ? (oi === q.answerIndex ? '#065F46' : '#991B1B') : '#163E2B' }">{{ opt }}</span>
             </label>
           </div>
           <p v-if="q.selectedIndex !== undefined" class="mt-2 text-[11px] leading-relaxed" :style="{ color: q.selectedIndex === q.answerIndex ? '#10B981' : '#EF4444' }">
@@ -263,14 +263,14 @@ function reset() {
   animation: spin 800ms linear infinite;
 }
 .upload-zone:hover {
-  border-color: #3B82F6 !important;
+  border-color: #49A078 !important;
 }
 .upload-zone:hover svg {
-  stroke: #3B82F6;
+  stroke: #49A078;
 }
 .upload-zone.dragging {
-  border-color: #3B82F6;
-  background: rgba(59, 130, 246, 0.05);
+  border-color: #49A078;
+  background: rgba(73, 160, 120, 0.05);
 }
 .save-btn:hover:not(:disabled) {
   background: #1A2D52 !important;

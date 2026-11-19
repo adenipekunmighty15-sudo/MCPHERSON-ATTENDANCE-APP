@@ -30,7 +30,7 @@ const chatProviders = {
   NVIDIA_SUPER_49B_V1_KEY: { label: 'Nemotron Super 49B v1', baseURL: NVIDIA_BASE, model: 'nvidia/llama-3.3-nemotron-super-49b-v1' },
   NVIDIA_NANO_KEY_2: { label: 'Nemotron Nano 8B', baseURL: NVIDIA_BASE, model: 'nvidia/llama-3.1-nemotron-nano-8b-v1' },
   MISTRAL_NEMOTRON_KEY_2: { label: 'Mistral Nemotron (alt)', baseURL: NVIDIA_BASE, model: 'mistralai/mistral-nemotron' },
-  KIMI_KEY: { label: 'Kimi', baseURL: NVIDIA_BASE, model: 'moonshotai/kimi-k2.6' },
+  KIMI_KEY: { label: 'Kimi', baseURL: NVIDIA_BASE, modelEnv: 'KIMI_MODEL', model: 'moonshotai/kimi-k3.1-pro' },
   INKLING_KEY: { label: 'Inkling', baseURL: NVIDIA_BASE, model: 'thinkingmachines/inkling' },
   POOLSIDE_KEY: { label: 'Poolside', baseURL: NVIDIA_BASE, model: 'poolside/laguna-xs-2.1' },
 }
