@@ -108,6 +108,13 @@
             <span class="search-placeholder">Search</span>
             <kbd class="search-kbd">Ctrl+K</kbd>
           </button>
+          <button class="topbar-tour" @click="openWalkthrough" title="Take the app tour" aria-label="Take the app tour">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.6 9a2.5 2.5 0 1 1 4.7 1.2c-.9 1.1-2.3 1.4-2.3 3"/>
+              <path d="M12 17h.01"/>
+            </svg>
+          </button>
           <ThemeToggle />
           <router-link to="/profile" class="user-avatar" title="Profile">
             {{ authStore.user?.name?.charAt(0) || 'U' }}
@@ -127,7 +134,13 @@
       </main>
     </div>
 
-    <CommandPalette v-if="showCommandPalette" @close="showCommandPalette = false" />
+    <CommandPalette :show="showCommandPalette" @update:show="showCommandPalette = $event" />
+    <AppWalkthrough
+      :show="showWalkthrough"
+      :steps="walkthroughSteps"
+      @skip="finishWalkthrough"
+      @complete="finishWalkthrough"
+    />
 
     <nav class="bottom-nav">
       <template v-for="item in pillNavItems" :key="item.path">
@@ -168,6 +181,7 @@ import { useMessagingStore } from '../stores/messaging'
 import CommandPalette from './CommandPalette.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import Logo from './Logo.vue'
+import AppWalkthrough from './AppWalkthrough.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -178,8 +192,37 @@ const sidebarHover = ref(false)
 const isLargeScreen = ref(window.innerWidth > 1280)
 const sidebarExpanded = ref(true)
 const showCommandPalette = ref(false)
+const showWalkthrough = ref(false)
 const sidebarWidth = ref(Number(localStorage.getItem('sidebar-width')) || (window.innerWidth <= 1280 ? 240 : 264))
 const isResizing = ref(false)
+const walkthroughKey = computed(() => `mcu-walkthrough-v1:${authStore.user?.id || 'default'}`)
+const walkthroughSteps = [
+  {
+    title: 'Welcome to your MCU portal',
+    content: 'Your campus essentials are together here. This quick tour shows you where to find the tools you will use most.',
+    icon: '👋',
+  },
+  {
+    title: 'Start from your dashboard',
+    content: 'See your schedule, course attendance and shortcuts at a glance. Use the sidebar or bottom navigation to move around.',
+    icon: '📊',
+  },
+  {
+    title: 'Check in for class',
+    content: 'Open Attendance to join an active session. Enter the current code shown by your lecturer and allow location access when asked.',
+    icon: '✅',
+  },
+  {
+    title: 'Keep up with classes',
+    content: 'Courses shows your enrolled courses and attendance. Timetable helps you see upcoming classes and their locations.',
+    icon: '📅',
+  },
+  {
+    title: 'Study your way',
+    content: 'Use Study Hub for your materials and study tools. You can reopen this tour any time with the question-mark button above.',
+    icon: '📚',
+  },
+]
 
 const effectiveExpanded = computed(() => {
   return sidebarExpanded.value || (sidebarHover.value && window.innerWidth <= 1280)
@@ -290,6 +333,15 @@ function getIcon(name) {
   return icons[name] || icons.LayoutDashboard
 }
 
+function openWalkthrough() {
+  showWalkthrough.value = true
+}
+
+function finishWalkthrough() {
+  localStorage.setItem(walkthroughKey.value, 'complete')
+  showWalkthrough.value = false
+}
+
 function onSidebarEnter() {
   if (window.innerWidth <= 1280) sidebarHover.value = true
 }
@@ -321,6 +373,9 @@ onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('resize', checkScreen)
   messagingStore.init()
+  if (localStorage.getItem(walkthroughKey.value) !== 'complete') {
+    showWalkthrough.value = true
+  }
 })
 
 onUnmounted(() => {
@@ -973,6 +1028,27 @@ onUnmounted(() => {
   background: var(--color-surface-elevated);
 }
 
+.topbar-tour {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-bg);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.topbar-tour:hover {
+  border-color: var(--color-border-accent);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 .search-placeholder {
   display: none;
 }
@@ -1264,6 +1340,7 @@ onUnmounted(() => {
   }
 
   .menu-btn,
+  .topbar-tour,
   .user-avatar,
   .topbar-logout,
   .topbar-search {
