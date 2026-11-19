@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-rondefineProps({
+defineProps({
   label: String,
   error: String,
   hint: String,
