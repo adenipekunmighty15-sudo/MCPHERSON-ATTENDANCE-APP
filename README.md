@@ -68,6 +68,11 @@ directly with Supabase. The backend verifies the access token with the private
    If an older unconfirmed account exists, submitting the same password again
    completes its setup. Client-supplied roles are ignored; the backend remains
    authoritative.
+7. To also disable Supabase's project-level "Confirm email" switch (so no direct
+   client call can spend the built-in email allowance), add a Supabase personal
+   access token as `SUPABASE_ACCESS_TOKEN` in the gitignored `backend/.env` and
+   run `node scripts/disable-supabase-email-confirmation.mjs` once. The token is
+   never printed or committed.
 
 With no credentials configured, the UI shows readable "authentication is not
 configured" messages and protected API routes return 503. Guest logins and

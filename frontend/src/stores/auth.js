@@ -29,8 +29,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (m.includes('user already registered') || m.includes('email-already-in-use')) {
       return 'An account with this email already exists. Try signing in.'
     }
-    if (m.includes('auth/too-many-requests')) {
-      return 'Too many attempts. Please wait before trying again.'
+    if (m.includes('auth/too-many-requests') || m.includes('too many requests') || m.includes('over_email_send_rate_limit') || m.includes('email rate limit exceeded')) {
+      return 'That service is temporarily busy. Please try again shortly.'
     }
     if (m.includes('not configured')) {
       return 'Portal authentication is currently unavailable. Please try again shortly.'

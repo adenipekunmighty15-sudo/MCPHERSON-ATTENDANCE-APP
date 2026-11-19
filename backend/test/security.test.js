@@ -88,6 +88,13 @@ test('user schema supplies the columns required by token authentication', () => 
   assert.match(middleware, /is_active AS "isActive"/)
 })
 
+test('Supabase email rate-limit text is hidden from users', () => {
+  const store = read('../frontend/src/stores/auth.js')
+  assert.match(store, /over_email_send_rate_limit/)
+  assert.match(store, /email rate limit exceeded/)
+  assert.match(store, /That service is temporarily busy/)
+})
+
 test('registration auto-confirms allowed domains and signs the user straight in', () => {
   const auth = read('src/routes/auth.routes.js')
   const start = auth.indexOf("router.post('/api/auth/register'")

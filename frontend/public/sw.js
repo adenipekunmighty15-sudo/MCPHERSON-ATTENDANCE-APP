@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mcpherson-attendance-v2'
+const CACHE_NAME = 'mcpherson-attendance-v3'
 const CACHE_PREFIX = 'mcpherson-attendance-'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.svg']
 
