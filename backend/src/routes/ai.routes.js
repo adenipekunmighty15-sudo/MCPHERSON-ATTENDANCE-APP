@@ -1,17 +1,153 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
 import { query } from '../../lib/db.js'
-import { webSearch, fetchPage, searchImages } from '../../lib/webSearch.js'
+import { webSearch, searchImages } from '../../lib/webSearch.js'
 import OpenAI from 'openai'
 import { randomUUID } from 'crypto'
 import { getAvailableProviders, getAI } from '../config/ai.js'
 import { aiChat, generateFollowUps, generateChatTitle } from '../services/aiService.js'
+import { resolve4, resolve6 } from 'node:dns/promises'
+import net from 'node:net'
+import { URL } from 'node:url'
+import http from 'node:http'
+import https from 'node:https'
+import axios from 'axios'
+import * as cheerio from 'cheerio'
 
 const router = Router()
 
 function needsVerification(query) {
   const triggers = /\b(latest|current|recent|202\d|best|top|how many|what is|who is|compare|vs\.?|statistics|data|report|price|stock|weather|score|result)\b/i
   return triggers.test(query) || query.length > 150
+}
+
+function isPrivateAddress(address) {
+  const version = net.isIP(address)
+  if (version === 4) {
+    const parts = address.split('.').map(Number)
+    const [a, b] = parts
+    return (
+      a === 0 || a === 10 || a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 192 && b === 0) ||
+      (a === 192 && b === 0 && parts[2] === 2) ||
+      (a === 198 && (b === 18 || b === 19 || b === 51)) ||
+      (a === 203 && b === 0) ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224
+    )
+  }
+  if (version === 6) {
+    const normalized = address.toLowerCase().split('%')[0]
+    if (normalized === '::' || normalized === '::1') return true
+    if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true
+    if (/^fe[89ab]/.test(normalized)) return true
+    if (normalized.startsWith('fec') || normalized.startsWith('fed') ||
+        normalized.startsWith('fee') || normalized.startsWith('fef')) return true
+    if (normalized.startsWith('ff')) return true
+    if (normalized.startsWith('::ffff:')) {
+      const mapped = normalized.slice(7)
+      if (net.isIP(mapped) === 4) return isPrivateAddress(mapped)
+    }
+  }
+  return false
+}
+
+async function validateFetchUrl(rawUrl) {
+  let parsed
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    return 'Invalid URL'
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) {
+    return 'Only public HTTP(S) URLs are allowed'
+  }
+  if (parsed.hostname === 'localhost' || parsed.hostname.endsWith('.localhost')) {
+    return 'Private or local URLs are not allowed'
+  }
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, '')
+  if (net.isIP(hostname)) {
+    if (isPrivateAddress(hostname)) return 'Private or local URLs are not allowed'
+  } else {
+    let addresses = []
+    try {
+      addresses = [
+        ...await resolve4(hostname),
+        ...await resolve6(hostname),
+      ]
+    } catch {
+      return 'URL hostname could not be resolved'
+    }
+    if (!addresses.length || addresses.some(isPrivateAddress)) {
+      return 'Private or local URLs are not allowed'
+    }
+  }
+  return null
+}
+
+async function lookupPublicAddress(hostname, options, callback) {
+  try {
+    let ipv4 = []
+    let ipv6 = []
+    try { ipv4 = await resolve4(hostname) } catch {}
+    try { ipv6 = await resolve6(hostname) } catch {}
+    const addresses = [...ipv4, ...ipv6]
+    if (!addresses.length || addresses.some(isPrivateAddress)) {
+      const error = new Error('Private or local addresses are not allowed')
+      error.code = 'ERR_PRIVATE_ADDRESS'
+      return callback(error)
+    }
+    if (options?.all) {
+      return callback(null, addresses.map(address => ({
+        address,
+        family: net.isIP(address),
+      })))
+    }
+    return callback(null, addresses[0], net.isIP(addresses[0]))
+  } catch (error) {
+    callback(error)
+  }
+}
+
+const httpAgent = new http.Agent({ lookup: lookupPublicAddress })
+const httpsAgent = new https.Agent({ lookup: lookupPublicAddress })
+
+async function fetchPageSafely(rawUrl) {
+  const response = await axios.get(rawUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+    },
+    timeout: 13000,
+    maxRedirects: 3,
+    maxContentLength: 2 * 1024 * 1024,
+    maxBodyLength: 2 * 1024 * 1024,
+    httpAgent,
+    httpsAgent,
+    beforeRedirect: async (options) => {
+      const redirectError = await validateFetchUrl(options.href || options.url)
+      if (redirectError) throw new Error(redirectError)
+    },
+  })
+  const $ = cheerio.load(response.data)
+  $('script, style, nav, footer, header, aside, iframe, noscript').remove()
+  const title = $('title').text().trim()
+  const text = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 12000)
+  const finalUrl = response.request?.res?.responseUrl ||
+    response.request?._redirectable?._currentUrl ||
+    rawUrl
+  return { title, text, url: finalUrl }
+}
+
+function sanitizeHistory(history, limit = 10) {
+  if (!Array.isArray(history)) return []
+  return history
+    .filter(item => item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string')
+    .slice(-limit)
 }
 
 router.post('/api/generate-image', authenticate, async (req, res) => {
@@ -96,7 +232,10 @@ router.post('/api/ai/fetch-page', authenticate, async (req, res) => {
   try {
     const { url } = req.body
     if (!url) return res.status(400).json({ error: 'Missing url' })
-    const result = await fetchPage(url)
+    if (typeof url !== 'string') return res.status(400).json({ error: 'Invalid url' })
+    const urlError = await validateFetchUrl(url)
+    if (urlError) return res.status(400).json({ error: urlError })
+    const result = await fetchPageSafely(url)
     if (!result) return res.status(502).json({ error: 'Failed to fetch page' })
     res.json(result)
   } catch (err) {
@@ -110,6 +249,13 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
     const { message, history, conversationId, expert, gemId, images, jsonMode, useMemory, webSearch: doWebSearch } = req.body
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message is required' })
+    }
+    if (conversationId) {
+      const { rows: owned } = await query(
+        'SELECT id FROM public.chat_conversations WHERE id = $1 AND user_id = $2',
+        [conversationId, req.user.id]
+      )
+      if (!owned.length) return res.status(404).json({ error: 'Conversation not found' })
     }
 
     let webContext = ''
@@ -130,8 +276,9 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
     // Load gem if specified
     if (gemId) {
       try {
-        const { default: { getGemById } } = await import('../services/gemsService.js')
-        const gem = await getGemById(gemId)
+        const { getGems } = await import('../services/gemsService.js')
+        const gems = await getGems(req.user.id, true)
+        const gem = gems.find(item => item.id === gemId)
         if (gem) gemPrompt = `\n\n--- GEM INSTRUCTION: ${gem.name} ---\n${gem.system_prompt}\n--- END GEM INSTRUCTION ---`
       } catch {}
     }
@@ -162,7 +309,7 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
 
     const messages = [
       { role: 'system', content: systemPrompt + (webContext ? ' ' + webContext : '') },
-      ...(history || []).slice(-10),
+      ...sanitizeHistory(history, 10),
     ]
 
     // Add image input if provided
@@ -226,8 +373,8 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
       [msgId, convId, 'assistant', result.final || 'I was unable to generate a complete response. Please try rephrasing your question.']
     )
     await query(
-      `UPDATE public.chat_conversations SET updated_at = NOW() WHERE id = $1`,
-      [convId]
+      `UPDATE public.chat_conversations SET updated_at = NOW() WHERE id = $1 AND user_id = $2`,
+      [convId, req.user.id]
     )
     // Auto-generate title on first exchange
     const { rows: msgCount } = await query(
@@ -328,6 +475,13 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message is required' })
     }
+    if (bodyConvId) {
+      const { rows: owned } = await query(
+        'SELECT id FROM public.chat_conversations WHERE id = $1 AND user_id = $2',
+        [bodyConvId, req.user.id]
+      )
+      if (!owned.length) return res.status(404).json({ error: 'Conversation not found' })
+    }
 
     res.setHeader('Content-Type', 'text/event-stream')
     res.setHeader('Cache-Control', 'no-cache')
@@ -379,7 +533,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
 
     const messages = [
       { role: 'system', content: systemPrompt + (webContext ? ' ' + webContext : '') + ' Use LaTeX for math: $...$ inline, $$...$$ display. Structure your response with <thinking>Your thorough step-by-step reasoning</thinking> before your comprehensive, scholarly answer.' },
-      ...(history || []).slice(-6),
+      ...sanitizeHistory(history, 6),
       { role: 'user', content: message.trim() },
     ]
 
@@ -436,7 +590,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json({ error: 'Stream failed' })
     } else {
-      res.write(`event: error\ndata: ${JSON.stringify({ message: err.message })}\n\n`)
+      res.write(`event: error\ndata: ${JSON.stringify({ message: 'The AI service could not complete this request. Please try again.' })}\n\n`)
       res.end()
     }
   }
@@ -452,6 +606,12 @@ async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, 
          VALUES ($1,$2,$3,$4,$5::jsonb,NOW(),NOW())`,
         [convId, userId, message.trim().slice(0, 60) + '...', model, JSON.stringify({})]
       )
+    } else {
+      const { rows: owned } = await query(
+        'SELECT id FROM public.chat_conversations WHERE id = $1 AND user_id = $2',
+        [convId, userId]
+      )
+      if (!owned.length) throw new Error('Conversation not found')
     }
     await query(
       `INSERT INTO public.chat_messages (id, conversation_id, role, content, created_at)
@@ -463,7 +623,10 @@ async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, 
        VALUES ($1,$2,$3,$4,NOW())`,
       [randomUUID(), convId, 'assistant', finalAnswer]
     )
-    await query(`UPDATE public.chat_conversations SET updated_at = NOW() WHERE id = $1`, [convId])
+    await query(
+      `UPDATE public.chat_conversations SET updated_at = NOW() WHERE id = $1 AND user_id = $2`,
+      [convId, userId]
+    )
     const { rows: msgCount } = await query(
       `SELECT COUNT(*) as c FROM public.chat_messages WHERE conversation_id = $1 AND role = 'user'`,
       [convId]

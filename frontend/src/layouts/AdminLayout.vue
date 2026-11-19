@@ -15,7 +15,7 @@
       <nav class="sidebar-nav" aria-label="Admin navigation">
         <div class="nav-group-label">Management</div>
         <router-link v-for="item in navItems" :key="item.path" :to="item.path" class="nav-item" :class="{ active: isActive(item.path) }" :aria-current="isActive(item.path) ? 'page' : undefined">
-          <span class="nav-icon" v-html="item.icon"></span>
+          <span class="nav-icon" v-safe-html="item.icon"></span>
           <span class="nav-label">{{ item.label }}</span>
         </router-link>
       </nav>
@@ -58,7 +58,7 @@
     <div class="sidebar-overlay" :class="{ show: mobileOpen }" @click="mobileOpen = false" />
     <nav class="bottom-nav">
       <router-link v-for="item in mobileNavItems" :key="item.path" :to="item.path" class="bottom-nav-item" :class="{ active: isActive(item.path) }">
-        <span class="bn-icon" v-html="item.icon"></span>
+        <span class="bn-icon" v-safe-html="item.icon"></span>
         <span class="bn-label">{{ item.label }}</span>
       </router-link>
       <button @click="handleLogout" class="bottom-nav-item" aria-label="Sign Out">

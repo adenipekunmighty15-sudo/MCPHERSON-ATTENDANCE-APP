@@ -1,0 +1,139 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const root = join(import.meta.dirname, '..')
+const read = (relativePath) => readFileSync(join(root, relativePath), 'utf8')
+
+test('server does not register the arbitrary code execution route', () => {
+  const server = read('server.js')
+  assert.doesNotMatch(server, /codeRoutes/)
+  assert.doesNotMatch(server, /\/api\/ai\/execute/)
+})
+
+test('code execution service no longer shells out to user input', () => {
+  const servicePath = 'src/services/codeService.js'
+  let service = ''
+  try {
+    service = read(servicePath)
+  } catch {
+    return
+  }
+  assert.doesNotMatch(service, /execSync|exec\(|spawn\(/)
+})
+
+test('deploy script reads DATABASE_URL from the environment', () => {
+  const script = read('scripts/deploy_schema.js')
+  assert.match(script, /process\.env\.DATABASE_URL/)
+  assert.doesNotMatch(script, /postgresql:\/\/[^'"`\s]+:[^'"`\s]+@/)
+})
+
+test('DB-loaded AI keys use the real env var names consumed by ai.js', () => {
+  const server = read('server.js')
+  assert.match(server, /envKeyForProvider/)
+  assert.doesNotMatch(server, /keyMap/)
+  assert.doesNotMatch(server, /replace\(-\/g, '_'\)/)
+})
+
+test('CORS default uses the real production domain and trust proxy is enabled', () => {
+  const server = read('server.js')
+  assert.match(server, /mcpherson-attendance-app\.vercel\.app/)
+  assert.doesNotMatch(server, /['"]https:\/\/mcpherson-attendance\.vercel\.app['"]/)
+  assert.match(server, /app\.set\(['"]trust proxy['"]/)
+})
+
+test('study diagnostic is not exposed without authentication from study routes', () => {
+  const studyRoutes = read('src/routes/study.routes.js')
+  assert.doesNotMatch(studyRoutes, /router\.get\(['"]\/api\/study\/diagnostic['"]/)
+})
+
+test('attendance check-in requires a session and computes status on the server', () => {
+  const attendance = read('src/routes/attendance.routes.js')
+  assert.match(attendance, /valid active session ID is required/)
+  assert.match(attendance, /Date\.now\(\) - startedAt/)
+  assert.doesNotMatch(attendance, /const validStatus = status/)
+})
+
+test('friend-facing gems cannot be updated through a public-gem condition', () => {
+  const gems = read('src/services/gemsService.js')
+  assert.doesNotMatch(gems, /user_id = \$1 OR is_public = false/)
+  assert.match(gems, /WHERE id = \$1 AND user_id = \$2/)
+})
+
+test('wallet funding and arbitrary XP awards are disabled', () => {
+  const wallet = read('src/routes/wallet.routes.js')
+  const gamification = read('src/routes/gamification.routes.js')
+  assert.match(wallet, /Wallet funding is unavailable/)
+  assert.match(gamification, /XP awards are disabled/)
+})
+
+test('profile creation ignores client-supplied role and user id', () => {
+  const auth = read('src/routes/auth.routes.js')
+  const profileRoute = auth.slice(
+    auth.indexOf("router.post('/api/auth/create-user-profile'"),
+    auth.indexOf("router.post('/api/auth/", auth.indexOf("router.post('/api/auth/create-user-profile'") + 10)
+  )
+  assert.match(profileRoute, /req\.user\.id/)
+  assert.match(profileRoute, /'student'/)
+  assert.doesNotMatch(profileRoute, /userRole/)
+})
+
+test('frontend check-in uses the active session and server-supported GPS fields', () => {
+  const page = read('../frontend/src/pages/Attendance.vue')
+  assert.match(page, /sessionId: activeSession\.value\.id/)
+  assert.match(page, /locationLat: latitude/)
+  assert.match(page, /locationLng: longitude/)
+  assert.match(page, /method: 'GPS'/)
+  assert.match(page, /verificationCode: checkinCode\.value\.trim\(\)/)
+  assert.doesNotMatch(page, /PHY101/)
+  assert.doesNotMatch(page, /data\.value\.unshift/)
+})
+
+test('dashboard does not ship invented attendance numbers', () => {
+  const page = read('../frontend/src/pages/Dashboard.vue')
+  assert.doesNotMatch(page, /attendance: 92/)
+  assert.doesNotMatch(page, /attendance: 68/)
+  assert.match(page, /api\.get\('\/attendance'\)/)
+})
+
+test('service worker uses network-first navigation instead of cache-first index.html', () => {
+  const sw = read('../frontend/public/sw.js')
+  assert.match(sw, /networkFirst/)
+  assert.match(sw, /request\.mode === 'navigate'/)
+  assert.doesNotMatch(sw, /PRECACHE_URLS/)
+})
+
+test('costly voice/image endpoints are rate limited', () => {
+  const limiter = read('src/middleware/limiter.js')
+  for (const route of [
+    '/api/ai/generate-image', '/api/voice/stt', '/api/voice/chat',
+    '/api/voice/tts', '/api/tts',
+  ]) {
+    assert.match(limiter, new RegExp(`app\\.use\\(['"]${route.replace(/\//g, '\\/')}['"]`))
+  }
+})
+
+test('voice routes do not reflect raw upstream errors to clients', () => {
+  const voice = read('src/routes/voice.routes.js')
+  assert.doesNotMatch(voice, /' \+ err\.message/)
+  assert.doesNotMatch(voice, /`[^`]*\$\{err\.message\}/)
+  assert.doesNotMatch(voice, /authenticateToken/)
+  assert.match(voice, /\.slice\(0, 2000\)/)
+})
+
+test('CORS rejection does not disclose the allowed-origin list', () => {
+  const server = read('server.js')
+  assert.doesNotMatch(server, /Allowed: \$\{ALLOWED_ORIGINS/)
+  assert.match(server, /\{ error: ['"]Forbidden['"] \}/)
+})
+
+test('study deck save does not leak raw DB errors', () => {
+  const study = read('src/routes/study.routes.js')
+  assert.doesNotMatch(study, /'Failed to save deck: ' \+ err\.message/)
+})
+
+test('AI fallback HTML-escapes reflected user text', () => {
+  const ai = read('src/services/aiService.js')
+  assert.match(ai, /escapeHtml|replace\(\/[<>&]["']\/g/)
+})

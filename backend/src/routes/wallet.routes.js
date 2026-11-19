@@ -1,5 +1,5 @@
 import express from 'express'
-import { query } from '../../lib/db.js'
+import { query, pool } from '../../lib/db.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -39,37 +39,38 @@ router.get('/api/wallet/transactions', requireAuth, async (req, res) => {
   }
 })
 
-// Fund wallet (Simulated)
+// Funding is unavailable until verified payment-provider webhooks are configured.
 router.post('/api/wallet/fund', requireAuth, async (req, res) => {
-  try {
-    const { amount, source = 'Card Deposit' } = req.body
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid amount' })
-    }
-
-    const { rows } = await query(`
-      INSERT INTO public.wallet_transactions (user_id, amount, type, description)
-      VALUES ($1, $2, 'credit', $3)
-      RETURNING *
-    `, [req.user.id, amount, source])
-    
-    res.json({ success: true, transaction: rows[0] })
-  } catch (err) {
-    console.error('Error funding wallet:', err)
-    res.status(500).json({ error: 'Failed to fund wallet' })
-  }
+  res.status(503).json({ error: 'Wallet funding is unavailable until a verified payment provider is configured' })
 })
 
-// Make a payment (Simulated)
 router.post('/api/wallet/pay', requireAuth, async (req, res) => {
+  const { amount, description = 'Campus Purchase' } = req.body
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'Amount must be a positive number' })
+  }
+  if (typeof description !== 'string' || description.length > 200) {
+    return res.status(400).json({ error: 'Description must be a string of at most 200 characters' })
+  }
+
+  let client
+  let transactionStarted = false
   try {
-    const { amount, description = 'Campus Purchase' } = req.body
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid amount' })
+    client = await pool.connect()
+    await client.query('BEGIN')
+    transactionStarted = true
+
+    const { rows: users } = await client.query(
+      'SELECT id FROM public.users WHERE id = $1 FOR UPDATE',
+      [req.user.id]
+    )
+    if (!users.length) {
+      await client.query('ROLLBACK')
+      transactionStarted = false
+      return res.status(404).json({ error: 'Wallet owner not found' })
     }
 
-    // Check balance first
-    const { rows: balRows } = await query(`
+    const { rows: balRows } = await client.query(`
       SELECT COALESCE(SUM(CASE WHEN type = 'credit' THEN amount ELSE -amount END), 0) as balance
       FROM public.wallet_transactions 
       WHERE user_id = $1
@@ -77,19 +78,31 @@ router.post('/api/wallet/pay', requireAuth, async (req, res) => {
     
     const balance = parseFloat(balRows[0].balance)
     if (balance < amount) {
+      await client.query('ROLLBACK')
+      transactionStarted = false
       return res.status(400).json({ error: 'Insufficient funds' })
     }
 
-    const { rows } = await query(`
+    const { rows } = await client.query(`
       INSERT INTO public.wallet_transactions (user_id, amount, type, description)
       VALUES ($1, $2, 'debit', $3)
       RETURNING *
     `, [req.user.id, amount, description])
-    
+    await client.query('COMMIT')
+    transactionStarted = false
     res.json({ success: true, transaction: rows[0] })
   } catch (err) {
     console.error('Error making payment:', err)
     res.status(500).json({ error: 'Failed to process payment' })
+  } finally {
+    if (client && transactionStarted) {
+      try {
+        await client.query('ROLLBACK')
+      } catch (rollbackError) {
+        console.error('Failed to roll back wallet payment:', rollbackError.message)
+      }
+    }
+    if (client) client.release()
   }
 })
 

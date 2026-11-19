@@ -28,23 +28,23 @@
           Track attendance, manage courses, and unlock AI-powered insights — built for McPherson students.
         </p>
 
-        <!-- 2x2 Stats Grid -->
+        <!-- 2x2 Feature Grid -->
         <div class="grid grid-cols-2 gap-3 mb-12 max-w-md">
           <div class="rounded-xl py-4 px-5" style="background: #EDEDED;">
-            <div class="text-[#1A1A2E] text-2xl font-bold" style="font-family: 'Fraunces', Georgia, serif;">4,200+</div>
-            <div class="text-[#68758E] text-xs mt-1 font-medium">Active Students</div>
+            <div class="text-[#1A1A2E] text-lg font-bold" style="font-family: 'Fraunces', Georgia, serif;">Check-in</div>
+            <div class="text-[#68758E] text-xs mt-1 font-medium">Verified class attendance</div>
           </div>
           <div class="rounded-xl py-4 px-5" style="background: #EDEDED;">
-            <div class="text-[#1A1A2E] text-2xl font-bold" style="font-family: 'Fraunces', Georgia, serif;">89%</div>
-            <div class="text-[#68758E] text-xs mt-1 font-medium">Avg. Attendance</div>
+            <div class="text-[#1A1A2E] text-lg font-bold" style="font-family: 'Fraunces', Georgia, serif;">Courses</div>
+            <div class="text-[#68758E] text-xs mt-1 font-medium">Keep your timetable organized</div>
           </div>
           <div class="rounded-xl py-4 px-5" style="background: #EDEDED;">
-            <div class="text-[#1A1A2E] text-2xl font-bold" style="font-family: 'Fraunces', Georgia, serif;">320</div>
-            <div class="text-[#68758E] text-xs mt-1 font-medium">Courses Tracked</div>
+            <div class="text-[#1A1A2E] text-lg font-bold" style="font-family: 'Fraunces', Georgia, serif;">Insights</div>
+            <div class="text-[#68758E] text-xs mt-1 font-medium">Review attendance progress</div>
           </div>
           <div class="rounded-xl py-4 px-5" style="background: #EDEDED;">
-            <div class="text-[#1A1A2E] text-2xl font-bold" style="font-family: 'Fraunces', Georgia, serif;">4.9★</div>
-            <div class="text-[#68758E] text-xs mt-1 font-medium">Satisfaction</div>
+            <div class="text-[#1A1A2E] text-lg font-bold" style="font-family: 'Fraunces', Georgia, serif;">Your account</div>
+            <div class="text-[#68758E] text-xs mt-1 font-medium">Protected sign-in and recovery</div>
           </div>
         </div>
 
@@ -58,8 +58,10 @@
 
     <!-- RIGHT COLUMN -->
     <div class="w-full lg:w-1/2 relative z-10 flex items-center justify-center p-6 lg:p-8">
-      <!-- Three.js container -->
-      <div ref="threeContainer" class="absolute inset-0 z-0 pointer-events-none overflow-hidden" />
+      <div aria-hidden="true" class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute -right-24 -top-20 h-72 w-72 rounded-full bg-[#C9902B]/10 blur-3xl" />
+        <div class="absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-[#0F1E3D]/10 blur-3xl" />
+      </div>
 
       <div class="w-full max-w-sm relative z-10">
         <!-- Mobile logo -->
@@ -147,7 +149,7 @@
               </div>
 
               <!-- Secondary buttons -->
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 gap-3">
                 <button type="button" @click="handleOAuth('google')"
                   class="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] border-0 cursor-pointer"
                   style="background: #EDEDED; color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;"
@@ -156,15 +158,6 @@
                 >
                   <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                   <span>Google</span>
-                </button>
-                <button type="button" @click="handleGuest"
-                  class="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] border-0 cursor-pointer"
-                  style="background: #EDEDED; color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;"
-                  @mouseenter="$el.style.background = '#E2E6ED'"
-                  @mouseleave="$el.style.background = '#EDEDED'"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  <span>Guest</span>
                 </button>
               </div>
             </form>
@@ -188,10 +181,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import * as THREE from 'three'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -199,178 +191,9 @@ const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 
-const threeContainer = ref(null)
-let scene, camera, renderer, clock
-let shapes = []
-let animationId = null
-
-function createShape(geometry, color, pos, opacity) {
-  const mat = new THREE.MeshPhysicalMaterial({
-    color,
-    metalness: 0.05,
-    roughness: 0.6,
-    transparent: true,
-    opacity,
-    clearcoat: 0.1,
-  })
-  const mesh = new THREE.Mesh(geometry, mat)
-  mesh.position.set(pos.x, pos.y, pos.z)
-  mesh.rotation.set(Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, 0)
-
-  const wireMat = new THREE.MeshBasicMaterial({
-    color,
-    wireframe: true,
-    transparent: true,
-    opacity: opacity * 1.5,
-  })
-  const wire = new THREE.Mesh(geometry.clone(), wireMat)
-  wire.position.copy(mesh.position)
-  wire.rotation.copy(mesh.rotation)
-  wire.scale.set(1.02, 1.02, 1.02)
-
-  const speed = 0.15 + Math.random() * 0.25
-  const rotSpeed = {
-    x: (Math.random() - 0.5) * 0.008,
-    y: (Math.random() - 0.5) * 0.008,
-    z: (Math.random() - 0.5) * 0.005,
-  }
-  const floatOffset = Math.random() * Math.PI * 2
-  const baseY = pos.y
-  const floatAmp = 0.1 + Math.random() * 0.15
-
-  return { mesh, wire, speed, rotSpeed, floatOffset, baseY, floatAmp }
-}
-
-function initThree() {
-  if (!threeContainer.value) return
-
-  clock = new THREE.Clock()
-
-  scene = new THREE.Scene()
-
-  const rect = threeContainer.value.getBoundingClientRect()
-  const aspect = rect.width / rect.height
-
-  camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 40)
-  camera.position.z = 8
-
-  renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    antialias: true,
-  })
-  renderer.setSize(rect.width, rect.height)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setClearColor(0x000000, 0)
-  threeContainer.value.appendChild(renderer.domElement)
-
-  const ambient = new THREE.AmbientLight(0xF5F1EA, 0.6)
-  scene.add(ambient)
-
-  const dir = new THREE.DirectionalLight(0xC9902B, 0.3)
-  dir.position.set(2, 3, 4)
-  scene.add(dir)
-
-  const dir2 = new THREE.DirectionalLight(0x0F1E3D, 0.2)
-  dir2.position.set(-2, -1, 3)
-  scene.add(dir2)
-
-  const palette = [0x0F1E3D, 0xC9902B, 0xF5F1EA, 0x2B3A9E, 0xC9902B, 0x5B6BBF]
-  const geomTypes = [
-    (s) => new THREE.SphereGeometry(s, 24, 24),
-    (s) => new THREE.OctahedronGeometry(s),
-    (s) => new THREE.TetrahedronGeometry(s),
-    (s) => new THREE.IcosahedronGeometry(s),
-    (s) => new THREE.DodecahedronGeometry(s),
-    (s) => new THREE.TorusGeometry(s, s * 0.4, 16, 32),
-    (s) => new THREE.TorusKnotGeometry(s, s * 0.35, 48, 16),
-    (s) => new THREE.ConeGeometry(s, s * 1.5, 12),
-    (s) => new THREE.CylinderGeometry(s * 0.5, s, s * 1.5, 12),
-    (s) => new THREE.BoxGeometry(s, s, s),
-  ]
-
-  const COUNT = 60
-  for (let i = 0; i < COUNT; i++) {
-    const size = 0.15 + Math.random() * 0.7
-    const geomFn = geomTypes[i % geomTypes.length]
-    const geo = geomFn(size)
-    const color = palette[i % palette.length]
-    const depth = -1.5 - Math.random() * 6
-    const opacity = 0.04 + Math.random() * 0.14
-    const obj = createShape(geo, color, {
-      x: (Math.random() - 0.5) * 10,
-      y: (Math.random() - 0.5) * 8,
-      z: depth,
-    }, opacity)
-    scene.add(obj.mesh)
-    scene.add(obj.wire)
-    shapes.push(obj)
-  }
-
-  animate()
-}
-
-function animate() {
-  animationId = requestAnimationFrame(animate)
-  const t = clock.getElapsedTime()
-
-  const camRadius = 0.6
-  camera.position.x = Math.sin(t * 0.08) * camRadius
-  camera.position.y = Math.cos(t * 0.06) * camRadius * 0.3
-  camera.lookAt(0, 0, -3)
-
-  shapes.forEach((obj) => {
-    obj.mesh.rotation.x += obj.rotSpeed.x
-    obj.mesh.rotation.y += obj.rotSpeed.y
-    obj.mesh.rotation.z += obj.rotSpeed.z
-    const drift = Math.sin(t * 0.15 + obj.floatOffset) * 0.2
-    obj.mesh.position.y = obj.baseY + Math.sin(t * obj.speed + obj.floatOffset) * obj.floatAmp
-    obj.mesh.position.x += drift * 0.003
-
-    obj.wire.rotation.copy(obj.mesh.rotation)
-    obj.wire.position.copy(obj.mesh.position)
-  })
-
-  renderer.render(scene, camera)
-}
-
-function resizeThree() {
-  if (!threeContainer.value || !renderer) return
-  const rect = threeContainer.value.getBoundingClientRect()
-  camera.aspect = rect.width / rect.height
-  camera.updateProjectionMatrix()
-  renderer.setSize(rect.width, rect.height)
-}
-
-function destroyThree() {
-  if (animationId) cancelAnimationFrame(animationId)
-  if (renderer) {
-    renderer.dispose()
-    if (renderer.domElement && renderer.domElement.parentNode) {
-      renderer.domElement.parentNode.removeChild(renderer.domElement)
-    }
-  }
-  shapes.forEach((obj) => {
-    obj.mesh.geometry.dispose()
-    obj.mesh.material.dispose()
-    obj.wire.geometry.dispose()
-    obj.wire.material.dispose()
-  })
-  shapes = []
-}
-
 onMounted(async () => {
   await authStore.ready
   if (authStore.isAuthenticated) router.push('/')
-
-  if (threeContainer.value) {
-    initThree()
-    window.addEventListener('resize', resizeThree)
-  }
-})
-
-onUnmounted(() => {
-  destroyThree()
-  window.removeEventListener('resize', resizeThree)
 })
 
 async function handleLogin() {
@@ -388,12 +211,6 @@ async function handleOAuth(provider) {
   }
 }
 
-async function handleGuest() {
-  try {
-    await authStore.loginAsGuest()
-    router.push('/')
-  } catch (e) { console.warn('[Login] Guest login failed:', e) }
-}
 </script>
 
 <style>

@@ -185,7 +185,7 @@ const effectiveExpanded = computed(() => {
   return sidebarExpanded.value || (sidebarHover.value && window.innerWidth <= 1280)
 })
 
-function startResize(e) {
+function startResize() {
   isResizing.value = true
   document.body.style.cursor = 'ew-resize'
   document.body.style.userSelect = 'none'

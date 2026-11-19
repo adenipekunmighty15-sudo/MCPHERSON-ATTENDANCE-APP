@@ -122,23 +122,31 @@ export async function predictAcademicRisk(userId) {
   }
 }
 
-export async function getAtRiskStudents() {
-  const { rows: students } = await query("SELECT id, name, email, department FROM public.users WHERE role='student'")
+export async function getAtRiskStudents(lecturerId = null) {
+  const { rows: students } = lecturerId
+    ? await query(
+      `SELECT DISTINCT u.id, u.name, u.department
+       FROM public.users u
+       JOIN public.enrollments e ON e.user_id = u.id AND e.status = 'active'
+       JOIN public.lecturer_courses lc ON lc.course_id = e.course_id
+         AND lc.lecturer_id = $1 AND lc.is_active = true
+       WHERE u.role = 'student'`,
+      [lecturerId]
+    )
+    : await query("SELECT id, name, email, department FROM public.users WHERE role='student'")
   const results = []
 
   for (const student of students) {
-    try {
-      const risk = await predictAttendanceRisk(student.id)
-      if (risk.risk_score > 60) {
-        results.push({
-          user_id: student.id,
-          name: student.name,
-          email: student.email,
-          department: student.department,
-          ...risk,
-        })
-      }
-    } catch {}
+    const risk = await predictAttendanceRisk(student.id)
+    if (risk.risk_score > 60) {
+      results.push({
+        user_id: student.id,
+        name: student.name,
+        ...(student.email ? { email: student.email } : {}),
+        department: student.department,
+        ...risk,
+      })
+    }
   }
 
   return results.sort((a, b) => b.risk_score - a.risk_score)

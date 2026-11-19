@@ -131,7 +131,7 @@ function animate() {
   camera.position.y += (mouse.y * 2 - camera.position.y) * 0.02
   camera.lookAt(0, 0, 0)
 
-  shapes.forEach((s, i) => {
+  shapes.forEach((s) => {
     s.mesh.rotation.x += s.rotSpeed.x
     s.mesh.rotation.y += s.rotSpeed.y
     s.wire.rotation.x = s.mesh.rotation.x

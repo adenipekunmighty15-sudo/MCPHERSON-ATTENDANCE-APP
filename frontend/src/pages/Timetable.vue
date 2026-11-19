@@ -56,7 +56,7 @@
         </div>
 
         <!-- Time Rows -->
-        <div v-for="(t, ti) in timeSlots" :key="t"
+        <div v-for="t in timeSlots" :key="t"
           class="grid" style="grid-template-columns: 72px repeat(7, 1fr);"
         >
           <!-- Time label -->
@@ -199,9 +199,6 @@ function openClassDetail(cl) {
 function prevWeek() { weekOffset.value-- }
 function nextWeek() { weekOffset.value++ }
 
-function getCourseColor(code) {
-  return courses.find(c => c.code === code)?.color || '#96A0B5'
-}
 </script>
 
 <style scoped>

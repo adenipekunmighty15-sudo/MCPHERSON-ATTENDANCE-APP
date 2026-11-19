@@ -13,11 +13,22 @@ backend/.env
 backend/uploads/
 backend/*.log
 backend/data/users.json
+backend/data/attendance.json
+backend/server_start.err
+backend/docs/
 
 # Root
 .env
 *.log
-*.txt
+node_modules/
+/.opencode/
+/.github/agents/
+/.github/skills/
+/package.json
+/package-lock.json
+/opencode.json
+/install.ps1
+/SETUP.md
 .DS_Store
 .vscode/
 .idea/
@@ -39,3 +50,5 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 .vercel
+frontend/public/design/assets.zip
+frontend/public/design/mockups/

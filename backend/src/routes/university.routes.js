@@ -1,26 +1,82 @@
 import { Router } from 'express'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, isValidRole } from '../middleware/auth.js'
 import { query } from '../../lib/db.js'
 
 const router = Router()
 
+const ADMIN_ROLES = ['super_admin', 'admin']
+const STAFF_ROLES = ['super_admin', 'admin', 'lecturer']
+
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' })
-    if (!roles.includes(req.user.role)) return res.status(403).json({ error: `Requires role: ${roles.join(' or ')}` })
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: `Requires role: ${roles.join(' or ')}` })
+    }
     next()
   }
 }
 
+// There is no audit table in the current schema. Mutations are therefore
+// logged server-side only. If an audit table is added later, insert a row here
+// (action, actor id/role, target, timestamp) instead of / in addition to this log.
+router.use('/api/admin', (req, res, next) => {
+  if (req.method !== 'GET') {
+    res.on('finish', () => {
+      console.error('[admin-audit]', JSON.stringify({
+        at: new Date().toISOString(),
+        actorId: req.user?.id ?? null,
+        actorRole: req.user?.role ?? null,
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+      }))
+    })
+  }
+  next()
+})
+
+function serverError(res, message, err) {
+  console.error(`[admin] ${message}:`, err?.message || err)
+  return res.status(500).json({ error: message })
+}
+
+// Build a parameterized UPDATE from only the fields the caller actually sent.
+// Missing fields must never null out existing values.
+function buildUpdate(body, allowedFields) {
+  const assignments = []
+  const values = []
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      assignments.push(`${field} = $${values.length + 1}`)
+      values.push(body[field])
+    }
+  }
+  return { assignments, values }
+}
+
+async function updateRecord(table, id, body, allowedFields, options = {}) {
+  const { assignments, values } = buildUpdate(body, allowedFields)
+  if (!assignments.length) return null
+  if (options.touch) assignments.push('updated_at = NOW()')
+  values.push(id)
+  const returning = options.returning || '*'
+  const { rows } = await query(
+    `UPDATE public.${table} SET ${assignments.join(', ')} WHERE id = $${values.length} RETURNING ${returning}`,
+    values
+  )
+  return rows[0] || null
+}
+
 // ── Faculties ──────────────────────────────────────────────
-router.get('/api/admin/faculties', authenticate, async (req, res) => {
+router.get('/api/admin/faculties', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { rows } = await query('SELECT * FROM public.faculties ORDER BY name')
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load faculties', err) }
 })
 
-router.post('/api/admin/faculties', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.post('/api/admin/faculties', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { name, code, description, dean_id } = req.body
     const { rows } = await query(
@@ -28,30 +84,27 @@ router.post('/api/admin/faculties', authenticate, requireRole('super_admin', 'ad
       [name, code, description || '', dean_id || null]
     )
     res.status(201).json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to create faculty', err) }
 })
 
-router.put('/api/admin/faculties/:id', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.put('/api/admin/faculties/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
-    const { name, code, description, dean_id, is_active } = req.body
-    const { rows } = await query(
-      `UPDATE public.faculties SET name=$1, code=$2, description=$3, dean_id=$4, is_active=$5, updated_at=NOW() WHERE id=$6 RETURNING *`,
-      [name, code, description, dean_id, is_active, req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    const row = await updateRecord('faculties', req.params.id, req.body,
+      ['name', 'code', 'description', 'dean_id', 'is_active'], { touch: true })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update faculty', err) }
 })
 
 router.delete('/api/admin/faculties/:id', authenticate, requireRole('super_admin'), async (req, res) => {
   try {
     await query('DELETE FROM public.faculties WHERE id=$1', [req.params.id])
     res.json({ success: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to delete faculty', err) }
 })
 
 // ── Departments ────────────────────────────────────────────
-router.get('/api/admin/departments', authenticate, async (req, res) => {
+router.get('/api/admin/departments', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { faculty_id } = req.query
     let sql = `SELECT d.*, f.name AS faculty_name FROM public.departments d LEFT JOIN public.faculties f ON f.id = d.faculty_id`
@@ -60,10 +113,10 @@ router.get('/api/admin/departments', authenticate, async (req, res) => {
     sql += ' ORDER BY d.name'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load departments', err) }
 })
 
-router.post('/api/admin/departments', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.post('/api/admin/departments', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { name, code, faculty_id, description, hod_id } = req.body
     const { rows } = await query(
@@ -71,30 +124,27 @@ router.post('/api/admin/departments', authenticate, requireRole('super_admin', '
       [name, code, faculty_id || null, description || '', hod_id || null]
     )
     res.status(201).json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to create department', err) }
 })
 
-router.put('/api/admin/departments/:id', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.put('/api/admin/departments/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
-    const { name, code, faculty_id, description, hod_id, is_active } = req.body
-    const { rows } = await query(
-      `UPDATE public.departments SET name=$1, code=$2, faculty_id=$3, description=$4, hod_id=$5, is_active=$6, updated_at=NOW() WHERE id=$7 RETURNING *`,
-      [name, code, faculty_id, description, hod_id, is_active, req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    const row = await updateRecord('departments', req.params.id, req.body,
+      ['name', 'code', 'faculty_id', 'description', 'hod_id', 'is_active'], { touch: true })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update department', err) }
 })
 
 router.delete('/api/admin/departments/:id', authenticate, requireRole('super_admin'), async (req, res) => {
   try {
     await query('DELETE FROM public.departments WHERE id=$1', [req.params.id])
     res.json({ success: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to delete department', err) }
 })
 
 // ── Programmes ─────────────────────────────────────────────
-router.get('/api/admin/programmes', authenticate, async (req, res) => {
+router.get('/api/admin/programmes', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { department_id, faculty_id } = req.query
     let sql = `SELECT p.*, d.name AS department_name, f.name AS faculty_name
@@ -108,10 +158,10 @@ router.get('/api/admin/programmes', authenticate, async (req, res) => {
     sql += ' ORDER BY p.name'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load programmes', err) }
 })
 
-router.post('/api/admin/programmes', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.post('/api/admin/programmes', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { name, code, department_id, faculty_id, degree_type, duration_years, description } = req.body
     const { rows } = await query(
@@ -120,37 +170,35 @@ router.post('/api/admin/programmes', authenticate, requireRole('super_admin', 'a
       [name, code, department_id || null, faculty_id || null, degree_type || 'Bachelor', duration_years || 4, description || '']
     )
     res.status(201).json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to create programme', err) }
 })
 
-router.put('/api/admin/programmes/:id', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.put('/api/admin/programmes/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
-    const { name, code, department_id, faculty_id, degree_type, duration_years, description, is_active } = req.body
-    const { rows } = await query(
-      `UPDATE public.programmes SET name=$1, code=$2, department_id=$3, faculty_id=$4, degree_type=$5, duration_years=$6, description=$7, is_active=$8, updated_at=NOW() WHERE id=$9 RETURNING *`,
-      [name, code, department_id, faculty_id, degree_type, duration_years, description, is_active, req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    const row = await updateRecord('programmes', req.params.id, req.body,
+      ['name', 'code', 'department_id', 'faculty_id', 'degree_type', 'duration_years', 'description', 'is_active'],
+      { touch: true })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update programme', err) }
 })
 
 router.delete('/api/admin/programmes/:id', authenticate, requireRole('super_admin'), async (req, res) => {
   try {
     await query('DELETE FROM public.programmes WHERE id=$1', [req.params.id])
     res.json({ success: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to delete programme', err) }
 })
 
 // ── Academic Years ─────────────────────────────────────────
-router.get('/api/admin/academic-years', authenticate, async (req, res) => {
+router.get('/api/admin/academic-years', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { rows } = await query('SELECT * FROM public.academic_years ORDER BY start_date DESC')
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load academic years', err) }
 })
 
-router.post('/api/admin/academic-years', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.post('/api/admin/academic-years', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { name, start_date, end_date, is_current } = req.body
     if (is_current) await query('UPDATE public.academic_years SET is_current = false')
@@ -159,31 +207,28 @@ router.post('/api/admin/academic-years', authenticate, requireRole('super_admin'
       [name, start_date, end_date, is_current || false]
     )
     res.status(201).json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to create academic year', err) }
 })
 
-router.put('/api/admin/academic-years/:id', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.put('/api/admin/academic-years/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
-    const { name, start_date, end_date, is_current } = req.body
-    if (is_current) await query('UPDATE public.academic_years SET is_current = false')
-    const { rows } = await query(
-      `UPDATE public.academic_years SET name=$1, start_date=$2, end_date=$3, is_current=$4, updated_at=NOW() WHERE id=$5 RETURNING *`,
-      [name, start_date, end_date, is_current, req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    if (req.body.is_current === true) await query('UPDATE public.academic_years SET is_current = false')
+    const row = await updateRecord('academic_years', req.params.id, req.body,
+      ['name', 'start_date', 'end_date', 'is_current'], { touch: true })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update academic year', err) }
 })
 
 router.delete('/api/admin/academic-years/:id', authenticate, requireRole('super_admin'), async (req, res) => {
   try {
     await query('DELETE FROM public.academic_years WHERE id=$1', [req.params.id])
     res.json({ success: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to delete academic year', err) }
 })
 
 // ── Semesters ──────────────────────────────────────────────
-router.get('/api/admin/semesters', authenticate, async (req, res) => {
+router.get('/api/admin/semesters', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { academic_year_id } = req.query
     let sql = `SELECT s.*, ay.name AS academic_year_name
@@ -194,10 +239,10 @@ router.get('/api/admin/semesters', authenticate, async (req, res) => {
     sql += ' ORDER BY s.start_date DESC'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load semesters', err) }
 })
 
-router.post('/api/admin/semesters', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.post('/api/admin/semesters', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { academic_year_id, name, type, start_date, end_date, registration_start_date, registration_end_date, exam_start_date, exam_end_date, is_current } = req.body
     if (is_current) await query('UPDATE public.semesters SET is_current = false')
@@ -207,31 +252,30 @@ router.post('/api/admin/semesters', authenticate, requireRole('super_admin', 'ad
       [academic_year_id, name, type, start_date, end_date, registration_start_date || null, registration_end_date || null, exam_start_date || null, exam_end_date || null, is_current || false]
     )
     res.status(201).json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to create semester', err) }
 })
 
-router.put('/api/admin/semesters/:id', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.put('/api/admin/semesters/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
-    const updates = req.body
-    if (updates.is_current) await query('UPDATE public.semesters SET is_current = false')
-    const { rows } = await query(
-      `UPDATE public.semesters SET academic_year_id=$1, name=$2, type=$3, start_date=$4, end_date=$5, registration_start_date=$6, registration_end_date=$7, exam_start_date=$8, exam_end_date=$9, is_current=$10, updated_at=NOW() WHERE id=$11 RETURNING *`,
-      [updates.academic_year_id, updates.name, updates.type, updates.start_date, updates.end_date, updates.registration_start_date || null, updates.registration_end_date || null, updates.exam_start_date || null, updates.exam_end_date || null, updates.is_current, req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    if (req.body.is_current === true) await query('UPDATE public.semesters SET is_current = false')
+    const row = await updateRecord('semesters', req.params.id, req.body,
+      ['academic_year_id', 'name', 'type', 'start_date', 'end_date', 'registration_start_date',
+        'registration_end_date', 'exam_start_date', 'exam_end_date', 'is_current'],
+      { touch: true })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update semester', err) }
 })
 
 router.delete('/api/admin/semesters/:id', authenticate, requireRole('super_admin'), async (req, res) => {
   try {
     await query('DELETE FROM public.semesters WHERE id=$1', [req.params.id])
     res.json({ success: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to delete semester', err) }
 })
 
 // ── Users (admin: list/update role) ────────────────────────
-router.get('/api/admin/users', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.get('/api/admin/users', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { role: filterRole } = req.query
     let sql = `SELECT u.id, u.email, u.name, u.role, u.department, u.is_active, u.admission_number, u.staff_id, u.level, u.cgpa, u.faculty_id, u.department_id, u.programme_id, u.created_at,
@@ -245,23 +289,24 @@ router.get('/api/admin/users', authenticate, requireRole('super_admin', 'admin')
     sql += ' ORDER BY u.created_at DESC'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load users', err) }
 })
 
 router.put('/api/admin/users/:id', authenticate, requireRole('super_admin'), async (req, res) => {
   try {
-    const { role, faculty_id, department_id, programme_id, level, is_active } = req.body
-    const { rows } = await query(
-      `UPDATE public.users SET role=$1, faculty_id=$2, department_id=$3, programme_id=$4, level=$5, is_active=$6 WHERE id=$7 RETURNING id, email, name, role, department`,
-      [role, faculty_id || null, department_id || null, programme_id || null, level || '100', is_active, req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'role') && !isValidRole(req.body.role)) {
+      return res.status(400).json({ error: 'Invalid role' })
+    }
+    const row = await updateRecord('users', req.params.id, req.body,
+      ['role', 'faculty_id', 'department_id', 'programme_id', 'level', 'is_active'],
+      { returning: 'id, email, name, role, department' })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update user', err) }
 })
 
 // ── Courses (admin: full control) ──────────────────────────
-router.get('/api/admin/courses', authenticate, requireRole('super_admin', 'admin', 'lecturer'), async (req, res) => {
+router.get('/api/admin/courses', authenticate, requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { department, level, faculty_id, programme_id } = req.query
     let sql = `SELECT c.*, d.name AS department_name, f.name AS faculty_name
@@ -276,23 +321,21 @@ router.get('/api/admin/courses', authenticate, requireRole('super_admin', 'admin
     sql += ' ORDER BY c.code'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load courses', err) }
 })
 
-router.put('/api/admin/courses/:id', authenticate, requireRole('super_admin', 'admin', 'lecturer'), async (req, res) => {
+router.put('/api/admin/courses/:id', authenticate, requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const { faculty_id, programme_id, semester_id, academic_year_id, department_id, is_elective, status } = req.body
-    const { rows } = await query(
-      `UPDATE public.courses SET faculty_id=$1, programme_id=$2, semester_id=$3, academic_year_id=$4, is_elective=$5, status=$6 WHERE id=$7 RETURNING *`,
-      [faculty_id || null, programme_id || null, semester_id || null, academic_year_id || null, is_elective || false, status || 'active', req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    const row = await updateRecord('courses', req.params.id, req.body,
+      ['faculty_id', 'programme_id', 'semester_id', 'academic_year_id', 'department_id', 'is_elective', 'status'],
+      { touch: true })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update course', err) }
 })
 
 // ── Lecturer Course Assignment ─────────────────────────────
-router.get('/api/admin/lecturer-courses', authenticate, requireRole('super_admin', 'admin', 'lecturer'), async (req, res) => {
+router.get('/api/admin/lecturer-courses', authenticate, requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { lecturer_id } = req.query
     let sql = `SELECT lc.*, c.code AS course_code, c.title AS course_title
@@ -303,10 +346,10 @@ router.get('/api/admin/lecturer-courses', authenticate, requireRole('super_admin
     sql += ' ORDER BY c.code'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load lecturer courses', err) }
 })
 
-router.post('/api/admin/lecturer-courses', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.post('/api/admin/lecturer-courses', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { lecturer_id, course_id, semester_id, role } = req.body
     const { rows } = await query(
@@ -315,18 +358,18 @@ router.post('/api/admin/lecturer-courses', authenticate, requireRole('super_admi
       [lecturer_id, course_id, semester_id || null, role || 'instructor']
     )
     res.status(201).json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to assign lecturer', err) }
 })
 
-router.delete('/api/admin/lecturer-courses/:id', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.delete('/api/admin/lecturer-courses/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     await query('DELETE FROM public.lecturer_courses WHERE id=$1', [req.params.id])
     res.json({ success: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to remove lecturer assignment', err) }
 })
 
 // ── Enrollments ────────────────────────────────────────────
-router.get('/api/admin/enrollments', authenticate, requireRole('super_admin', 'admin', 'lecturer'), async (req, res) => {
+router.get('/api/admin/enrollments', authenticate, requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { course_id, semester_id } = req.query
     let sql = `SELECT e.*, u.name AS user_name, u.email AS user_email, u.admission_number
@@ -339,10 +382,10 @@ router.get('/api/admin/enrollments', authenticate, requireRole('super_admin', 'a
     sql += ' ORDER BY u.name'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load enrollments', err) }
 })
 
-router.post('/api/admin/enrollments', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.post('/api/admin/enrollments', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { user_id, course_id, course_name, semester_id, academic_year_id } = req.body
     const { rows } = await query(
@@ -353,39 +396,36 @@ router.post('/api/admin/enrollments', authenticate, requireRole('super_admin', '
     res.status(201).json(rows[0])
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Already enrolled' })
-    res.status(500).json({ error: err.message })
+    serverError(res, 'Failed to create enrollment', err)
   }
 })
 
-router.put('/api/admin/enrollments/:id', authenticate, requireRole('super_admin', 'admin', 'lecturer'), async (req, res) => {
+router.put('/api/admin/enrollments/:id', authenticate, requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const { grade, grade_point, status } = req.body
-    const { rows } = await query(
-      `UPDATE public.enrollments SET grade=$1, grade_point=$2, status=$3, updated_at=NOW() WHERE id=$4 RETURNING *`,
-      [grade || '', grade_point || 0, status || 'active', req.params.id]
-    )
-    if (!rows.length) return res.status(404).json({ error: 'Not found' })
-    res.json(rows[0])
-  } catch (err) { res.status(500).json({ error: err.message }) }
+    const row = await updateRecord('enrollments', req.params.id, req.body,
+      ['grade', 'grade_point', 'status'], { touch: true })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+    res.json(row)
+  } catch (err) { serverError(res, 'Failed to update enrollment', err) }
 })
 
-router.delete('/api/admin/enrollments/:id', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
+router.delete('/api/admin/enrollments/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     await query('DELETE FROM public.enrollments WHERE id=$1', [req.params.id])
     res.json({ success: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to delete enrollment', err) }
 })
 
 // ── Grade System ───────────────────────────────────────────
-router.get('/api/admin/grade-system', authenticate, async (req, res) => {
+router.get('/api/admin/grade-system', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const { rows } = await query('SELECT * FROM public.grade_system ORDER BY min_score DESC')
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load grade system', err) }
 })
 
 // ── Eligibility / Attendance Summary ───────────────────────
-router.get('/api/admin/eligibility', authenticate, requireRole('super_admin', 'admin', 'lecturer'), async (req, res) => {
+router.get('/api/admin/eligibility', authenticate, requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { course_id, semester_id } = req.query
     let sql = `SELECT e.*, u.name AS user_name, u.admission_number, c.code AS course_code, c.title AS course_title
@@ -399,7 +439,7 @@ router.get('/api/admin/eligibility', authenticate, requireRole('super_admin', 'a
     sql += ' ORDER BY u.name'
     const { rows } = await query(sql, params)
     res.json(rows)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) { serverError(res, 'Failed to load eligibility', err) }
 })
 
 export default router

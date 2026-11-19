@@ -3,12 +3,8 @@
     <div class="signal-status">
       <div class="status-header">
         <div class="status-dot" :class="{ active: tracking }"></div>
-        <span>UWB Geolocation</span>
-        <span v-if="tracking" class="badge">Live</span>
-      </div>
-      <div class="signal-bars">
-        <div v-for="i in 5" :key="i" class="bar" :class="{ active: tracking && i <= signalStrength }"
-          :style="{ animationDelay: `${i * 0.1}s` }"></div>
+        <span>GPS location</span>
+        <span v-if="tracking" class="badge">GPS</span>
       </div>
     </div>
 
@@ -22,9 +18,8 @@
           <div class="label">Current Position</div>
           <div class="value" v-if="position">
             {{ position.lat.toFixed(6) }}, {{ position.lng.toFixed(6) }}
-            <span v-if="position.simulated" class="sim-badge">SIM</span>
           </div>
-          <div class="value" v-else>Acquiring...</div>
+            <div class="value" v-else>{{ tracking ? 'Acquiring…' : 'Not tracking' }}</div>
         </div>
       </div>
       <div class="info-row">
@@ -39,39 +34,9 @@
       </div>
     </div>
 
-    <div class="uwb-readings" v-if="readings.length > 0">
-      <div class="section-title">UWB Anchor Readings</div>
-      <div v-for="r in readings" :key="r.anchorId" class="reading-row">
-        <div class="anchor-label">{{ r.anchorLabel }}</div>
-        <div class="reading-details">
-          <span class="dist">{{ r.distance.toFixed(2) }}m</span>
-          <span class="rssi" :class="{ good: r.rssi > -60, mid: r.rssi > -80 && r.rssi <= -60, poor: r.rssi <= -80 }">
-            {{ r.rssi.toFixed(1) }} dBm
-          </span>
-        </div>
-      </div>
-    </div>
+    <p v-if="locationError" class="location-error" role="alert">{{ locationError }}</p>
 
-    <div class="geofence-status" v-if="proximity">
-      <div class="section-title">Geofence Status</div>
-      <div v-for="p in proximity.slice(0, 3)" :key="p.code"
-        class="proximity-card" :class="{ inside: p.inside }">
-        <div class="room-code">{{ p.code }}</div>
-        <div class="room-name">{{ p.name }}</div>
-        <div class="proximity-meter">
-          <div class="meter-fill" :style="{ width: `${p.confidence * 100}%` }"
-            :class="{ high: p.confidence > 0.7, mid: p.confidence > 0.3 && p.confidence <= 0.7, low: p.confidence <= 0.3 }">
-          </div>
-        </div>
-        <div class="proximity-details">
-          <span>{{ p.avgDistance.toFixed(1) }}m</span>
-          <span>{{ (p.confidence * 100).toFixed(0) }}%</span>
-        </div>
-        <button v-if="p.inside" class="checkin-btn" @click="$emit('checkin', p.code)">
-          Check In
-        </button>
-      </div>
-    </div>
+    <p class="location-note">Attendance check-in uses your current GPS and is validated by the active session on the server. No simulated UWB readings are used.</p>
 
     <div class="actions">
       <button class="action-btn" @click="toggleTracking">
@@ -82,34 +47,26 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { locationTracker } from '../services/LocationService.js'
-
-defineEmits(['checkin'])
 
 const tracking = ref(false)
 const position = ref(null)
 const accuracy = ref(null)
-const readings = ref([])
-const proximity = ref(null)
-
-const signalStrength = computed(() => {
-  if (!accuracy.value) return 0
-  if (accuracy.value < 3) return 5
-  if (accuracy.value < 5) return 4
-  if (accuracy.value < 10) return 3
-  if (accuracy.value < 20) return 2
-  return 1
-})
+const locationError = ref('')
 
 let unsubscribe = null
 
 function onUpdate({ type, data }) {
   if (type === 'position') {
+    locationError.value = ''
     position.value = data
     accuracy.value = data.accuracy
-    readings.value = locationTracker.uwbDevice.scan()
-    proximity.value = data.proximity
+  } else if (type === 'error') {
+    locationError.value = data
+    tracking.value = false
+    position.value = null
+    accuracy.value = null
   }
 }
 
@@ -119,7 +76,7 @@ function toggleTracking() {
     tracking.value = false
   } else {
     locationTracker.startTracking()
-    tracking.value = true
+    tracking.value = locationTracker.watchId !== null
   }
 }
 
@@ -142,6 +99,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.location-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 13px;
+}
+.location-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .signal-status {

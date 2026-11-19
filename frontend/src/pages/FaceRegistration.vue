@@ -7,7 +7,7 @@
           <ScanFace class="w-8 h-8 text-[var(--color-text-primary)]" />
         </div>
         <h1 class="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Face ID Setup</h1>
-        <p class="text-[var(--color-text-secondary)] mt-2 text-sm max-w-md mx-auto">Register your biometric profile for seamless, contactless check-ins to your University lectures.</p>
+        <p class="text-[var(--color-text-secondary)] mt-2 text-sm max-w-md mx-auto">Register a face template for identity verification in this app. Face check-in is not currently enabled.</p>
         <p v-if="hasFace" class="text-[var(--color-text-primary)] mt-1 text-xs font-medium">{{ hasFace ? 'Face profile already registered — capturing will overwrite' : '' }}</p>
       </header>
 
@@ -20,6 +20,7 @@
         <p class="text-sm text-[var(--color-error)]">{{ modelsError }}</p>
         <button @click="initFaceModels" class="mt-3 text-sm text-[var(--color-primary)] hover:underline">Retry</button>
       </div>
+      <p v-if="errorMsg" class="mb-4 text-center text-sm text-[var(--color-error)] font-medium" role="alert">{{ errorMsg }}</p>
 
       <div v-if="modelsReady" class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[var(--color-primary-glow)] blur-[100px] rounded-full pointer-events-none" />
@@ -62,24 +63,32 @@
             </div>
 
             <div class="pt-4 border-t border-[var(--color-border)] flex flex-col gap-3">
-              <button v-if="!cameraActive" @click="startCamera" class="flex-1 bg-[var(--color-surface-elevated)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-primary)] font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <label class="flex items-start gap-2 text-xs text-[var(--color-text-secondary)] cursor-pointer">
+                <input v-model="consent" type="checkbox" class="mt-0.5" />
+                <span>
+                  I consent to storing my facial template for identity verification. It is not used for attendance check-in.
+                </span>
+              </label>
+              <button v-if="!cameraActive" @click="startCamera" :disabled="!consent" class="flex-1 bg-[var(--color-surface-elevated)] text-[var(--color-text-primary)] font-medium py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                 <Camera class="w-5 h-5" />
                 Enable Camera
               </button>
               
               <div v-else class="flex gap-3">
-                <button @click="captureFace" :disabled="isScanning || saved" class="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-[var(--color-primary)]/25 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2">
+                <button @click="captureFace" :disabled="isScanning || saved || !consent" class="flex-1 bg-[var(--color-primary)] text-white font-medium py-3 px-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                   <Loader2 v-if="isScanning" class="w-5 h-5 animate-spin" />
                   <ScanFace v-else class="w-5 h-5" />
                   {{ isScanning ? 'Scanning...' : saved ? 'Saved!' : 'Capture Face ID' }}
                 </button>
-                <button @click="stopCamera" class="px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                <button @click="stopCamera" class="px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] transition-colors">
                   <CameraOff class="w-5 h-5" />
                 </button>
               </div>
+              <button v-if="hasFace" @click="deleteFace" :disabled="deleting || isScanning" class="text-sm text-[var(--color-error)] underline self-start disabled:opacity-50">
+                {{ deleting ? 'Deleting…' : 'Delete my face data' }}
+              </button>
             </div>
             
-            <p v-if="errorMsg" class="text-sm text-[var(--color-error)] font-medium">{{ errorMsg }}</p>
             <p v-if="successMsg" class="text-sm text-[var(--color-text-primary)] font-medium flex items-center gap-2">
               <CheckCircle2 class="w-4 h-4" />
               {{ successMsg }}
@@ -111,7 +120,26 @@ const faceDetected = ref(false)
 const saved = ref(false)
 const hasFace = ref(false)
 const distance = ref(null)
+const consent = ref(false)
+const deleting = ref(false)
 let stream = null
+
+function getServerError(err, fallback) {
+  const payload = err?.response?.data
+  const candidates = [
+    payload?.legacyDataMigration?.message,
+    payload?.legacyDataMigration?.error,
+    payload?.migration?.message,
+    payload?.migration?.error,
+    payload?.migrationError,
+    payload?.legacyMigrationError,
+    payload?.error?.message,
+    payload?.error,
+    payload?.message,
+  ]
+  const message = candidates.find(value => typeof value === 'string' && value.trim())
+  return message || err?.message || fallback
+}
 
 async function initFaceModels() {
   modelsError.value = ''
@@ -124,7 +152,9 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/auth/face')
     if (data?.descriptor) hasFace.value = true
-  } catch (e) { console.warn('[FaceReg] Load face failed:', e) }
+  } catch (err) {
+    errorMsg.value = getServerError(err, 'Unable to load face profile.')
+  }
 })
 
 const startCamera = async () => {
@@ -137,6 +167,7 @@ const startCamera = async () => {
       errorMsg.value = ''
     }
   } catch (err) {
+    console.warn('[FaceRegistration] Camera access failed:', err)
     errorMsg.value = 'Could not access camera. Please check permissions.'
   }
 }
@@ -147,6 +178,10 @@ const stopCamera = () => {
 }
 
 const captureFace = async () => {
+  if (!consent.value) {
+    errorMsg.value = 'Consent is required before saving face data.'
+    return
+  }
   if (!modelsReady.value || !videoEl.value) return
   isScanning.value = true
   errorMsg.value = ''
@@ -164,15 +199,36 @@ const captureFace = async () => {
       return
     }
     faceDetected.value = true
-    await api.put('/auth/face', { descriptor: JSON.stringify(descriptor) })
+    await api.put('/auth/face', {
+      descriptor: JSON.stringify(descriptor),
+      consentAccepted: true,
+    })
     saved.value = true
     hasFace.value = true
     successMsg.value = 'Biometric profile registered successfully!'
     setTimeout(() => stopCamera(), 2000)
   } catch (err) {
-    errorMsg.value = err?.response?.data?.error || err?.message || 'Failed to save face data.'
+    errorMsg.value = getServerError(err, 'Failed to save face data.')
   } finally {
     isScanning.value = false
+  }
+}
+
+async function deleteFace() {
+  if (deleting.value) return
+  deleting.value = true
+  errorMsg.value = ''
+  successMsg.value = ''
+  try {
+    await api.delete('/auth/face')
+    hasFace.value = false
+    saved.value = false
+    consent.value = false
+    successMsg.value = 'Your face data has been deleted.'
+  } catch (err) {
+    errorMsg.value = getServerError(err, 'Failed to delete face data.')
+  } finally {
+    deleting.value = false
   }
 }
 

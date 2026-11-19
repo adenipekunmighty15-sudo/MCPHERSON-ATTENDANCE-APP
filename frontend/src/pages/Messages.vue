@@ -8,6 +8,9 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 8v8M8 12h8"/></svg>
         </button>
       </div>
+      <p class="messaging-notice" role="note">
+        Demo only: conversations stay on this device and are not delivered to other users.
+      </p>
 
       <div class="mlp-search">
         <svg class="mlp-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -205,7 +208,7 @@
                     </div>
 
                     <!-- Text message -->
-                    <div v-else class="msg-text" v-html="sanitizeHtml(linkify(msg.content))"></div>
+                    <div v-else class="msg-text" v-safe-html="linkify(msg.content)"></div>
 
                     <div class="msg-meta">
                       <span class="msg-time">{{ formatTime(msg.timestamp) }}</span>
@@ -271,7 +274,7 @@
           <button v-if="messageText.trim()" class="mia-send-btn" @click="sendMsg" title="Send">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           </button>
-          <button v-else class="mia-btn" :class="{ recording: isRecording }" @mousedown="startRecording" @mouseup="stopRecording" @mouseleave="stopRecording" @touchstart.prevent="startRecording" @touchend="stopRecording" title="Hold to record voice">
+          <button v-else class="mia-btn" :class="{ recording: isRecording }" @mousedown="startRecording" @mouseup="stopRecording" @mouseleave="stopRecording" @touchstart.prevent="startRecording" @touchend="stopRecording" title="Hold to dictate message">
             <svg v-if="!isRecording" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
             <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
           </button>
@@ -284,8 +287,9 @@
           <div class="recording-wave">
             <span v-for="n in 20" :key="n" class="rw-bar" :style="{ height: Math.random() * 24 + 4 + 'px' }"></span>
           </div>
-          <span class="recording-label">Release to send</span>
+          <span class="recording-label">Release to transcribe</span>
         </div>
+        <p v-if="composerNotice" class="composer-notice" role="status">{{ composerNotice }}</p>
 
         <!-- Emoji Picker -->
         <div v-if="showEmojiPicker" class="emoji-picker">
@@ -355,7 +359,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useMessagingStore } from '../stores/messaging'
 import { useAuthStore } from '../stores/auth'
-import { sanitizeHtml } from '../lib/sanitize.js'
+import api from '../lib/api'
 
 const store = useMessagingStore()
 const authStore = useAuthStore()
@@ -371,6 +375,7 @@ const inputRef = ref(null)
 const listRef = ref(null)
 const inputWrapRef = ref(null)
 const shouldAutoScroll = ref(true)
+const composerNotice = ref('')
 
 const commonEmojis = ['😊', '😂', '❤️', '🔥', '👍', '🎉', '😍', '🤔', '🙏', '👋', '✨', '💯', '😭', '🥺', '🤩', '😤', '💀', '👀']
 const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '🎉']
@@ -437,6 +442,7 @@ function openPreview(url) {
 
 async function startRecording() {
   try {
+    composerNotice.value = ''
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
     audioChunks = []
@@ -445,11 +451,26 @@ async function startRecording() {
     recordingTimer.value = '0:00'
 
     mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data)
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
       const blob = new Blob(audioChunks, { type: 'audio/webm' })
-      store.sendMessage(`🎤 Voice (${recordingTimer.value})`, 'voice')
       stream.getTracks().forEach(t => t.stop())
       isRecording.value = false
+      if (!blob.size) return
+
+      const formData = new FormData()
+      formData.append('audio', blob, 'message.webm')
+      try {
+        const { data } = await api.post('/voice/stt', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        const transcript = typeof data?.transcript === 'string' ? data.transcript.trim() : ''
+        if (!transcript) throw new Error('No speech was recognized')
+        messageText.value = [messageText.value.trim(), transcript].filter(Boolean).join(' ')
+        focusInput()
+      } catch (error) {
+        console.error('[Messages] Voice transcription failed:', error)
+        composerNotice.value = error.response?.data?.error || 'Voice transcription failed. Type your message instead.'
+      }
     }
 
     mediaRecorder.start()
@@ -458,8 +479,9 @@ async function startRecording() {
       recordingTimer.value = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
       if (elapsed >= 30) stopRecording()
     }, 200)
-  } catch {
-    console.warn('[Messages] Mic access denied')
+  } catch (error) {
+    console.warn('[Messages] Could not start voice recording:', error)
+    composerNotice.value = 'Microphone access is unavailable. Type your message instead.'
   }
 }
 
@@ -577,7 +599,6 @@ function onThreadScroll() {
 function handleMsgClick(msg, e) {
   const target = e.target.closest('.msg-reaction, .reaction-count')
   if (target) {
-    const emoji = target.closest('.msg-reaction')?.querySelector('.reaction-count')?.previousSibling?.textContent?.trim() || target.closest('.msg-reaction')?.textContent?.trim().split(' ')[0]
     return
   }
 
@@ -588,7 +609,7 @@ function handleMsgClick(msg, e) {
   }
 }
 
-function openContextMenu(msg, e) {
+function openContextMenu(msg) {
   store.setReplyTo(msg.id)
 }
 
@@ -635,7 +656,7 @@ function startNewChat(contactId) {
 function handleFileAttach(e) {
   const file = e.target.files?.[0]
   if (file) {
-    store.sendMessage(`📎 ${file.name}`, 'file')
+    composerNotice.value = 'File sharing is not available yet. The selected file was not uploaded or sent.'
   }
   e.target.value = ''
 }
@@ -675,6 +696,21 @@ onMounted(() => {
   inset: 0;
   overflow: hidden;
   background: var(--color-surface);
+}
+
+.messaging-notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.composer-notice {
+  margin: 8px 0 0;
+  color: var(--color-danger, #c62828);
+  font-size: 12px;
 }
 
 @media (min-width: 1025px) {

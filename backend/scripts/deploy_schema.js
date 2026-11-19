@@ -1,10 +1,20 @@
-const { Pool } = require('pg');
-const fs = require('fs');
+import dotenv from 'dotenv'
+import { Pool } from 'pg'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const sql = fs.readFileSync('schema_corrected.sql', 'utf8');
+const scriptDir = dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: join(scriptDir, '..', '.env') })
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be set before deploying the schema')
+}
+
+const sql = readFileSync(join(scriptDir, 'schema_corrected.sql'), 'utf8')
 
 const pool = new Pool({
-  connectionString: 'postgresql://postgres.ptjxkzhqecrbarinbpfn:Mighty%401234567890%21@aws-1-eu-central-1.pooler.supabase.com:6543/postgres',
+  connectionString: process.env.DATABASE_URL,
   max: 1,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 60000,

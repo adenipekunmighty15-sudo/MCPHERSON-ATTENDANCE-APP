@@ -181,7 +181,9 @@ async function loadMaterials() {
           }
         }
       }
-    } catch (_) { /* ignore */ }
+    } catch (error) {
+      console.warn('[QuizView] Could not load saved quiz scores:', error)
+    }
 
     materials.value = raw
       .filter(m => m.quiz && m.quiz.length > 0)
@@ -247,7 +249,9 @@ async function finishQuiz() {
       durationMinutes: 0,
     })
     sessionId.value = res.data?.id || null
-  } catch (_) { /* non-critical */ }
+  } catch (error) {
+    console.warn('[QuizView] Could not save quiz session:', error)
+  }
 
   screen.value = 'results'
 }

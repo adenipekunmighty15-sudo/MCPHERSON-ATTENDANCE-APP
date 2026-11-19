@@ -1,0 +1,4 @@
+ALTER TABLE public.complaints
+  ADD COLUMN IF NOT EXISTS admin_response TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS handled_by UUID
+    REFERENCES public.users(id) ON DELETE SET NULL;

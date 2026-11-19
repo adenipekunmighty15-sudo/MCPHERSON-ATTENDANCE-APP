@@ -36,12 +36,19 @@ async function authenticate(req, res, next) {
 
     let role = 'student'
     try {
-      const { rows } = await query('SELECT role FROM public.users WHERE id = $1', [supaUser.id])
-      if (rows.length && isValidRole(rows[0].role)) {
-        role = rows[0].role
+      const { rows } = await query(
+        'SELECT role, is_active AS "isActive" FROM public.users WHERE id = $1',
+        [supaUser.id]
+      )
+      if (rows.length) {
+        if (rows[0].isActive === false) {
+          return res.status(403).json({ error: 'Account is deactivated' })
+        }
+        if (isValidRole(rows[0].role)) role = rows[0].role
       }
     } catch (e) {
-      console.warn('Could not verify role from DB, defaulting to student:', e.message)
+      console.error('Could not verify account role:', e.message)
+      return res.status(503).json({ error: 'Authentication service unavailable' })
     }
 
     // Skip email domain check for admin/super_admin roles (they may use non-school emails)

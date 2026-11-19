@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, markRaw } from 'vue'
+import { ref, markRaw } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 import FacultiesTab from '../components/admin/FacultiesTab.vue'

@@ -8,31 +8,44 @@ import {
   predictNextWeekAttendance,
 } from '../services/predictorService.js'
 import { query } from '../../lib/db.js'
-import { randomUUID } from 'crypto'
 
 const router = Router()
 
+const ADMIN_ROLES = ['admin', 'super_admin']
+const ALL_STAFF_ROLES = ['admin', 'super_admin', 'lecturer']
+const MAX_AT_RISK_LIMIT = 100
+const DEFAULT_AT_RISK_LIMIT = 50
+
+function parseLimit(value, fallback) {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(Math.max(parsed, 1), MAX_AT_RISK_LIMIT)
+}
+
+// Lecturers may only see students enrolled in courses they teach (either as the
+// course lecturer or via a lecturer_courses assignment). Admins see everyone.
+async function visibleStudentIds(req) {
+  if (ADMIN_ROLES.includes(req.user.role)) return null // null means "no restriction"
+  const { rows } = await query(
+    `SELECT DISTINCT e.user_id::text AS user_id
+       FROM public.enrollments e
+      WHERE e.course_id::text IN (
+          SELECT c.id::text FROM public.courses c WHERE c.lecturer_id = $1
+          UNION
+          SELECT lc.course_id::text FROM public.lecturer_courses lc WHERE lc.lecturer_id = $1
+        )`,
+    [req.user.id]
+  )
+  return new Set(rows.map(row => row.user_id))
+}
+
+// GET routes are read-only: prediction/insight generation never writes to the DB.
 router.get('/api/predictor/my-risk', authenticate, async (req, res) => {
   try {
     const [attendanceRisk, academicRisk] = await Promise.all([
       predictAttendanceRisk(req.user.id),
       predictAcademicRisk(req.user.id),
     ])
-
-    try {
-      await query(
-        `INSERT INTO public.ai_predictions (id, user_id, risk_score, academic_risk, feature_vector, factors, predicted_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-        [
-          randomUUID(),
-          req.user.id,
-          attendanceRisk.risk_score,
-          academicRisk.academic_risk_score,
-          JSON.stringify(attendanceRisk.feature_vector),
-          JSON.stringify(attendanceRisk.factors),
-        ]
-      )
-    } catch {}
 
     res.json({
       risk_score: attendanceRisk.risk_score,
@@ -50,38 +63,37 @@ router.get('/api/predictor/my-risk', authenticate, async (req, res) => {
 })
 
 router.get('/api/predictor/at-risk', authenticate, async (req, res) => {
-  if (req.user.role !== 'admin' && req.user.role !== 'super_admin' && req.user.role !== 'lecturer') {
+  if (!ALL_STAFF_ROLES.includes(req.user.role)) {
     return res.status(403).json({ error: 'Only admin and faculty can view at-risk students' })
   }
   try {
-    const atRisk = await getAtRiskStudents()
-    res.json({ count: atRisk.length, students: atRisk })
+    const limit = parseLimit(req.query.limit, DEFAULT_AT_RISK_LIMIT)
+    const [atRisk, allowedIds] = await Promise.all([getAtRiskStudents(), visibleStudentIds(req)])
+    const scoped = allowedIds ? atRisk.filter(student => allowedIds.has(String(student.user_id))) : atRisk
+    const students = scoped.slice(0, limit)
+    res.json({ count: students.length, students, meta: { limit } })
   } catch (err) {
     console.error('Predictor at-risk error:', err.message)
     res.status(500).json({ error: 'Failed to retrieve at-risk students' })
   }
 })
 
+// Insights are generated on demand and returned directly. Persisting them here
+// previously inserted duplicates on every GET; persistence is intentionally
+// skipped (no DB write) until an explicit upsert endpoint is designed.
 router.get('/api/predictor/insights', authenticate, async (req, res) => {
   try {
-    const insights = await generateInsights(req.user.id)
-
-    for (const insight of insights) {
-      try {
-        await query(
-          `INSERT INTO public.ai_insights (id, user_id, insight, category, severity, created_at, read)
-           VALUES ($1, $2, $3, $4, $5, NOW(), false)`,
-          [randomUUID(), req.user.id, insight.text, insight.type, insight.severity]
-        )
-      } catch {}
-    }
-
-    const { rows: recentInsights } = await query(
-      "SELECT * FROM public.ai_insights WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20",
-      [req.user.id]
-    )
-
-    res.json({ insights: recentInsights })
+    const generated = await generateInsights(req.user.id)
+    const insights = generated.map((insight, index) => ({
+      id: `generated-${index + 1}`,
+      insight: insight.text,
+      text: insight.text,
+      category: insight.type,
+      severity: insight.severity,
+      read: true,
+      created_at: new Date().toISOString(),
+    }))
+    res.json({ insights })
   } catch (err) {
     console.error('Predictor insights error:', err.message)
     res.status(500).json({ error: 'Failed to generate insights' })

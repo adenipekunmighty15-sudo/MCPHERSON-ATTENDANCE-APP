@@ -86,8 +86,14 @@ router.get('/api/chats/:id/messages', authenticate, async (req, res) => {
 
 router.post('/api/chats/:id/messages', authenticate, async (req, res) => {
   try {
-    const { role, content } = req.body
-    if (!role || !content) return res.status(400).json({ error: 'Role and content required' })
+    const { content } = req.body
+    if (!content) return res.status(400).json({ error: 'Content required' })
+    const { rows: owned } = await query(
+      'SELECT id FROM public.chat_conversations WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!owned.length) return res.status(404).json({ error: 'Conversation not found' })
+    const role = 'user'
     const msgId = randomUUID()
     await query(
       `INSERT INTO public.chat_messages (id, conversation_id, role, content, created_at)

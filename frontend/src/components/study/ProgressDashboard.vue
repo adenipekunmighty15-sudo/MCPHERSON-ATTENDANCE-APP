@@ -45,7 +45,7 @@
           <div class="badges-grid">
             <div v-for="b in badges" :key="b.id" class="badge-item" :class="{ earned: b.earned }">
               <div class="badge-icon" :style="{ background: b.color + '18', color: b.color }">
-                <span v-html="sanitizeHtml(b.icon)"></span>
+                <span v-safe-html="b.icon"></span>
               </div>
               <span class="badge-name">{{ b.name }}</span>
             </div>
@@ -73,7 +73,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../../lib/api'
-import { sanitizeHtml } from '../../lib/sanitize.js'
 
 defineEmits(['close'])
 
@@ -109,10 +108,9 @@ const badges = computed(() => [
 
 onMounted(async () => {
   try {
-    const [matRes, sessionsRes, badgesRes] = await Promise.allSettled([
+    const [matRes, sessionsRes] = await Promise.allSettled([
       api.get('/study-materials'),
       api.get('/study-sessions/stats'),
-      api.get('/gamification/badges'),
     ])
     if (matRes.status === 'fulfilled') {
       const mats = matRes.value.data || []
@@ -121,7 +119,7 @@ onMounted(async () => {
       totalQuizzes.value = mats.reduce((a, m) => {
         const q = m.quiz
         if (Array.isArray(q)) return a + q.length
-        if (typeof q === 'string') { try { return a + JSON.parse(q).length } catch (e) { return a } }
+        if (typeof q === 'string') { try { return a + JSON.parse(q).length } catch { return a } }
         return a
       }, 0)
     }

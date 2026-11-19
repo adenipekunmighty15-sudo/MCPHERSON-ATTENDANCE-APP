@@ -13,7 +13,10 @@ router.post('/api/tts', authenticate, async (req, res) => {
     res.setHeader('Content-Type', 'audio/mpeg')
     res.setHeader('Content-Length', audio.length)
     res.send(audio)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+  } catch (err) {
+    console.error('TTS request failed:', err.message)
+    res.status(500).json({ error: 'Text-to-speech service failed' })
+  }
 })
 
 export default router

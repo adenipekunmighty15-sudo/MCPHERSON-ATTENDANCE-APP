@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import multer from 'multer'
 import { authenticate } from '../middleware/auth.js'
-import supabaseAdmin from '../config/supabase.js'
 import { aiChat } from '../services/aiService.js'
 import { nvidiaTTS, getNvidiaTTSStream } from '../services/externalService.js'
 
@@ -15,32 +14,19 @@ async function transcribeAudio(audioBuffer, mimeType) {
   formData.append('model', 'nvidia/nvidia-whisper-6b')
 
   const whisperKey = process.env.NVIDIA_WHISPER_KEY
-  if (!whisperKey) throw new Error('NVIDIA_WHISPER_KEY not configured')
+  if (!whisperKey) throw new Error('Transcription service not configured')
   const resp = await fetch('https://integrate.api.nvidia.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${whisperKey}` },
     body: formData,
   })
   if (!resp.ok) {
-    const errText = await resp.text()
-    throw new Error(`Whisper API error ${resp.status}: ${errText}`)
+    // Do not surface the upstream body to clients — it may contain request
+    // metadata or provider internals. The status is logged server-side below.
+    throw new Error(`Whisper API error ${resp.status}`)
   }
   const data = await resp.json()
   return data.text || ''
-}
-
-async function authenticateToken(token) {
-  try {
-    if (!supabaseAdmin) {
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString())
-      return { id: payload.sub, email: payload.email, name: payload.user_metadata?.name || payload.email?.split('@')[0] || 'Student' }
-    }
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
-    if (error || !user) return null
-    return { id: user.id, email: user.email, name: user.user_metadata?.name || user.email?.split('@')[0] || 'Student' }
-  } catch {
-    return null
-  }
 }
 
 router.post('/api/voice/stt', authenticate, upload.single('audio'), async (req, res) => {
@@ -50,7 +36,7 @@ router.post('/api/voice/stt', authenticate, upload.single('audio'), async (req, 
     res.json({ transcript })
   } catch (err) {
     console.error('STT error:', err.message)
-    res.status(500).json({ error: 'Transcription failed: ' + err.message })
+    res.status(500).json({ error: 'Transcription failed' })
   }
 })
 
@@ -87,23 +73,25 @@ router.post('/api/voice/chat', authenticate, upload.single('audio'), async (req,
     })
   } catch (err) {
     console.error('Voice chat error:', err.message)
-    res.status(500).json({ error: 'Voice chat failed: ' + err.message })
+    res.status(500).json({ error: 'Voice chat failed' })
   }
 })
 
 router.get('/api/voice/tts', authenticate, async (req, res) => {
   try {
     const text = req.query.text
-    if (!text || !text.trim()) return res.status(400).json({ error: 'Text query parameter required' })
+    if (typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Text query parameter required' })
+    }
 
-    const ttsResp = await getNvidiaTTSStream(text.trim())
+    const ttsResp = await getNvidiaTTSStream(text.trim().slice(0, 2000))
     if (!ttsResp) return res.status(502).json({ error: 'TTS service unavailable' })
 
     res.setHeader('Content-Type', 'audio/mpeg')
     ttsResp.body.pipe(res)
   } catch (err) {
     console.error('TTS error:', err.message)
-    if (!res.headersSent) res.status(500).json({ error: 'TTS failed: ' + err.message })
+    if (!res.headersSent) res.status(500).json({ error: 'TTS failed' })
   }
 })
 

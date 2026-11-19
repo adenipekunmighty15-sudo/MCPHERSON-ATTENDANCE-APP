@@ -10,6 +10,23 @@
       </button>
     </div>
 
+    <form class="join-group-form" @submit.prevent="joinGroup">
+      <label class="form-label" for="study-group-invite">Join with an invite code</label>
+      <div class="join-group-controls">
+        <input
+          id="study-group-invite"
+          v-model="inviteCodeInput"
+          class="form-input"
+          autocomplete="off"
+          maxlength="36"
+          placeholder="Paste group invite code"
+        />
+        <button class="btn-primary" type="submit" :disabled="loading || !inviteCodeInput.trim()">Join</button>
+      </div>
+    </form>
+    <p v-if="statusMessage" class="group-status" role="status">{{ statusMessage }}</p>
+    <p v-if="error" class="group-error" role="alert">{{ error }}</p>
+
     <div class="groups-container">
       <!-- Create Group Modal -->
       <Teleport to="body" v-if="showCreateModal">
@@ -59,7 +76,13 @@
               <p class="group-course">{{ getCourseTitle(group.courseId) }}</p>
             </div>
             <div class="group-actions">
-              <button class="action-icon" @click="leaveGroup(group.id)" title="Leave group">
+              <button class="action-icon" @click="copyInvite(group.id)" title="Copy invite code" aria-label="Copy invite code">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+              </button>
+              <button class="action-icon" @click="leaveGroup(group.id)" title="Leave group" aria-label="Leave group">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 21v-4a6 6 0 0 1 6-6h6a6 6 0 0 1 6 6v4M9 11h6m3-3h4"/></svg>
               </button>
@@ -91,7 +114,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../lib/api'
 
@@ -101,6 +124,8 @@ const courses = ref([])
 const showCreateModal = ref(false)
 const loading = ref(false)
 const error = ref('')
+const statusMessage = ref('')
+const inviteCodeInput = ref('')
 const newGroup = ref({ name: '', description: '', courseId: '' })
 
 const groupMaterials = new Map()
@@ -108,7 +133,7 @@ const groupMaterials = new Map()
 async function loadGroups() {
   try {
     loading.value = true
-    const response = await api.get('/api/study-groups/my-groups')
+    const response = await api.get('/study-groups/my-groups')
     const body = response.data
     const list = body?.data || body || []
     if (Array.isArray(list)) {
@@ -127,20 +152,20 @@ async function loadGroups() {
 
 async function loadGroupMaterials(groupId) {
   try {
-    const response = await api.get(`/api/study-groups/${groupId}/materials`)
+    const response = await api.get(`/study-groups/${groupId}/materials`)
     const body = response.data
     const materials = body?.data || body || []
     if (Array.isArray(materials)) {
       groupMaterials.set(groupId, materials.length)
     }
-  } catch (err) {
-    console.log(`Could not load materials for group ${groupId}`)
+  } catch (error) {
+    console.warn(`Could not load materials for group ${groupId}:`, error)
   }
 }
 
 async function loadCourses() {
   try {
-    const { data } = await api.get('/api/courses')
+    const { data } = await api.get('/courses')
     courses.value = data || []
   } catch (err) {
     console.error('Failed to load courses:', err)
@@ -165,7 +190,7 @@ async function createGroup() {
 
   try {
     loading.value = true
-    const response = await api.post('/api/study-groups', {
+    const response = await api.post('/study-groups', {
       name: newGroup.value.name,
       description: newGroup.value.description,
       courseId: newGroup.value.courseId || null
@@ -187,11 +212,50 @@ async function createGroup() {
   }
 }
 
+async function joinGroup() {
+  const inviteCode = inviteCodeInput.value.trim()
+  if (!inviteCode) return
+
+  try {
+    loading.value = true
+    error.value = ''
+    statusMessage.value = ''
+    const { data } = await api.post('/study-groups/join', { inviteCode })
+    inviteCodeInput.value = ''
+    statusMessage.value = data?.message || 'You joined the study group.'
+    await loadGroups()
+  } catch (err) {
+    console.error('Failed to join study group:', err)
+    error.value = err.response?.data?.error || 'Could not join this study group. Check the invite code and try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function copyInvite(groupId) {
+  try {
+    const { data } = await api.get(`/study-groups/${groupId}/invite`)
+    const inviteCode = data?.data?.inviteCode
+    if (!inviteCode) throw new Error('The server did not return an invite code')
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(inviteCode)
+      statusMessage.value = 'Invite code copied to clipboard.'
+    } else {
+      window.prompt('Copy this study group invite code:', inviteCode)
+    }
+    error.value = ''
+  } catch (err) {
+    console.error('Failed to get study group invite:', err)
+    error.value = err.response?.data?.error || 'Could not get the invite code.'
+  }
+}
+
 async function leaveGroup(groupId) {
   if (!confirm('Are you sure you want to leave this study group?')) return
   
   try {
-    await api.delete(`/api/study-groups/${groupId}/leave`)
+    await api.delete(`/study-groups/${groupId}/leave`)
     groups.value = groups.value.filter(g => g.id !== groupId)
     groupMaterials.delete(groupId)
   } catch (err) {
@@ -234,6 +298,31 @@ onUnmounted(() => {
   font-weight: 800;
   color: var(--color-text-primary);
 }
+
+.join-group-form {
+  max-width: 520px;
+  margin: 0 auto 16px;
+}
+
+.join-group-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.join-group-controls .form-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.group-status,
+.group-error {
+  max-width: 520px;
+  margin: 0 auto 16px;
+  font-size: 14px;
+}
+
+.group-status { color: var(--color-success, #16803c); }
+.group-error { color: var(--color-danger, #c62828); }
 
 .create-group-btn {
   display: flex;

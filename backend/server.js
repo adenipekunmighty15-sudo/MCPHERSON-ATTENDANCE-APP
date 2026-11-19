@@ -8,6 +8,7 @@ import compression from 'compression'
 import { existsSync, mkdirSync } from 'fs'
 import { query } from './lib/db.js'
 import { getAvailableProviders } from './src/config/ai.js'
+import { envKeyForProvider } from './src/config/providerKeys.js'
 import { authenticate } from './src/middleware/auth.js'
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -26,34 +27,46 @@ if (!existsSync(uploadDir)) mkdirSync(uploadDir, { recursive: true })
 async function loadDbApiKeys() {
   try {
     const { rows } = await query('SELECT provider, api_key FROM public.ai_config')
-    const keyMap = {
-      openai: 'OPENAI_API_KEY', 'nemotron-nano': 'NVIDIA_NANO_KEY',
-      'mistral-nemotron': 'MISTRAL_NEMOTRON_KEY', kimi: 'KIMI_KEY',
-      'mistral-large': 'MISTRAL_LARGE_KEY', 'gemma-4': 'GEMMA4_KEY',
-    }
     for (const row of rows) {
-      const envKey = keyMap[row.provider] || `${row.provider.toUpperCase().replace(/-/g, '_')}_API_KEY`
-      process.env[envKey] = row.api_key
+      const envKey = envKeyForProvider(row.provider)
+      if (envKey && typeof row.api_key === 'string' && row.api_key.trim()) {
+        process.env[envKey] = row.api_key.trim()
+      }
     }
   } catch { /* table may not exist — fall back to .env */ }
 }
 await loadDbApiKeys()
 
 const app = express()
+app.set('trust proxy', 1)
 
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
-  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173', 'https://mcpherson-attendance.vercel.app']
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173', 'https://mcpherson-attendance-app.vercel.app']
 
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      fontSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https:', 'wss:'],
+      mediaSrc: ["'self'", 'blob:', 'https:'],
+      workerSrc: ["'self'", 'blob:'],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'self'"],
+      baseUri: ["'self'"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
 }))
 app.use((req, res, next) => {
   const origin = req.headers.origin
   if (!origin || ALLOWED_ORIGINS.indexOf(origin) !== -1) return next()
   console.warn(`CORS blocked origin: ${origin}`)
-  return res.status(403).json({ error: `CORS: Origin '${origin}' is not allowed. Allowed: ${ALLOWED_ORIGINS.join(', ')}` })
+  return res.status(403).json({ error: 'Forbidden' })
 })
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }))
 app.use(express.json({ limit: '2mb' }))
@@ -108,7 +121,6 @@ import gemsRoutes from './src/routes/gems.routes.js'
 import memoryRoutes from './src/routes/memory.routes.js'
 import researchRoutes from './src/routes/research.routes.js'
 import imageRoutes from './src/routes/image.routes.js'
-import codeRoutes from './src/routes/code.routes.js'
 import trackingRoutes from './src/routes/tracking.routes.js'
 
 app.use(authRoutes)
@@ -137,7 +149,6 @@ app.use(gemsRoutes)
 app.use(memoryRoutes)
 app.use(researchRoutes)
 app.use(imageRoutes)
-app.use(codeRoutes)
 app.use(trackingRoutes)
 
 // Serve uploads
@@ -150,6 +161,9 @@ app.get('/health', (req, res) => {
 
 // Diagnostic endpoint for study hub
 app.get('/api/study/diagnostic', authenticate, async (req, res) => {
+  if (!['admin', 'super_admin'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Only administrators can view diagnostics' })
+  }
   const results = { timestamp: new Date().toISOString(), checks: {} }
   
   try {
@@ -157,28 +171,32 @@ app.get('/api/study/diagnostic', authenticate, async (req, res) => {
     await query('SELECT 1')
     results.checks.database = { ok: true, latency: Date.now() - start + 'ms' }
   } catch (e) {
-    results.checks.database = { ok: false, error: e.message }
+    console.error('Study diagnostic database check failed:', e.message)
+    results.checks.database = { ok: false, error: 'Database check failed' }
   }
 
   try {
     const { rows } = await query('SELECT COUNT(*)::int as count FROM public.study_materials')
     results.checks.studyMaterials = { ok: true, count: rows[0].count }
   } catch (e) {
-    results.checks.studyMaterials = { ok: false, error: e.message }
+    console.error('Study diagnostic materials check failed:', e.message)
+    results.checks.studyMaterials = { ok: false, error: 'Study materials check failed' }
   }
 
   try {
     const { rows } = await query('SELECT COUNT(*)::int as count FROM public.flashcards')
     results.checks.flashcards = { ok: true, count: rows[0].count }
   } catch (e) {
-    results.checks.flashcards = { ok: false, error: e.message }
+    console.error('Study diagnostic flashcards check failed:', e.message)
+    results.checks.flashcards = { ok: false, error: 'Flashcards check failed' }
   }
 
   try {
     const providers = getAvailableProviders()
     results.checks.ai = { ok: providers.length > 0, providers }
   } catch (e) {
-    results.checks.ai = { ok: false, error: e.message }
+    console.error('Study diagnostic AI check failed:', e.message)
+    results.checks.ai = { ok: false, error: 'AI check failed' }
   }
 
   results.allOk = Object.values(results.checks).every(c => c.ok)

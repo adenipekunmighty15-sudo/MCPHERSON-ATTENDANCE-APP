@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test": "node --test test",
+    "test:ai-keys": "node scripts/test/verify-ai-keys.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
-    "@dataconnect/generated": "file:src/dataconnect-generated",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.108.1",
     "axios": "^1.18.1",

@@ -9,6 +9,7 @@
       <div v-if="sent" class="fp-success">
         Reset link sent! Check your email.
       </div>
+      <div v-if="error" class="fp-error" role="alert">{{ error }}</div>
       <form @submit.prevent="handleReset">
         <div class="form-group" style="margin-bottom:20px;text-align:left;">
           <label class="fp-label">Email</label>
@@ -26,16 +27,26 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
 
 const email = ref('')
 const sending = ref(false)
 const sent = ref(false)
+const error = ref('')
+const authStore = useAuthStore()
 
 async function handleReset() {
+  error.value = ''
+  sent.value = false
   sending.value = true
-  await new Promise(r => setTimeout(r, 1000))
-  sent.value = true
-  sending.value = false
+  try {
+    await authStore.resetPasswordForEmail(email.value.trim())
+    sent.value = true
+  } catch (err) {
+    error.value = err?.message || 'Unable to send a password reset link. Please try again.'
+  } finally {
+    sending.value = false
+  }
 }
 </script>
 
@@ -68,6 +79,14 @@ async function handleReset() {
   border-radius: 12px;
   color: var(--color-success);
   font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.fp-error {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 12px;
+  color: var(--color-error);
   font-size: 14px;
   margin-bottom: 16px;
 }

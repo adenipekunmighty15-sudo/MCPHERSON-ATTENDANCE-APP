@@ -28,9 +28,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({
+defineProps({
   modelValue: [String, Number],
   type: {
     type: String,

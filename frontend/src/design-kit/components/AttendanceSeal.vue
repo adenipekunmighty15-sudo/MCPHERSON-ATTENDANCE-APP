@@ -2,8 +2,8 @@
   <svg class="dk-seal" viewBox="0 0 100 100" aria-hidden="true" role="img">
     <defs>
       <radialGradient id="seal-wax" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stop-color="#C41E1E" />
-        <stop offset="70%"  stop-color="#A01818" />
+        <stop offset="0%" stop-color="#C41E1E" />
+        <stop offset="70%" stop-color="#A01818" />
         <stop offset="100%" stop-color="#7A1111" />
       </radialGradient>
       <filter id="seal-shadow">

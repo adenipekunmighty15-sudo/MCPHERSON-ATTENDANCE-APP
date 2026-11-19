@@ -60,6 +60,9 @@ router.get('/api/courses', async (req, res) => {
 
 router.post('/api/courses', authenticate, async (req, res) => {
   try {
+    if (!['lecturer', 'admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only lecturers and administrators can create courses' })
+    }
     const { code, title, level, units, departmentId, facultyId } = req.body
     if (!code || !title) return res.status(400).json({ error: 'Code and title required' })
     const id = randomUUID()
@@ -86,8 +89,11 @@ router.post('/api/courses', authenticate, async (req, res) => {
   }
 })
 
-router.post('/api/courses/seed', async (req, res) => {
+router.post('/api/courses/seed', authenticate, async (req, res) => {
   try {
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only administrators can seed courses' })
+    }
     const { rows: existing } = await query('SELECT COUNT(*) as c FROM public.courses')
     if (parseInt(existing[0].c) > 0) {
       return res.status(200).json({ message: 'Courses already seeded', count: parseInt(existing[0].c) })

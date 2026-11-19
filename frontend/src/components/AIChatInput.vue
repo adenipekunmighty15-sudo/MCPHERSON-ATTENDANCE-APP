@@ -57,7 +57,6 @@
           ref="textareaRef"
           v-model="input"
           @keydown.enter.prevent="send"
-          @keydown.shift.enter="allowNewline"
           @focus="isFocused = true"
           @blur="isFocused = false"
           @input="onInput"
@@ -135,8 +134,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
-import { useMindStore } from '../stores/mind'
+import { ref, watch, nextTick, onMounted } from 'vue'
 
 const props = defineProps({
   modelValue: String,
@@ -147,8 +145,7 @@ const props = defineProps({
   attachedFile: Object,
   conversationId: String,
   selectedExpert: Object,
-  showHistory: Boolean,
-  mindStore: Object
+  showHistory: Boolean
 })
 
 const emit = defineEmits([
@@ -163,8 +160,6 @@ const emit = defineEmits([
   'load-conversation',
   'delete-old-conversations'
 ])
-
-const mindStore = useMindStore()
 
 const textareaRef = ref(null)
 const sendBtnRef = ref(null)
@@ -224,10 +219,6 @@ function onFileSelect(e) {
 function removeAttachedFile() {
   attachedFile.value = null
   emit('remove-file')
-}
-
-function allowNewline(e) {
-  // Allow Shift+Enter for newlines
 }
 
 function onSendMouseMove(e) {

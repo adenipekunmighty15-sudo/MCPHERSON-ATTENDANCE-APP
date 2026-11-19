@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.js'
-import { query } from '../../lib/db.js'
+import { pool, query } from '../../lib/db.js'
 import { randomUUID } from 'crypto'
 import { aiChat, transcribeAudio } from '../services/aiService.js'
 import { getAiResponse, getAvailableProviders } from '../config/ai.js'
@@ -17,12 +17,53 @@ import {
   getGroupMaterials
 } from '../services/turboLearnService.js'
 
+const allowedStudyMimeTypes = new Set([
+  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/aac',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+])
+const allowedStudyExtensions = new Set([
+  '.mp3', '.wav', '.m4a', '.aac', '.pdf', '.doc', '.docx', '.txt',
+])
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const lowerName = (file.originalname || '').toLowerCase()
+    const extension = lowerName.slice(lowerName.lastIndexOf('.'))
+    if (!allowedStudyMimeTypes.has(file.mimetype) || !allowedStudyExtensions.has(extension)) {
+      return cb(new Error('Unsupported file type'))
+    }
+    cb(null, true)
+  },
 })
 
 const router = Router()
+
+async function requireOwnedStudyMaterial(materialId, userId) {
+  const { rows } = await query(
+    'SELECT id FROM public.study_materials WHERE id = $1 AND created_by = $2',
+    [materialId, userId]
+  )
+  return rows.length > 0
+}
+
+async function canAccessStudyMaterial(materialId, userId) {
+  const { rows } = await query(
+    `SELECT 1
+       FROM public.study_materials sm
+       LEFT JOIN public.group_shared_materials gsm ON gsm.material_id = sm.id
+       LEFT JOIN public.study_group_members sgm
+         ON sgm.group_id = gsm.group_id AND sgm.user_id = $2
+       WHERE sm.id = $1
+         AND (sm.created_by = $2 OR sgm.id IS NOT NULL)
+       LIMIT 1`,
+    [materialId, userId]
+  )
+  return rows.length > 0
+}
 
 function asText(value) {
   if (!value) return ''
@@ -38,46 +79,6 @@ function appendText(base, next) {
   const current = asText(base).trim()
   return current ? `${current}\n\n${text}` : text
 }
-
-router.get('/api/study/diagnostic', async (req, res) => {
-  const results = { timestamp: new Date().toISOString(), checks: {} }
-  
-  // DB check
-  try {
-    const start = Date.now()
-    await query('SELECT 1')
-    results.checks.database = { ok: true, latency: Date.now() - start + 'ms' }
-  } catch (e) {
-    results.checks.database = { ok: false, error: e.message }
-  }
-
-  // study_materials table check
-  try {
-    const { rows } = await query('SELECT COUNT(*)::int as count FROM public.study_materials')
-    results.checks.studyMaterials = { ok: true, count: rows[0].count }
-  } catch (e) {
-    results.checks.studyMaterials = { ok: false, error: e.message }
-  }
-
-  // flashcards table check
-  try {
-    const { rows } = await query('SELECT COUNT(*)::int as count FROM public.flashcards')
-    results.checks.flashcards = { ok: true, count: rows[0].count }
-  } catch (e) {
-    results.checks.flashcards = { ok: false, error: e.message }
-  }
-
-  // AI providers check
-  try {
-    const providers = getAvailableProviders()
-    results.checks.ai = { ok: providers.length > 0, providers }
-  } catch (e) {
-    results.checks.ai = { ok: false, error: e.message }
-  }
-
-  results.allOk = Object.values(results.checks).every(c => c.ok)
-  res.json(results)
-})
 
 router.get('/api/study-materials/stats', authenticate, async (req, res) => {
   try {
@@ -111,7 +112,7 @@ router.get('/api/study-materials/stats', authenticate, async (req, res) => {
 router.get('/api/study-materials', authenticate, async (req, res) => {
   try {
   const { courseId } = req.query
-  const params = []
+  const params = [req.user.id]
   let sql = `SELECT sm.id, sm.course_id AS "courseId", sm.title, sm.source_text AS "sourceText",
     sm.summary, sm.key_points AS "keyPoints", sm.quiz,
     sm.diagrams, sm.improved_note AS "improvedNote", sm.chat_history AS "chatHistory", sm.podcast_url AS "podcastUrl",
@@ -120,7 +121,7 @@ router.get('/api/study-materials', authenticate, async (req, res) => {
     (SELECT COUNT(*)::int FROM public.flashcards WHERE material_id = sm.id) AS "flashcardCount"
     FROM public.study_materials sm
     LEFT JOIN public.courses c ON sm.course_id = c.id
-    WHERE 1=1`
+    WHERE sm.created_by = $1`
   if (courseId) { params.push(courseId); sql += ` AND sm.course_id = $${params.length}` }
   sql += ' ORDER BY sm.created_at DESC'
   const { rows } = await query(sql, params)
@@ -133,6 +134,9 @@ router.get('/api/study-materials', authenticate, async (req, res) => {
 
 router.get('/api/study-materials/:id', authenticate, async (req, res) => {
   try {
+  if (!await canAccessStudyMaterial(req.params.id, req.user.id)) {
+    return res.status(404).json({ error: 'Study pack not found' })
+  }
   const { rows } = await query(
     `SELECT sm.id, sm.course_id AS "courseId", sm.title, sm.source_text AS "sourceText",
       sm.summary, sm.key_points AS "keyPoints", sm.quiz,
@@ -141,8 +145,8 @@ router.get('/api/study-materials/:id', authenticate, async (req, res) => {
       c.code AS "courseCode", c.title AS "courseTitle"
      FROM public.study_materials sm
      LEFT JOIN public.courses c ON sm.course_id = c.id
-     WHERE sm.id = $1`,
-    [req.params.id]
+     WHERE sm.id = $1 AND sm.created_by = $2`,
+    [req.params.id, req.user.id]
   )
   if (!rows.length) return res.status(404).json({ error: 'Study pack not found' })
   const { rows: flashcards } = await query(
@@ -737,20 +741,33 @@ CRITICAL RULES:
   } catch (err) {
     console.error('[Upload] FATAL:', err.message)
     console.error('[Upload] Stack:', err.stack)
-    if (!res.headersSent) res.status(500).json({ error: 'Failed to create study pack from upload' })
+    if (!res.headersSent) {
+      if (err instanceof multer.MulterError || err.message === 'Unsupported file type') {
+        return res.status(400).json({ error: err.message })
+      }
+      res.status(500).json({ error: 'Failed to create study pack from upload' })
+    }
   }
 })
 
 router.post('/api/study-materials/:id/chat', authenticate, async (req, res) => {
   try {
   const { message, history } = req.body
-  const { rows } = await query('SELECT source_text, title FROM public.study_materials WHERE id = $1', [req.params.id])
+  if (!await canAccessStudyMaterial(req.params.id, req.user.id)) {
+    return res.status(404).json({ error: 'Study pack not found' })
+  }
+  const { rows } = await query(
+    'SELECT source_text, title FROM public.study_materials WHERE id = $1',
+    [req.params.id]
+  )
   if (!rows.length) return res.status(404).json({ error: 'Study pack not found' })
 
   const { source_text, title } = rows[0]
   const messages = [
     { role: 'system', content: `You are a versatile AI study assistant for the material titled "${title}". Use the following source text as context when relevant, but you can answer ANY question the user asks — academic, general knowledge, or otherwise. Be helpful, thorough, and clear. Use LaTeX for all math: $...$ inline, $$...$$ display. Use Markdown tables for comparisons. Write key points in **bold** for emphasis.\n\nBEFORE answering, analyze the question: identify what the user truly needs. If the question is vague, ambiguous, or missing details, ASK clarifying questions first — then provide a complete answer once you have enough context.\n\nIMPORTANT CAPABILITY: You have LIVE WEB SEARCH access. If you need current information to answer the user's question, include <web_search>your search query</web_search> inside your <answer> tags and the system will fetch results for you.\n\nMaterial context:\n${source_text.slice(0, 6000)}` },
-    ...(history || []).slice(-10),
+    ...((Array.isArray(history) ? history : []).filter(item =>
+      item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string'
+    ).slice(-10)),
     { role: 'user', content: message }
   ]
 
@@ -775,9 +792,12 @@ router.post('/api/study-materials/chat', authenticate, async (req, res) => {
     const diagramsText = (context.diagrams || []).map(d => `Title: ${d.title}\nCode: ${d.code}`).join('\n\n')
     contextBlock = `\n\nThe user is analyzing a Study Pack titled "${context.title}". Here is its full content:\n\nSummary: ${context.summary || 'N/A'}\n\nKey Points: ${(context.keyPoints || []).map(p => p.text).join('\n') || 'N/A'}\n\nFlashcards: ${(context.flashcards || []).map(f => `Q: ${f.front}\nA: ${f.back}`).join('\n\n') || 'N/A'}\n\nQuiz: ${(context.quiz || []).map(q => `Q: ${q.question}\nOptions: ${(q.options || []).join(', ')}\nAnswer: ${q.answerIndex !== undefined ? q.options[q.answerIndex] : 'N/A'}`).join('\n\n') || 'N/A'}\n\nDiagrams:\n${diagramsText || 'N/A'}\n\nUse this content to answer the user's questions. Reference specific parts of the pack. If the user asks something not in the pack, use your general knowledge too.`
   }
-  const msgs = (history && history.length) ? [
+  const safeHistory = (Array.isArray(history) ? history : []).filter(item =>
+    item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string'
+  ).slice(-10)
+  const msgs = (safeHistory.length) ? [
     { role: 'system', content: 'You are the McPherson AI Council — a collective of multiple AI models working together. Answer ANY question the user asks with EXTREMELY LONG, COMPREHENSIVE, AND PRECISE answers. Write detailed, textbook-quality responses with thorough explanations, examples, and deep analysis. Cover every aspect of the question. Never refuse to answer. Use **bold** for key terms and concepts. Structure your answer with clear sections. Use LaTeX for all math: $...$ inline, $$...$$ display. Use Markdown tables for comparisons.\n\nBEFORE answering, analyze the question deeply. Identify what the user truly needs. Then provide an exhaustive, complete response.\n\nIMPORTANT CAPABILITY: You have LIVE WEB SEARCH access. If you need current information, include <web_search>your search query</web_search> inside your <answer> tags and the system will fetch results.' + contextBlock },
-    ...history.slice(-10),
+    ...safeHistory,
   ] : [
     { role: 'system', content: 'You are the McPherson AI Council — a collective of multiple AI models working together. Answer ANY question with EXTREMELY LONG, COMPREHENSIVE, AND PRECISE answers. Write detailed, textbook-quality responses with thorough explanations, examples, and deep analysis. Cover every aspect of the question. Never refuse to answer. Use **bold** for key terms and concepts. Structure your answer with clear sections. Use LaTeX for all math: $...$ inline, $$...$$ display. Use Markdown tables for comparisons.\n\nBEFORE answering, analyze the question deeply. Identify what the user truly needs. Then provide an exhaustive, complete response.\n\nIMPORTANT CAPABILITY: You have LIVE WEB SEARCH access. If you need current information, include <web_search>your search query</web_search> inside your <answer> tags and the system will fetch results.' + contextBlock },
     { role: 'user', content: message },
@@ -836,7 +856,10 @@ router.delete('/api/study-folders/:id', authenticate, async (req, res) => {
   try {
   const { rowCount } = await query('DELETE FROM public.study_folders WHERE id = $1 AND created_by = $2', [req.params.id, req.user.id])
   if (!rowCount) return res.status(404).json({ error: 'Folder not found' })
-  await query('UPDATE public.study_materials SET folder_id = NULL WHERE folder_id = $1', [req.params.id])
+  await query(
+    'UPDATE public.study_materials SET folder_id = NULL WHERE folder_id = $1 AND created_by = $2',
+    [req.params.id, req.user.id]
+  )
   res.status(200).json({ success: true })
   } catch (err) {
     console.error('Delete folder failed:', err.message)
@@ -847,7 +870,18 @@ router.delete('/api/study-folders/:id', authenticate, async (req, res) => {
 router.put('/api/study-materials/:id/folder', authenticate, async (req, res) => {
   try {
   const { folderId } = req.body
-  await query('UPDATE public.study_materials SET folder_id = $1 WHERE id = $2', [folderId || null, req.params.id])
+  if (folderId) {
+    const { rows: folder } = await query(
+      'SELECT id FROM public.study_folders WHERE id = $1 AND created_by = $2',
+      [folderId, req.user.id]
+    )
+    if (!folder.length) return res.status(404).json({ error: 'Folder not found' })
+  }
+  const { rowCount } = await query(
+    'UPDATE public.study_materials SET folder_id = $1 WHERE id = $2 AND created_by = $3',
+    [folderId || null, req.params.id, req.user.id]
+  )
+  if (!rowCount) return res.status(404).json({ error: 'Study material not found' })
   res.status(200).json({ success: true })
   } catch (err) {
     console.error('Move to folder failed:', err.message)
@@ -873,6 +907,9 @@ router.delete('/api/study-materials/:id', authenticate, async (req, res) => {
 
 router.get('/api/study-materials/:id/flashcards/due', authenticate, async (req, res) => {
   try {
+  if (!await canAccessStudyMaterial(req.params.id, req.user.id)) {
+    return res.status(404).json({ error: 'Study pack not found' })
+  }
   const { rows: allCards } = await query(
     'SELECT id, front, back FROM public.flashcards WHERE material_id = $1 ORDER BY order_index',
     [req.params.id]
@@ -910,6 +947,9 @@ router.get('/api/study-materials/:id/flashcards/due', authenticate, async (req, 
 router.post('/api/study-materials/:id/flashcards/review', authenticate, async (req, res) => {
   try {
   const { flashcardId, quality } = req.body
+  if (!await canAccessStudyMaterial(req.params.id, req.user.id)) {
+    return res.status(404).json({ error: 'Study pack not found' })
+  }
   if (quality < 0 || quality > 5) return res.status(400).json({ error: 'Quality must be 0-5' })
   const { rows: existing } = await query(
     'SELECT * FROM public.flashcard_reviews WHERE material_id = $1 AND flashcard_id = $2 AND user_id = $3',
@@ -955,6 +995,9 @@ router.post('/api/study-materials/:id/flashcards/review', authenticate, async (r
 router.post('/api/study-sessions', authenticate, async (req, res) => {
   try {
   const { materialId, sessionType, score, totalQuestions, correctAnswers, stats } = req.body
+  if (materialId && !await canAccessStudyMaterial(materialId, req.user.id)) {
+    return res.status(404).json({ error: 'Study pack not found' })
+  }
   const id = randomUUID()
   await query(
     'INSERT INTO public.study_sessions (id, material_id, user_id, session_type, score, total_questions, correct_answers, stats, started_at, ended_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
@@ -982,6 +1025,9 @@ router.get('/api/study-sessions', authenticate, async (req, res) => {
 
 router.get('/api/study-materials/:id/study-stream', authenticate, async (req, res) => {
   try {
+  if (!await canAccessStudyMaterial(req.params.id, req.user.id)) {
+    return res.status(404).json({ error: 'Study pack not found' })
+  }
   const { rows: [pack] } = await query(
     'SELECT id, title, summary, key_points, quiz FROM public.study_materials WHERE id = $1',
     [req.params.id]
@@ -1043,6 +1089,9 @@ router.post('/api/study-materials/:id/podcast', authenticate, async (req, res) =
         hint: 'Please provide a valid study material ID'
       })
     }
+    if (!await requireOwnedStudyMaterial(req.params.id, req.user.id)) {
+      return res.status(404).json({ success: false, error: 'Study pack not found' })
+    }
 
     const podcast = await generatePodcast(req.params.id, req.user.id, req.body)
     res.status(200).json({
@@ -1054,7 +1103,7 @@ router.post('/api/study-materials/:id/podcast', authenticate, async (req, res) =
     console.error('Podcast generation failed:', err.message)
     res.status(500).json({ 
       success: false,
-      error: err.message || 'Failed to generate podcast',
+      error: 'Failed to generate podcast',
       hint: 'Try with a different study material or check your internet connection'
     })
   }
@@ -1093,6 +1142,9 @@ router.post('/api/study-materials/:id/enhanced-flashcards', authenticate, async 
         success: false,
         error: 'Material ID is required'
       })
+    }
+    if (!await requireOwnedStudyMaterial(req.params.id, req.user.id)) {
+      return res.status(404).json({ success: false, error: 'Study pack not found' })
     }
 
     const { count } = req.body
@@ -1157,6 +1209,79 @@ router.post('/api/study-groups', authenticate, async (req, res) => {
   }
 })
 
+router.post('/api/study-groups/join', authenticate, async (req, res) => {
+  const inviteCode = typeof req.body?.inviteCode === 'string' ? req.body.inviteCode.trim() : ''
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(inviteCode)) {
+    return res.status(400).json({ success: false, error: 'A valid study group invite code is required' })
+  }
+
+  let client
+  try {
+    client = await pool.connect()
+    await client.query('BEGIN')
+    const { rows: groups } = await client.query(
+      'SELECT id FROM public.study_groups WHERE invite_code = $1 FOR UPDATE',
+      [inviteCode]
+    )
+    if (!groups.length) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ success: false, error: 'Study group invite code was not found' })
+    }
+
+    const { rows: members } = await client.query(
+      `INSERT INTO public.study_group_members (group_id, user_id, role)
+       VALUES ($1, $2, 'member')
+       ON CONFLICT (group_id, user_id) DO NOTHING
+       RETURNING id`,
+      [groups[0].id, req.user.id]
+    )
+    if (members.length) {
+      await client.query(
+        'UPDATE public.study_groups SET member_count = COALESCE(member_count, 0) + 1 WHERE id = $1',
+        [groups[0].id]
+      )
+    }
+    await client.query('COMMIT')
+
+    return res.status(200).json({
+      success: true,
+      data: { groupId: groups[0].id, joined: members.length > 0 },
+      message: members.length ? 'You joined the study group' : 'You are already a member of this study group'
+    })
+  } catch (err) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK')
+      } catch (rollbackError) {
+        console.error('Study group join rollback failed:', rollbackError.message)
+      }
+    }
+    console.error('Join study group failed:', err.message)
+    return res.status(500).json({ success: false, error: 'Failed to join study group' })
+  } finally {
+    client?.release()
+  }
+})
+
+router.get('/api/study-groups/:groupId/invite', authenticate, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT sg.invite_code AS "inviteCode"
+       FROM public.study_groups sg
+       JOIN public.study_group_members sgm ON sgm.group_id = sg.id
+       WHERE sg.id = $1 AND sgm.user_id = $2`,
+      [req.params.groupId, req.user.id]
+    )
+    if (!rows.length) {
+      return res.status(404).json({ success: false, error: 'Study group not found' })
+    }
+    return res.status(200).json({ success: true, data: { inviteCode: rows[0].inviteCode } })
+  } catch (err) {
+    console.error('Get study group invite failed:', err.message)
+    return res.status(500).json({ success: false, error: 'Failed to get study group invite' })
+  }
+})
+
 /**
  * POST /api/study-groups/:groupId/share/:materialId
  * Share study material with a study group
@@ -1171,6 +1296,14 @@ router.post('/api/study-groups/:groupId/share/:materialId', authenticate, async 
         error: 'Group ID and Material ID are required'
       })
     }
+    const { rows: member } = await query(
+      'SELECT id FROM study_group_members WHERE group_id = $1 AND user_id = $2',
+      [groupId, req.user.id]
+    )
+    if (!member.length) return res.status(403).json({ success: false, error: 'You are not a member of this study group' })
+    if (!await requireOwnedStudyMaterial(materialId, req.user.id)) {
+      return res.status(404).json({ success: false, error: 'Study pack not found' })
+    }
 
     const shared = await shareWithGroup(materialId, groupId, req.user.id)
     res.status(201).json({
@@ -1182,7 +1315,7 @@ router.post('/api/study-groups/:groupId/share/:materialId', authenticate, async 
     console.error('Share with group failed:', err.message)
     res.status(500).json({ 
       success: false,
-      error: err.message || 'Failed to share material',
+      error: 'Failed to share material',
       hint: 'Make sure you are a member of this study group'
     })
   }
@@ -1202,6 +1335,11 @@ router.get('/api/study-groups/:groupId/materials', authenticate, async (req, res
         error: 'Group ID is required'
       })
     }
+    const { rows: member } = await query(
+      'SELECT id FROM study_group_members WHERE group_id = $1 AND user_id = $2',
+      [groupId, req.user.id]
+    )
+    if (!member.length) return res.status(403).json({ success: false, error: 'You are not a member of this study group' })
 
     const materials = await getGroupMaterials(groupId, req.user.id)
     res.status(200).json({
@@ -1214,7 +1352,7 @@ router.get('/api/study-groups/:groupId/materials', authenticate, async (req, res
     console.error('Get group materials failed:', err.message)
     res.status(500).json({ 
       success: false,
-      error: err.message || 'Failed to load group materials',
+      error: 'Failed to load group materials',
       hint: 'Make sure you are a member of this study group'
     })
   }
@@ -1228,8 +1366,9 @@ router.get('/api/study-groups/my-groups', authenticate, async (req, res) => {
   try {
     const { rows: groups } = await query(
       `SELECT DISTINCT 
-        sg.id, sg.name, sg.description, sg.course_id, sg.creator_id,
-        (SELECT COUNT(*) FROM study_group_members WHERE group_id = sg.id)::int as member_count
+        sg.id, sg.name, sg.description,
+        sg.course_id AS "courseId", sg.creator_id AS "creatorId",
+        (SELECT COUNT(*) FROM study_group_members WHERE group_id = sg.id)::int AS "memberCount"
        FROM study_groups sg
        JOIN study_group_members sgm ON sg.id = sgm.group_id
        WHERE sgm.user_id = $1
@@ -1267,24 +1406,24 @@ router.delete('/api/study-groups/:groupId/leave', authenticate, async (req, res)
       })
     }
 
-    // Check if user is a member
-    const { rows: member } = await query(
-      'SELECT id FROM study_group_members WHERE group_id = $1 AND user_id = $2',
+    const { rows: removed } = await query(
+      `WITH removed AS (
+         DELETE FROM public.study_group_members
+         WHERE group_id = $1 AND user_id = $2
+         RETURNING group_id
+       )
+       UPDATE public.study_groups
+       SET member_count = GREATEST(COALESCE(member_count, 0) - 1, 0)
+       WHERE id IN (SELECT group_id FROM removed)
+       RETURNING id`,
       [groupId, req.user.id]
     )
-
-    if (!member.length) {
+    if (!removed.length) {
       return res.status(404).json({
         success: false,
         error: 'You are not a member of this study group'
       })
     }
-
-    // Remove user from group
-    await query(
-      'DELETE FROM study_group_members WHERE group_id = $1 AND user_id = $2',
-      [groupId, req.user.id]
-    )
 
     res.status(200).json({
       success: true,
@@ -1355,7 +1494,7 @@ router.post('/api/study-materials/save-deck', authenticate, async (req, res) => 
     })
   } catch (err) {
     console.error('Save deck failed:', err.message)
-    res.status(500).json({ error: 'Failed to save deck: ' + err.message })
+    res.status(500).json({ error: 'Failed to save deck' })
   }
 })
 

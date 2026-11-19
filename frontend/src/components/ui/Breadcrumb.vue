@@ -21,16 +21,12 @@
 </template>
 
 <script setup>
-import { useRoute } from 'vue-router'
-
 const props = defineProps({
   breadcrumbs: {
     type: Array,
     required: true
   }
 })
-
-const route = useRoute()
 
 function isActive(index) {
   return index === props.breadcrumbs.length - 1

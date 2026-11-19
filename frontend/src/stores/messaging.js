@@ -134,10 +134,7 @@ function generateConversations(contacts) {
 
   const sameDept = contacts.filter(c => c.department === currentDept && c.role === 'student')
   const sameFaculty = contacts.filter(c => c.facultyId === FACULTIES.find(f => f.departments.includes(currentDept))?.id && c.department !== currentDept && c.role === 'student')
-  const otherDepts = contacts.filter(c => c.role === 'student' && c.department !== currentDept && c.facultyId !== FACULTIES.find(f => f.departments.includes(currentDept))?.id)
   const lecturers = contacts.filter(c => c.role === 'lecturer')
-
-  const allStudents = [...sameDept, ...sameFaculty, ...otherDepts]
 
   for (let i = 0; i < Math.min(5, sameDept.length); i++) {
     convIdx++
@@ -571,7 +568,6 @@ export const useMessagingStore = defineStore('messaging', () => {
       return existing.id
     }
     const convId = `conv_new_${Date.now()}`
-    const contact = contactMap.value[contactId]
     const msgList = []
     messages.value[convId] = msgList
     conversations.value.unshift({

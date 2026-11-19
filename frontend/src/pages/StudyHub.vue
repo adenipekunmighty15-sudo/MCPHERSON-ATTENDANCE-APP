@@ -244,13 +244,18 @@ async function loadGoals() {
     if (Array.isArray(data) && data.length > 0) {
       goals.value = data.map(g => ({ id: g.id, text: g.text, done: g.done }))
     }
-  } catch { goals.value = [] }
+  } catch (error) {
+    console.warn('[StudyHub] Failed to load goals:', error)
+    goals.value = []
+  }
 }
 
 async function saveGoals() {
   try {
     await api.post('/pomodoro/goals', { goals: goals.value.map(g => ({ id: g.id, text: g.text, done: g.done })) })
-  } catch {}
+  } catch (error) {
+    console.warn('[StudyHub] Failed to save goals:', error)
+  }
 }
 
 // Watch goals for changes and persist

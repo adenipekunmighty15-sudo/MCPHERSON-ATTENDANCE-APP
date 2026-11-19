@@ -102,10 +102,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useAuthStore } from '../../stores/auth'
 import api from '../../lib/api'
-
-const authStore = useAuthStore()
 
 const items = ref([])
 const loading = ref(false)

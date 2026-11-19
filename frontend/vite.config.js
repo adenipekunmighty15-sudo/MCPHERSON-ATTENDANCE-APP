@@ -18,12 +18,14 @@ export default defineConfig(({ mode }) => ({
       deep: true,
       dts: false,
     }),
-    visualizer({
-      filename: 'dist/stats.html',
-      open: false,
-      gzipSize: true,
-      brotliSize: true,
-    }),
+    ...(mode === 'analyze'
+      ? [visualizer({
+          filename: '../stats.html',
+          open: false,
+          gzipSize: true,
+          brotliSize: true,
+        })]
+      : []),
   ],
   resolve: {
     alias: {
@@ -34,6 +36,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 3001,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     target: 'es2020',

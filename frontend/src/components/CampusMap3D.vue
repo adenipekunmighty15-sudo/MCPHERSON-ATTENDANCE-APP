@@ -17,8 +17,6 @@ const props = defineProps({
   autoRotate: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['buildingClick', 'roomClick'])
-
 const container = ref(null)
 
 let scene, camera, renderer, labelRenderer, controls
@@ -28,7 +26,6 @@ let deviceMarker = null
 let anchorMarkers = []
 let roomLabels = []
 let animationId = null
-let cleanupFn = null
 
 const BUILDING_COLORS = {
   'main-hall': 0x1D4ED8,
@@ -246,7 +243,7 @@ function buildCampus() {
 
     if (props.showAnchors && buildings.length <= 1) {
       const roomAnchors = locationTracker.classroomAnchors
-      roomAnchors.forEach((anchors, code) => {
+      roomAnchors.forEach((anchors) => {
         anchors.forEach(a => {
           const ax = (a.position.x - locationTracker.getCampusCenter().lat) * 111320
           const az = -(a.position.y - locationTracker.getCampusCenter().lng) * 111320 * Math.cos(locationTracker.getCampusCenter().lat * Math.PI / 180)

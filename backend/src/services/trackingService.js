@@ -28,11 +28,17 @@ export async function getLatestPosition(userId) {
 
 export async function getPositionsInRadius(lat, lng, radiusMeters = 50) {
   const { rows } = await query(
-    `SELECT p.id, p.user_id AS "userId", p.latitude, p.longitude, p.accuracy, p.source, p.timestamp,
-            u.name AS "userName", u.email AS "userEmail", u.role AS "userRole"
-     FROM public.positions p
+    `SELECT p.user_id AS "userId", u.name AS "name", p.latitude, p.longitude,
+            p.timestamp AS "lastSeen"
+     FROM (
+       SELECT DISTINCT ON (user_id) *
+       FROM public.positions
+       WHERE timestamp > NOW() - INTERVAL '5 minutes'
+         AND source NOT IN ('fake', 'mock', 'simulated', 'test', 'demo')
+         AND (accuracy IS NULL OR accuracy <= 100)
+       ORDER BY user_id, timestamp DESC
+     ) p
      JOIN public.users u ON p.user_id = u.id
-     WHERE p.timestamp > NOW() - INTERVAL '5 minutes'
      ORDER BY p.timestamp DESC`
   )
   return rows.filter(r => {
@@ -49,11 +55,17 @@ export async function getPositionsByRoom(roomCode) {
   if (!venueRows.length) return []
   const venue = venueRows[0]
   const { rows } = await query(
-    `SELECT p.id, p.user_id AS "userId", p.latitude, p.longitude, p.accuracy, p.source, p.timestamp,
-            u.name AS "userName", u.email AS "userEmail", u.role AS "userRole"
-     FROM public.positions p
+    `SELECT p.user_id AS "userId", u.name AS "name", p.latitude, p.longitude,
+            p.timestamp AS "lastSeen"
+     FROM (
+       SELECT DISTINCT ON (user_id) *
+       FROM public.positions
+       WHERE timestamp > NOW() - INTERVAL '10 minutes'
+         AND source NOT IN ('fake', 'mock', 'simulated', 'test', 'demo')
+         AND (accuracy IS NULL OR accuracy <= 100)
+       ORDER BY user_id, timestamp DESC
+     ) p
      JOIN public.users u ON p.user_id = u.id
-     WHERE p.timestamp > NOW() - INTERVAL '10 minutes'
      ORDER BY p.timestamp DESC`
   )
   return rows.filter(r => {

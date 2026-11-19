@@ -16,7 +16,9 @@ router.get('/api/gems', authenticate, async (req, res) => {
 
 router.get('/api/gems/:id', authenticate, async (req, res) => {
   try {
-    const gem = await getGemById(req.params.id)
+    // getGemById enforces owner-or-public visibility, so another user's
+    // private system prompt can't be read by guessing an id.
+    const gem = await getGemById(req.params.id, req.user.id)
     if (!gem) return res.status(404).json({ error: 'Gem not found' })
     res.json({ gem })
   } catch (err) {

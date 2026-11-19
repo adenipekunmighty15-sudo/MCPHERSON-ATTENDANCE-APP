@@ -35,7 +35,6 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, defineProps, watch } from 'vue'
-import { useMindStore } from '../stores/mind'
 
 const props = defineProps({
   messageCount: { type: Number, default: 0 },
@@ -43,13 +42,11 @@ const props = defineProps({
   inputFocused: { type: Boolean, default: false }
 })
 
-const mindStore = useMindStore()
 const canvas = ref(null)
 const particleContainer = ref(null)
 let animationId = null
 let ctx = null
 let nodes = []
-let connections = []
 let particles = []
 let time = 0
 let mouseX = 0.5

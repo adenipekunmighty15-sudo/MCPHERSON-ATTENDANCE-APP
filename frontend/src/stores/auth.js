@@ -55,6 +55,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function initializeAuth() {
     try {
+      localStorage.removeItem('mcu_user')
+      localStorage.removeItem('mcu_users')
       if (supabase && supabaseConfigured) {
         try {
           const { data: { session: currentSession } } = await supabase.auth.getSession()
@@ -128,14 +130,6 @@ export const useAuthStore = defineStore('auth', () => {
           console.error('Supabase auth failed:', supaErr?.message)
           localStorage.removeItem('mcu_user')
         }
-      } else {
-        try {
-          const saved = localStorage.getItem('mcu_user')
-          if (saved) {
-            const parsed = JSON.parse(saved)
-            if (parsed && parsed.id) user.value = parsed
-          }
-        } catch (e) { console.warn('[auth] Fallback user parse failed:', e) }
       }
     } catch (err) {
       console.error('Auth init error:', err)
@@ -152,23 +146,13 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     loading.value = true
     try {
-      if (supabase && supabaseConfigured) {
-        const { data, error: supaError } = await supabase.auth.signInWithPassword({ email, password })
-        if (supaError) throw supaError
-        if (data) {
-          user.value = buildUser(data)
-          freshLogin.value = true
-          return data
-        }
-      }
-      const saved = localStorage.getItem('mcu_users')
-      let users = []
-      try { users = saved ? JSON.parse(saved) : [] } catch (e) { console.warn('[auth] Parse failed:', e); users = [] }
-      const match = users.find(u => u.email === email && u.password === password)
-      if (!match) throw new Error('Invalid email or password.')
-      user.value = { id: match.id, email: match.email, name: match.name, role: match.role || 'student', department: match.department || 'Computer Science', avatar: match.name?.charAt(0)?.toUpperCase() || 'U', isGuest: false, provider: 'local' }
-      localStorage.setItem('mcu_user', JSON.stringify(user.value))
+      if (!supabase || !supabaseConfigured) throw new Error('Authentication is not configured')
+      const { data, error: supaError } = await supabase.auth.signInWithPassword({ email, password })
+      if (supaError) throw supaError
+      user.value = buildUser(data)
+      session.value = data.session
       freshLogin.value = true
+      return data
     } catch (err) {
       const msg = friendlyAuthError(err)
       error.value = msg
@@ -182,23 +166,19 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     loading.value = true
     try {
-      if (supabase && supabaseConfigured) {
-        try {
-          const { data, error: supaError } = await supabase.auth.signUp({ email, password, options: { data: metadata } })
-          if (!supaError && data?.user?.id) {
-            try { await api.post('/auth/confirm-signup', { userId: data.user.id, email }) } catch (e) { console.warn('[auth] Signup confirm failed:', e) }
-            try { await api.post('/auth/create-user-profile', { userId: data.user.id, email, name: metadata.name || email.split('@')[0], role: metadata.role || 'student', department: metadata.department || 'Computer Science' }) } catch (e) { console.warn('[auth] Profile creation failed:', e) }
-            if (data?.session) { user.value = buildUser(data); session.value = data.session; freshLogin.value = true; return data }
-            return { user: buildUser(data), needsConfirmation: true }
-          }
-        } catch (e) { console.warn('Supabase signup failed:', e?.message) }
+      if (!supabase || !supabaseConfigured) throw new Error('Authentication is not configured')
+      const { data, error: supaError } = await supabase.auth.signUp({ email, password, options: { data: metadata } })
+      if (supaError) throw supaError
+      if (!data?.user?.id) throw new Error('Account could not be created')
+      try { await api.post('/auth/confirm-signup', { userId: data.user.id, email }) } catch (e) { console.warn('[auth] Signup confirm failed:', e) }
+      try { await api.post('/auth/create-user-profile', { userId: data.user.id, email, name: metadata.name || email.split('@')[0], role: metadata.role || 'student', department: metadata.department || 'Computer Science' }) } catch (e) { console.warn('[auth] Profile creation failed:', e) }
+      if (data.session) {
+        user.value = buildUser(data)
+        session.value = data.session
+        freshLogin.value = true
+        return data
       }
-      const saved = localStorage.getItem('mcu_users')
-      let users = []
-      try { users = saved ? JSON.parse(saved) : [] } catch { users = [] }
-      if (users.some(u => u.email === email)) throw new Error('An account with this email already exists.')
-      users.push({ id: 'local-' + Date.now(), email, password, name: metadata.name || email.split('@')[0], role: metadata.role || 'student', department: metadata.department || 'Computer Science' })
-      localStorage.setItem('mcu_users', JSON.stringify(users))
+      return { user: buildUser(data), needsConfirmation: true }
     } catch (err) {
       error.value = friendlyAuthError(err)
       throw err
@@ -219,22 +199,6 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error('Authentication is not configured')
     } catch (err) {
       error.value = friendlyAuthError(err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function loginAsGuest() {
-    error.value = null
-    loading.value = true
-    try {
-      await new Promise(r => setTimeout(r, 400))
-      user.value = { id: 'guest-' + Date.now(), name: 'Guest User', email: 'guest@undergraduate.mcu.edu.ng', role: 'guest', department: 'Not assigned', avatar: 'G', isGuest: true, provider: 'guest' }
-      freshLogin.value = true
-      return user.value
-    } catch (err) {
-      error.value = err.message || 'Guest login failed'
       throw err
     } finally {
       loading.value = false
@@ -270,7 +234,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     user, session, token, loading, error, isAuthenticated, initialized, ready,
-    initializeAuth, signIn, signUp, signInWithOAuth, loginAsGuest, logout, freshLogin,
+    initializeAuth, signIn, signUp, signInWithOAuth, logout, freshLogin,
     resetPasswordForEmail, updatePassword, signOut: logout,
   }
 })

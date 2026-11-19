@@ -5,9 +5,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({
+defineProps({
   status: {
     type: String,
     default: 'active',
@@ -19,14 +17,6 @@ const props = defineProps({
   }
 })
 
-const statusLabels = {
-  active: 'Active',
-  inactive: 'Inactive',
-  pending: 'Pending',
-  error: 'Error'
-}
-
-const displayLabel = computed(() => props.label || statusLabels[props.status])
 </script>
 
 <style scoped>

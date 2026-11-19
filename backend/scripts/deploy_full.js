@@ -1,10 +1,17 @@
-const { Pool } = require('pg');
-const fs = require('fs');
+import dotenv from 'dotenv'
+import { Pool } from 'pg'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const scriptDir = dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: join(scriptDir, '..', '.env') })
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be set before deploying the schema')
+}
 
 const pool = new Pool({
-  // The database connection URL.
-  // Set this in your environment variables.
-  // Example: "postgresql://user:password@host:port/database"
   connectionString: process.env.DATABASE_URL,
   max: 1,
   idleTimeoutMillis: 30000,
@@ -95,7 +102,7 @@ function splitStatements(sqlText) {
 }
 
 async function runSqlFile(client, filename) {
-  const sql = fs.readFileSync(filename, 'utf8');
+  const sql = readFileSync(join(scriptDir, filename), 'utf8')
   const statements = splitStatements(sql);
   console.log(`\n--- ${filename}: ${statements.length} statements ---`);
 

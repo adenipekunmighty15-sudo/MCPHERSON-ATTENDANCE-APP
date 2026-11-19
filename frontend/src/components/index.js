@@ -30,7 +30,6 @@ export { default as PageHeader } from './layout/PageHeader.vue'
 export { default as PageContent } from './layout/PageContent.vue'
 
 // Core Components
-export { default as Layout } from './Layout.vue'
 export { default as ThemeToggle } from './ThemeToggle.vue'
 export { default as Logo } from './Logo.vue'
 export { default as CommandPalette } from './CommandPalette.vue'
@@ -40,7 +39,6 @@ export { default as Toast } from './Toast.vue'
 export { default as Background } from './Background.vue'
 
 // Advanced Components
-export { default as CampusMap3D } from './CampusMap3D.vue'
 export { default as GeofenceAttendance } from './GeofenceAttendance.vue'
 export { default as StudentIDCard } from './StudentIDCard.vue'
 export { default as ModalFace } from './ModalFace.vue'

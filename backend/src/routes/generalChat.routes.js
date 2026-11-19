@@ -4,9 +4,50 @@ import { query } from '../../lib/db.js'
 import { randomUUID } from 'crypto'
 import multer from 'multer'
 import { getAiResponse } from '../config/ai.js'
-import { uploadFile } from '../services/storage.js'
+import { uploadFile, extensionForMime } from '../services/storage.js'
 
-const chatUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } })
+const MAX_CHAT_FILE_SIZE = 20 * 1024 * 1024 // 20 MB cap on uploaded chat files
+// .jpeg is a legacy alias for image/jpeg; the stored extension is still the
+// canonical one derived from the MIME allowlist in storage.js.
+const EXTRA_VALID_EXTENSIONS = { 'image/jpeg': ['.jpeg'] }
+const chatUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_CHAT_FILE_SIZE },
+  fileFilter: (_req, file, cb) => {
+    // Require the MIME type to be allowlisted AND the filename extension to be
+    // the exact one for that MIME type (blocks .exe/.html/.svg disguised as an
+    // image). The stored object name is generated separately and never uses
+    // this original name.
+    const expectedExtensions = [
+      extensionForMime(file.mimetype),
+      ...(EXTRA_VALID_EXTENSIONS[file.mimetype] || []),
+    ].filter(Boolean)
+    const lowerName = (file.originalname || '').toLowerCase()
+    if (expectedExtensions.length === 0 || !expectedExtensions.some(ext => lowerName.endsWith(ext))) {
+      return cb(new Error('Unsupported file type'))
+    }
+    cb(null, true)
+  },
+})
+
+// Simple process-local per-user cooldown for @assistant mentions. The app's
+// existing `aiLimiter` is IP-based, not per-user, so a small TTL Map is used
+// instead of adding a dependency. NOTE: state resets on restart and is not
+// shared between multiple server instances.
+const ASSISTANT_COOLDOWN_MS = 10 * 1000
+const assistantCooldowns = new Map() // userId -> last allowed trigger timestamp
+
+function canTriggerAssistant(userId) {
+  const now = Date.now()
+  const last = assistantCooldowns.get(userId)
+  if (last !== undefined && now - last < ASSISTANT_COOLDOWN_MS) return false
+  assistantCooldowns.set(userId, now)
+  // Opportunistic expiry so the map cannot grow without bound.
+  for (const [id, timestamp] of assistantCooldowns) {
+    if (now - timestamp >= ASSISTANT_COOLDOWN_MS) assistantCooldowns.delete(id)
+  }
+  return true
+}
 
 const router = Router()
 
@@ -42,10 +83,16 @@ router.post('/api/general-chat/messages', authenticate, chatUpload.single('file'
     const id = randomUUID()
     let fileUrl = '', fileType = '', fileName = ''
     if (req.file) {
-      const uploaded = await uploadFile(req.file.buffer, `${randomUUID()}-${req.file.originalname}`, req.file.mimetype)
+      // Pass only a generated safe name to storage; the original filename and
+      // any path it contains never reach the object key.
+      const safeFileName = `${randomUUID()}${extensionForMime(req.file.mimetype)}`
+      const uploaded = await uploadFile(req.file.buffer, safeFileName, req.file.mimetype)
       fileUrl = uploaded.publicUrl
       fileType = req.file.mimetype
-      fileName = req.file.originalname
+      // Display name only: strip path separators/control chars and cap length.
+      fileName = (req.file.originalname || 'file')
+        .replace(/[\\/\u0000-\u001f]/g, '_')
+        .slice(0, 255)
     }
     await query(
       `INSERT INTO public.general_chat_messages (id, sender_id, message, file_url, file_type, file_name, created_at)
@@ -54,7 +101,10 @@ router.post('/api/general-chat/messages', authenticate, chatUpload.single('file'
     )
 
     // ── NEURAL ASSISTANT (Auto-reply in chat if mentioned) ──
-    if (message && (message.toLowerCase().includes('neural core') || message.toLowerCase().includes('@assistant'))) {
+    // The user's message is always saved above; the cooldown only suppresses
+    // the paid/AI auto-reply when the same user spams mentions.
+    const mentionsAssistant = !!message && /@assistant|neural core/i.test(message)
+    if (mentionsAssistant && canTriggerAssistant(req.user.id)) {
       setTimeout(async () => {
         try {
           const assistantId = 'neural-core-assistant'
@@ -93,6 +143,9 @@ router.post('/api/general-chat/messages', authenticate, chatUpload.single('file'
     res.status(201).json(rows[0])
   } catch (err) {
     console.error('Failed to send general chat message:', err.message)
+    if (err instanceof multer.MulterError || err.message === 'Unsupported file type') {
+      return res.status(400).json({ error: err.message })
+    }
     res.status(500).json({ error: 'Failed to send general chat message' })
   }
 })

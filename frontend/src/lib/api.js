@@ -2,7 +2,7 @@ import axios from 'axios'
 import { supabase } from './supabase'
 import { buildStudyPack } from './studyPack'
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const apiUrl = import.meta.env.VITE_API_URL || '/api'
 
 const cache = new Map()
 const CACHE_TTL = 30_000
@@ -144,35 +144,7 @@ async function createStudyMaterialLocally(input, userId) {
     createdAt,
   }, flashcards)
 
-  if (!supabase || !userId) return saveLocalStudyMaterial(material)
-
-  try {
-    const dbRow = {
-      id,
-      course_id: input?.courseId || '',
-      title,
-      source_text: sourceText,
-      summary: material.summary,
-      key_points: material.keyPoints,
-      quiz: material.quiz,
-      diagrams: material.diagrams,
-      improved_note: material.improvedNote,
-      created_by: userId,
-      created_at: createdAt,
-    }
-    const { data: inserted, error } = await supabase.from('study_materials').insert(dbRow).select().single()
-    if (error) throw error
-
-    if (flashcards.length) {
-      const { error: cardError } = await supabase.from('flashcards').insert(flashcards)
-      if (cardError) console.warn('[api] Flashcard save failed:', cardError.message)
-    }
-
-    return normalizeStudyMaterial(inserted || dbRow, flashcards)
-  } catch (e) {
-    console.warn('[api] Remote study pack save failed; using local storage:', e?.message || e)
-    return saveLocalStudyMaterial(material)
-  }
+  return saveLocalStudyMaterial(material)
 }
 
 function isStudyMaterialGeneration(method, url, data) {
@@ -211,144 +183,29 @@ axiosApi.interceptors.response.use(
 
 async function routeToSupabase(method, url, data) {
   const trimmed = url.replace(/^\/+/, '').replace(/\/+$/, '')
-  let userId
-  try {
-    if (supabase) {
-      const { data: { session } } = await supabase.auth.getSession()
-      userId = session?.user?.id
-    }
-  } catch { userId = null }
+  const isStudyList = method === 'GET' && trimmed === 'study-materials'
+  const isStudyCreate = method === 'POST' && trimmed === 'study-materials'
+  const materialMatch = trimmed.match(/^study-materials\/([^/]+)$/)
+  const isLocalStudyRead = method === 'GET' && materialMatch
+  const isLocalStudyDelete = method === 'DELETE' && materialMatch
 
-  if (!supabase && !trimmed.startsWith('study-materials')) return null
-  if (!userId && !trimmed.startsWith('study-materials')) return null
+  if (!isStudyList && !isStudyCreate && !isLocalStudyRead && !isLocalStudyDelete) return null
 
-  if (!userId && method === 'GET' && trimmed === 'study-materials') return readLocalStudyMaterials()
-  if (!userId && method === 'POST' && trimmed === 'study-materials') return createStudyMaterialLocally(data, null)
-
-  const routes = [
-    { test: /^study-materials$/, method: 'GET', handler: async () => {
-      if (!userId) return readLocalStudyMaterials()
-      const { data, error } = await supabase.from('study_materials').select('*').eq('created_by', userId).order('created_at', { ascending: false })
-      if (error) throw error
-      const remote = (data || []).map(r => normalizeStudyMaterial(r))
-      return [...readLocalStudyMaterials(), ...remote].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    }},
-    { test: /^study-materials$/, method: 'POST', handler: async () => {
-      return createStudyMaterialLocally(data, userId)
-    }},
-    { test: /^study-materials\/(?:stats|search-web)$/, method: 'GET', handler: async () => null },
-    { test: /^study-materials\/([^/]+)$/, method: 'GET', handler: async (m) => {
-      const local = readLocalStudyMaterials().find(item => item.id === m[1])
-      if (local) return local
-      if (!userId) return null
-      const { data, error } = await supabase.from('study_materials').select('*').eq('id', m[1]).single()
-      if (error) throw error
-      const { data: cards, error: cardError } = await supabase
-        .from('flashcards')
-        .select('id, front, back, order_index')
-        .eq('material_id', m[1])
-        .order('order_index', { ascending: true })
-      if (cardError) console.warn('[api] Flashcard load failed:', cardError.message)
-      return normalizeStudyMaterial(data, cards || [])
-    }},
-    { test: /^study-materials\/([^/]+)$/, method: 'DELETE', handler: async (m) => {
-      if (deleteLocalStudyMaterial(m[1])) return { success: true }
-      if (!userId) return null
-      await supabase.from('flashcards').delete().eq('material_id', m[1])
-      const { error } = await supabase.from('study_materials').delete().eq('id', m[1]).eq('created_by', userId)
-      if (error) throw error
-      return { success: true }
-    }},
-    { test: /^notifications$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-      if (error) throw error
-      return data
-    }},
-    { test: /^notifications\/(.+)\/read$/, method: 'PUT', handler: async (m) => {
-      const { data: result, error } = await supabase.from('notifications').update({ is_read: true }).eq('id', m[1]).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^notifications\/read-all$/, method: 'PUT', handler: async () => {
-      const { error } = await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId)
-      if (error) throw error
-      return { success: true }
-    }},
-    { test: /^complaints$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('complaints').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-      if (error) throw error
-      return data
-    }},
-    { test: /^complaints$/, method: 'POST', handler: async () => {
-      const { data: result, error } = await supabase.from('complaints').insert({ ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8), user_id: userId, status: 'open', created_at: new Date().toISOString() }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^chats$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('chat_conversations').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-      if (error) throw error
-      return data
-    }},
-    { test: /^chats$/, method: 'POST', handler: async () => {
-      const { data: result, error } = await supabase.from('chat_conversations').insert({ ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8), user_id: userId, created_at: new Date().toISOString() }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^chats\/(.+)$/, method: 'PUT', handler: async (m) => {
-      const { data: result, error } = await supabase.from('chat_conversations').update(data).eq('id', m[1]).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^chats\/(.+)$/, method: 'DELETE', handler: async (m) => {
-      await supabase.from('chat_messages').delete().eq('conversation_id', m[1])
-      const { error } = await supabase.from('chat_conversations').delete().eq('id', m[1])
-      if (error) throw error
-      return { success: true }
-    }},
-    { test: /^chats\/(.+)\/messages$/, method: 'GET', handler: async (m) => {
-      const { data, error } = await supabase.from('chat_messages').select('*').eq('conversation_id', m[1]).order('created_at', { ascending: true })
-      if (error) throw error
-      return data
-    }},
-    { test: /^chats\/(.+)\/messages$/, method: 'POST', handler: async (m) => {
-      const { data: result, error } = await supabase.from('chat_messages').insert({ ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8), conversation_id: m[1], created_at: new Date().toISOString() }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^venues$/, method: 'GET', handler: async () => {
-      const { data, error } = await supabase.from('venues').select('*')
-      if (error) throw error
-      return data
-    }},
-    { test: /^general-chat\/messages$/, method: 'GET', handler: async () => {
-      const limit = data?.limit || 50
-      const before = data?.before || null
-      let query = supabase.from('general_chat_messages').select('*').order('created_at', { ascending: false }).limit(limit)
-      if (before) query = query.lt('created_at', before)
-      const { data: result, error } = await query
-      if (error) throw error
-      return result.reverse()
-    }},
-    { test: /^general-chat\/messages$/, method: 'POST', handler: async () => {
-      const { data: result, error } = await supabase.from('general_chat_messages').insert({
-        ...data, id: crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-        sender_id: userId, created_at: new Date().toISOString()
-      }).select()
-      if (error) throw error
-      return result?.[0]
-    }},
-    { test: /^general-chat\/messages\/(.+)$/, method: 'DELETE', handler: async (m) => {
-      const { error } = await supabase.from('general_chat_messages').delete().eq('id', m[1]).eq('sender_id', userId)
-      if (error) throw error
-      return { success: true }
-    }},
-  ]
-
-  for (const route of routes) {
-    if (route.method !== method) continue
-    const matches = trimmed.match(route.test)
-    if (matches) return route.handler(matches)
+  if (supabase) {
+    const { data, error } = await supabase.auth.getSession()
+    if (error) throw error
+    if (data.session?.user) return null
   }
+
+  if (isStudyList) return readLocalStudyMaterials()
+  if (isStudyCreate) return createStudyMaterialLocally(data, null)
+  if (isLocalStudyRead) {
+    return readLocalStudyMaterials().find(item => item.id === materialMatch[1]) || null
+  }
+  if (isLocalStudyDelete) {
+    return deleteLocalStudyMaterial(materialMatch[1]) ? { success: true } : null
+  }
+
   return null
 }
 

@@ -189,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../lib/api'
 
@@ -203,7 +203,7 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const response = await api.get('/api/study/spaced-repetition-plan')
+    const response = await api.get('/study/spaced-repetition-plan')
     const { data, success } = response
     if (success || data) {
       plan.value = data || response

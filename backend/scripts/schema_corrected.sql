@@ -1095,64 +1095,7 @@ BEGIN
     END LOOP;
 END $$;
 
--- ============================================================================
--- ROW LEVEL SECURITY (RLS)
--- ============================================================================
-
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.enrollments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_conversations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.gamification_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.gamification_badges ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS users_select ON public.users;
-DROP POLICY IF EXISTS users_update ON public.users;
-DROP POLICY IF EXISTS users_insert ON public.users;
-CREATE POLICY users_select ON public.users FOR SELECT USING (auth.uid()::text = id::text);
-CREATE POLICY users_update ON public.users FOR UPDATE USING (auth.uid()::text = id::text);
-CREATE POLICY users_insert ON public.users FOR INSERT WITH CHECK (auth.uid()::text = id::text);
-
-DROP POLICY IF EXISTS courses_select ON public.courses;
-DROP POLICY IF EXISTS courses_insert ON public.courses;
-DROP POLICY IF EXISTS courses_update ON public.courses;
-CREATE POLICY courses_select ON public.courses FOR SELECT USING (true);
-CREATE POLICY courses_insert ON public.courses FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.users WHERE id::text = auth.uid()::text AND role IN ('admin', 'lecturer'))
-);
-CREATE POLICY courses_update ON public.courses FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id::text = auth.uid()::text AND role IN ('admin', 'lecturer'))
-);
-
-DROP POLICY IF EXISTS enrollments_self ON public.enrollments;
-CREATE POLICY enrollments_self ON public.enrollments FOR ALL USING (auth.uid()::text = user_id::text);
-
-DROP POLICY IF EXISTS attendance_self ON public.attendance;
-CREATE POLICY attendance_self ON public.attendance FOR ALL USING (user_id::text = auth.uid()::text);
-
-DROP POLICY IF EXISTS chat_conversations_self ON public.chat_conversations;
-CREATE POLICY chat_conversations_self ON public.chat_conversations FOR ALL USING (user_id::text = auth.uid()::text);
-
-DROP POLICY IF EXISTS chat_messages_self ON public.chat_messages;
-CREATE POLICY chat_messages_self ON public.chat_messages FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.chat_conversations WHERE id = conversation_id AND user_id::text = auth.uid()::text)
-);
-
-DROP POLICY IF EXISTS notifications_self ON public.notifications;
-CREATE POLICY notifications_self ON public.notifications FOR ALL USING (user_id::text = auth.uid()::text);
-
-DROP POLICY IF EXISTS study_materials_self ON public.study_materials;
-CREATE POLICY study_materials_self ON public.study_materials FOR ALL USING (created_by::text = auth.uid()::text OR is_public = true);
-
-DROP POLICY IF EXISTS gamification_self ON public.gamification_profiles;
-CREATE POLICY gamification_self ON public.gamification_profiles FOR ALL USING (auth.uid()::text = user_id::text);
-
-DROP POLICY IF EXISTS gamification_badges_self ON public.gamification_badges;
-CREATE POLICY gamification_badges_self ON public.gamification_badges FOR ALL USING (auth.uid()::text = user_id::text);
+-- Data access is handled by the authenticated API; client table access is disabled below.
 
 -- ============================================================================
 -- HELPFUL VIEWS
@@ -1192,9 +1135,30 @@ GROUP BY c.id, c.code, c.title, c.max_students;
 -- ============================================================================
 
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated;
-GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC, anon, authenticated;
+
+DO $$
+DECLARE
+  table_record record;
+BEGIN
+  FOR table_record IN
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', table_record.tablename);
+  END LOOP;
+END
+$$;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated;
 
 -- ============================================================================
 -- DONE

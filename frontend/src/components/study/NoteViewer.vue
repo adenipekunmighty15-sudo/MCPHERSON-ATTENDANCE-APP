@@ -42,12 +42,12 @@
 
             <!-- Notes Tab -->
             <div v-if="activeTab === 'notes'" class="tab-content">
-              <div class="markdown-body" v-html="sanitizeHtml(renderMarkdown(studyNote))"></div>
+              <div class="markdown-body" v-safe-html="renderMarkdown(studyNote)"></div>
             </div>
 
             <!-- Summary Tab -->
             <div v-if="activeTab === 'summary'" class="tab-content">
-              <div class="markdown-body" v-html="sanitizeHtml(renderMarkdown(note.summary))"></div>
+              <div class="markdown-body" v-safe-html="renderMarkdown(note.summary)"></div>
             </div>
 
             <!-- Key Points Tab -->
@@ -204,10 +204,9 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import api from '../../lib/api'
-import { sanitizeHtml } from '../../lib/sanitize.js'
 
 const props = defineProps({ noteId: String })
-const emit = defineEmits(['close'])
+defineEmits(['close'])
 
 const note = ref(null)
 const loading = ref(true)

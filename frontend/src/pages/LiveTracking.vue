@@ -2,8 +2,12 @@
   <div class="live-tracking page-wide">
     <header class="page-header">
       <h1>Live Campus Tracking</h1>
-      <p class="subtitle">Real-time position monitoring with UWB geolocation and 3D mapping</p>
+      <p class="subtitle">GPS-based position estimates and 3D campus mapping (no UWB hardware)</p>
     </header>
+
+    <div v-if="locationError" class="location-banner" role="alert">
+      {{ locationError }}
+    </div>
 
     <div class="tracking-layout">
       <div class="map-section">
@@ -17,6 +21,9 @@
           />
         </div>
         <div class="map-controls">
+          <span class="gps-status" :class="{ active: hasRealPosition }">
+            {{ hasRealPosition ? 'GPS active' : 'GPS unavailable — no position shown' }}
+          </span>
           <button class="ctrl-btn" :class="{ active: showPath }" @click="showPath = !showPath">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -40,7 +47,7 @@
       </div>
 
       <div class="sidebar">
-        <GeofenceAttendance @checkin="handleCheckIn" />
+        <GeofenceAttendance />
 
         <div class="route-planner">
           <div class="section-title">Route Planner</div>
@@ -92,9 +99,20 @@ import CampusMap3D from '../components/CampusMap3D.vue'
 import GeofenceAttendance from '../components/GeofenceAttendance.vue'
 import { locationTracker } from '../services/LocationService.js'
 import { supabase } from '../lib/supabase.js'
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
+const initialLocation = locationTracker.getLocationStatus()
+const hasRealPosition = ref(initialLocation.available)
+const locationError = ref(initialLocation.error?.message || '')
+
+function onLocationUpdate(event) {
+  if (event?.type === 'position') {
+    locationError.value = ''
+    hasRealPosition.value = true
+  } else if (event?.type === 'error') {
+    locationError.value = typeof event.data === 'string' ? event.data : 'Location unavailable.'
+    hasRealPosition.value = false
+  }
+}
 
 const showPath = ref(true)
 const showAnchors = ref(true)
@@ -114,10 +132,6 @@ const buildingColors = {
   'student-center': '#60A5FA',
 }
 
-function handleCheckIn(roomCode) {
-  router.push({ path: '/attendance', query: { room: roomCode, geofence: 'auto' } })
-}
-
 function calculateRoute() {
   const from = buildings.value.find(b => b.id === routeFrom.value)
   const to = buildings.value.find(b => b.id === routeTo.value)
@@ -131,26 +145,24 @@ function focusBuilding(b) {
 }
 
 let positionChannel = null
+let unsubscribeLocation = null
 
 onMounted(async () => {
-  positionChannel = supabase
-    .channel('live-positions')
-    .on('presence', { event: 'sync' }, () => {
-      const state = positionChannel.presenceState()
-      console.log('Online users:', Object.keys(state).length)
-    })
-    .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        const { data: { user } } = await supabase.auth.getUser()
-        await positionChannel.track({
-          user: user?.id,
-          online_at: new Date().toISOString(),
-        })
-      }
-    })
+  unsubscribeLocation = locationTracker.onPositionUpdate(onLocationUpdate)
+  await locationTracker.loadVenues()
+  if (supabase) {
+    positionChannel = supabase
+      .channel('live-positions')
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await positionChannel.track({ online_at: new Date().toISOString() })
+        }
+      })
+  }
 })
 
 onUnmounted(() => {
+  if (unsubscribeLocation) unsubscribeLocation()
   if (positionChannel) supabase.removeChannel(positionChannel)
 })
 </script>
@@ -197,7 +209,22 @@ onUnmounted(() => {
 
 .map-controls {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.gps-status {
+  padding: 8px 12px;
+  border: 1px solid var(--color-error);
+  border-radius: 8px;
+  color: var(--color-error);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gps-status.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .ctrl-btn {
@@ -367,6 +394,62 @@ onUnmounted(() => {
 .dir-floors {
   font-size: 11px;
   color: var(--color-text-muted);
+}
+
+.location-banner {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-error);
+  border-radius: 8px;
+  color: var(--color-error);
+  background: var(--color-card);
+  font-size: 13px;
+}
+
+.staff-locations {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.panel-message {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.panel-message.error {
+  color: var(--color-error);
+}
+
+.location-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.location-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.location-item:last-child {
+  border-bottom: none;
+}
+
+.location-name {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.location-meta {
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 @media (max-width: 1024px) {

@@ -5,5 +5,5 @@
 </template>
 
 <script setup>
-const props = defineProps({ customClass: { type: String, default: '' } })
+defineProps({ customClass: { type: String, default: '' } })
 </script>

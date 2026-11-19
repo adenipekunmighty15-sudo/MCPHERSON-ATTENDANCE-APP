@@ -87,7 +87,7 @@
                 </button>
                 <div v-if="msg.showThinking" class="thinking-text">{{ msg.thinking }}</div>
               </div>
-              <div class="msg-content" v-html="sanitizeHtml(renderMarkdown(msg.content))" />
+              <div class="msg-content" v-safe-html="renderMarkdown(msg.content)" />
               <div v-if="msg.role === 'assistant'" class="msg-footer">
                 <span class="msg-meta">{{ selectedExpert.label }} · {{ formatElapsed(msg.elapsed) }}</span>
                 <div class="msg-actions">
@@ -113,7 +113,7 @@
                 </div>
                 <span class="stream-label">{{ streamThinking ? 'Thinking...' : 'Responding...' }}</span>
               </div>
-              <div v-if="streamAnswer" class="msg-content" v-html="sanitizeHtml(renderMarkdown(streamAnswer))" />
+              <div v-if="streamAnswer" class="msg-content" v-safe-html="renderMarkdown(streamAnswer)" />
               <span v-if="streamAnswer" class="cursor-blink" />
             </div>
           </div>
@@ -215,7 +215,6 @@ import { useAuthStore } from '../stores/auth'
 import { useMindStore } from '../stores/mind'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import api from '../lib/api'
-import { sanitizeHtml } from '../lib/sanitize.js'
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/atom-one-dark.min.css'
 import ParticlesSwarm from '../components/three/ParticlesSwarm.vue'
@@ -310,21 +309,6 @@ async function toggleRecording() {
     mediaRecorder.start()
     isRecording.value = true
   } catch { /* permission denied */ }
-}
-
-function handleFileAttach(e) {
-  const file = e.target.files?.[0]
-  if (file) {
-    const formData = new FormData()
-    formData.append('document', file)
-    api.post('/study-materials/upload', formData, {
-      timeout: 120000,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then(res => {
-      if (res.data?.summary) input.value = `I've uploaded ${file.name}. Here's a summary:\n${res.data.summary.slice(0, 500)}...`
-    }).catch(() => {})
-  }
-  if (e.target) e.target.value = ''
 }
 
 function sendFollowUp(text) {
@@ -462,7 +446,7 @@ async function sendStream(msg) {
     if (!token) throw new Error('No auth token')
 
     const history = mindStore.messages.slice(-6).map(m => ({ role: m.role, content: m.content }))
-    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')
+    const baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/api\/?$/, '')
 
     const response = await fetch(`${baseUrl}/api/ai/chat/stream`, {
       method: 'POST',

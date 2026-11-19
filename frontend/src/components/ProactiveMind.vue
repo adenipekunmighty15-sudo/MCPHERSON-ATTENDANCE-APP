@@ -46,7 +46,7 @@
       </div>
     </div>
     <div class="panel-footer">
-      <span class="auto-refresh" :class="{ refreshing }">
+      <span class="auto-refresh">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
         </svg>
@@ -60,7 +60,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import api from '../lib/api'
 
-const props = defineProps({
+defineProps({
   visible: { type: Boolean, default: false },
 })
 
@@ -68,7 +68,6 @@ const emit = defineEmits(['close', 'update'])
 
 const items = ref([])
 const loading = ref(true)
-const refreshing = ref(false)
 
 let refreshTimer = null
 
@@ -101,16 +100,6 @@ async function dismiss(id) {
     items.value = items.value.filter(i => i.id !== id)
     emit('update', items.value.length)
   } catch (e) { console.warn('[proactive] Dismiss failed:', e) }
-}
-
-async function refresh() {
-  refreshing.value = true
-  try {
-    const { data } = await api.post('/proactive/refresh')
-    items.value = data.insights || []
-    emit('update', items.value.length)
-  } catch (e) { console.warn('[proactive] Refresh failed:', e) }
-  setTimeout(() => { refreshing.value = false }, 1000)
 }
 
 onMounted(() => {
@@ -304,5 +293,4 @@ onUnmounted(() => {
   font-size: 11px;
   color: var(--color-text-tertiary, #888);
 }
-.auto-refresh.refreshing svg { animation: spin 0.8s linear infinite; }
 </style>

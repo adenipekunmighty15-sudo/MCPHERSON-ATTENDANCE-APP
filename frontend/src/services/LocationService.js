@@ -1,6 +1,8 @@
-import { UWBDevice, createClassroomAnchors } from './UWBService.js'
+import api from '../lib/api.js'
+import { IndoorPositionEstimator, createFallbackClassroomAnchors, createVenueAnchors } from './UWBService.js'
 
 const CAMPUS_CENTER = { lat: 6.8715, lng: 3.2055 }
+const MAX_GPS_ACCURACY_METERS = 100
 
 const CAMPUS_BUILDINGS = [
   { id: 'main-hall', name: 'Main Hall', lat: 6.8718, lng: 3.2052, floors: 3 },
@@ -23,18 +25,65 @@ const CLASSROOMS = [
 
 export class LocationTracker {
   constructor() {
-    this.uwbDevice = new UWBDevice('device-1', 'student')
+    // Only GPS coordinates are ever accepted as a real position. Indoor anchors
+    // are coordinate estimates and must never be reported as a device position.
+    this.uwbDevice = new IndoorPositionEstimator('device-1', 'student')
     this.watchId = null
+    this.usingGeolocation = false
     this.positionHistory = []
+    this.stopTracking()
     this.currentPosition = null
     this.accuracy = null
+    this.error = null
     this.classroomAnchors = new Map()
+    this.venues = []
+    this.usingFallbackAnchors = true
     this.listeners = new Set()
+    // Documented fallback: hardcoded campus points, replaced by /api/venues
+    // as soon as loadVenues() succeeds.
     CLASSROOMS.forEach(cr => {
-      const anchors = createClassroomAnchors(cr.code, cr.lat, cr.lng)
+      const anchors = createFallbackClassroomAnchors(cr.code, cr.lat, cr.lng)
       anchors.forEach(a => this.uwbDevice.addAnchor(a))
       this.classroomAnchors.set(cr.code, anchors)
     })
+  }
+
+  // Prefer real venue coordinates from the API; keep the hardcoded fallback on failure.
+  async loadVenues() {
+    try {
+      const { data } = await api.get('/venues')
+      if (!Array.isArray(data) || !data.length) return false
+      const next = new Map()
+      data.forEach(venue => {
+        const code = venue?.roomCode || venue?.room_code
+        const lat = Number(venue?.latitude)
+        const lng = Number(venue?.longitude)
+        if (!code || !Number.isFinite(lat) || !Number.isFinite(lng)) return
+        const anchors = createVenueAnchors(venue)
+        if (anchors.length) next.set(code, anchors)
+      })
+      if (!next.size) return false
+      this.classroomAnchors = next
+      this.venues = data
+      this.usingFallbackAnchors = false
+      this.uwbDevice.anchors = [...next.values()].flat()
+      return true
+    } catch {
+      // Network/API failure: the documented fallback anchors remain in place.
+      return false
+    }
+  }
+
+  // Lets any caller distinguish real GPS from an estimated/unavailable state.
+  getLocationStatus() {
+    return {
+      available: !!this.currentPosition,
+      source: this.currentPosition ? 'gps' : 'unavailable',
+      position: this.currentPosition ? { ...this.currentPosition } : null,
+      accuracy: this.currentPosition?.accuracy ?? null,
+      error: this.error ? { ...this.error } : null,
+      usingFallbackAnchors: this.usingFallbackAnchors,
+    }
   }
 
   onPositionUpdate(callback) {
@@ -46,72 +95,65 @@ export class LocationTracker {
     this.listeners.forEach(cb => cb(data))
   }
 
+  emitError(code, message) {
+    this.stopTracking()
+    this.error = { code, message }
+    this.currentPosition = null
+    this.accuracy = null
+    this.notify({ type: 'error', data: message, code, source: 'unavailable', position: null })
+  }
+
   startTracking() {
+    if (this.watchId !== null) return
+    this.error = null
     if (!('geolocation' in navigator)) {
-      this.simulatePosition()
+      this.emitError('UNSUPPORTED', 'Location access is not available in this browser.')
       return
     }
+    this.usingGeolocation = true
     this.watchId = navigator.geolocation.watchPosition(
       pos => {
         const { latitude: lat, longitude: lng, accuracy } = pos.coords
-        this.currentPosition = { lat, lng, accuracy, timestamp: Date.now() }
+        if (
+          !Number.isFinite(lat) || !Number.isFinite(lng) ||
+          lat < -90 || lat > 90 || lng < -180 || lng > 180 ||
+          !Number.isFinite(accuracy) || accuracy < 0 || accuracy > MAX_GPS_ACCURACY_METERS
+        ) {
+          // Never fabricate or fall back to a nearby "guess" when GPS is unusable.
+          this.emitError('INVALID_POSITION', 'Location is too imprecise or invalid (max 100m accuracy). No position is shown.')
+          return
+        }
+        this.error = null
+        this.currentPosition = { lat, lng, accuracy, timestamp: Date.now(), source: 'gps' }
         this.accuracy = accuracy
         this.uwbDevice.setPosition(lat, lng)
         this.positionHistory.push(this.currentPosition)
-        const proximity = this.checkProximity()
-        this.notify({ type: 'position', data: { ...this.currentPosition, proximity } })
+        this.notify({
+          type: 'position',
+          data: { ...this.currentPosition, source: 'gps' },
+          source: 'gps',
+        })
       },
-      () => this.simulatePosition(),
+      error => {
+        const code = error?.code === 1 ? 'PERMISSION_DENIED'
+          : error?.code === 2 ? 'UNAVAILABLE'
+            : error?.code === 3 ? 'TIMEOUT' : 'UNAVAILABLE'
+        const message = code === 'PERMISSION_DENIED'
+          ? 'Location permission was denied. Allow location access to start tracking.'
+          : code === 'TIMEOUT'
+            ? 'Location request timed out. No position is shown.'
+            : 'Unable to determine your current location. No position is shown.'
+        this.emitError(code, message)
+      },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 1000 }
     )
   }
 
-  simulatePosition() {
-    this.watchId = setInterval(() => {
-      const lat = CAMPUS_CENTER.lat + (Math.random() - 0.5) * 0.002
-      const lng = CAMPUS_CENTER.lng + (Math.random() - 0.5) * 0.002
-      this.currentPosition = { lat, lng, accuracy: 5, timestamp: Date.now(), simulated: true }
-      this.uwbDevice.setPosition(lat, lng)
-      this.positionHistory.push(this.currentPosition)
-      const proximity = this.checkProximity()
-      this.notify({ type: 'position', data: { ...this.currentPosition, proximity } })
-    }, 3000)
-  }
-
   stopTracking() {
     if (this.watchId !== null) {
-      if (typeof this.watchId === 'number') clearInterval(this.watchId)
-      else navigator.geolocation.clearWatch(this.watchId)
+      if (this.usingGeolocation) navigator.geolocation.clearWatch(this.watchId)
       this.watchId = null
-    }
-  }
-
-  checkProximity() {
-    const results = []
-    CLASSROOMS.forEach(cr => {
-      const anchors = this.classroomAnchors.get(cr.code)
-      if (!anchors) return
-      const uwbResult = this.uwbDevice.isInsidePerimeter(anchors)
-      results.push({ ...cr, ...uwbResult })
-    })
-    return results.sort((a, b) => a.avgDistance - b.avgDistance)
-  }
-
-  getNearestClassroom() {
-    const proximity = this.checkProximity()
-    return proximity.length > 0 ? proximity[0] : null
-  }
-
-  confirmGeofence(roomCode, threshold = 15) {
-    const anchors = this.classroomAnchors.get(roomCode)
-    if (!anchors) return { confirmed: false, reason: 'No anchors for this room' }
-    const result = this.uwbDevice.isInsidePerimeter(anchors, threshold)
-    return {
-      confirmed: result.inside,
-      confidence: result.confidence,
-      avgDistance: result.avgDistance,
-      readings: result.readings,
-      timestamp: Date.now(),
+      this.usingGeolocation = false
     }
   }
 

@@ -24,7 +24,7 @@
 <script setup>
 import { defineProps, defineEmits, markRaw } from 'vue'
 
-const props = defineProps({
+defineProps({
   type: {
     type: String,
     default: 'info',
@@ -34,7 +34,7 @@ const props = defineProps({
   closable: Boolean
 })
 
-const emit = defineEmits(['close'])
+defineEmits(['close'])
 
 const icons = {
   success: markRaw({

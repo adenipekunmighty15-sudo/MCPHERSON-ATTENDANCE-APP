@@ -3,13 +3,6 @@
 -- Podcasts, Study Groups, Collaboration
 -- ═══════════════════════════════════════════════════════════════════════
 
--- 0. Drop old tables if they exist with wrong types (from previous JS migration)
--- Drop old tables + old FK constraints that may have wrong types
-DROP TABLE IF EXISTS public.group_shared_materials CASCADE;
-DROP TABLE IF EXISTS public.study_group_members CASCADE;
-DROP TABLE IF EXISTS public.study_groups CASCADE;
-DROP TABLE IF EXISTS public.podcasts CASCADE;
-
 -- 1. PODCASTS TABLE
 -- Note: material_id is TEXT to match study_materials.id type on the database
 CREATE TABLE IF NOT EXISTS public.podcasts (

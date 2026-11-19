@@ -6,6 +6,7 @@ import Lenis from 'lenis'
 import App from './App.vue'
 import router from './router'
 import * as Components from './components'
+import safeHtml from './directives/safeHtml'
 import './index.css'
 import './design-kit/tokens.css'
 
@@ -31,6 +32,7 @@ app.use(createPinia())
 app.use(router)
 app.use(MotionPlugin)
 app.directive('confetti', vConfetti)
+app.directive('safe-html', safeHtml)
 
 // Auto-register global UI components
 Object.entries(Components).forEach(([name, component]) => {
@@ -57,6 +59,19 @@ requestAnimationFrame(raf)
 // Register service worker for PWA
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
+    const hadController = !!navigator.serviceWorker.controller
+    let reloading = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController && !reloading) {
+        reloading = true
+        window.location.reload()
+      }
+    })
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => registration.update())
+      .catch(() => {})
+    window.addEventListener('focus', () => {
+      navigator.serviceWorker.getRegistration().then(registration => registration?.update()).catch(() => {})
+    })
   })
 }

@@ -82,7 +82,7 @@ onMounted(async () => {
         provider: supaUser.app_metadata?.provider || 'google',
       }
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+        const apiUrl = import.meta.env.VITE_API_URL || '/api'
         await fetch(apiUrl + '/auth/create-user-profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session.access_token || '') },

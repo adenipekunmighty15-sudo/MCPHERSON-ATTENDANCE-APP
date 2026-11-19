@@ -4,18 +4,84 @@ import { query } from '../../lib/db.js'
 
 const router = Router()
 
+const ADMIN_ROLES = ['admin', 'super_admin']
+const MAX_LIMIT = 100
+const DEFAULT_LIMIT = 100
+
+// Returns null when the supplied value is not a valid positive integer.
+function parsePositiveInt(value, fallback, max) {
+  if (value === undefined) return fallback
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) return null
+  return parsed
+}
+
+// Admins see all attendance. Lecturers are scoped to courses they teach
+// (course ownership, explicit assignments, or sessions they ran); students
+// are scoped to their own records.
+function attendanceScope(req) {
+  if (ADMIN_ROLES.includes(req.user.role)) return { where: '', params: [] }
+  if (req.user.role === 'lecturer') {
+    return {
+      where: `WHERE (
+          c.lecturer_id = $1
+          OR EXISTS (
+            SELECT 1 FROM public.lecturer_courses lc
+            WHERE lc.course_id::text = a.course_id::text AND lc.lecturer_id = $1
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.live_sessions ls
+            WHERE ls.id::text = a.session_id::text AND ls.lecturer_id = $1
+          )
+        )`,
+      params: [req.user.id],
+    }
+  }
+  return { where: 'WHERE a.user_id = $1', params: [req.user.id] }
+}
+
 router.get('/api/reports', authenticate, async (req, res) => {
   try {
-    const canViewAll = ['admin', 'super_admin', 'lecturer'].includes(req.user.role)
-    const params = canViewAll ? [] : [req.user.id]
-    const where = canViewAll ? '' : 'WHERE a.user_id = $1'
+    const limit = parsePositiveInt(req.query.limit, DEFAULT_LIMIT, MAX_LIMIT)
+    const page = parsePositiveInt(req.query.page, 1, 1000000)
+    if (limit === null || page === null) {
+      return res.status(400).json({ error: 'Invalid report pagination' })
+    }
+
+    // ?page= is preferred; legacy ?offset= remains supported for existing callers.
+    let offset
+    if (req.query.page !== undefined) {
+      offset = (page - 1) * limit
+    } else {
+      const legacyOffset = Number(req.query.offset ?? 0)
+      if (!Number.isInteger(legacyOffset) || legacyOffset < 0 || legacyOffset > 1000000) {
+        return res.status(400).json({ error: 'Invalid report pagination' })
+      }
+      offset = legacyOffset
+      // Derive a page number so meta remains meaningful for legacy callers.
+      // (Reassigned below via a local const to avoid mutating `page`.)
+    }
+    const effectivePage = req.query.page !== undefined ? page : Math.floor(offset / limit) + 1
+
+    const scope = attendanceScope(req)
+    const { rows: countRows } = await query(
+      `SELECT COUNT(*)::int AS total
+       FROM public.attendance a
+       LEFT JOIN public.courses c ON a.course_id = c.id
+       ${scope.where}`,
+      scope.params
+    )
+    const total = countRows[0]?.total ?? 0
+
+    const params = [...scope.params, limit, offset]
     const { rows } = await query(
       `SELECT a.*, c.title as course_name_fallback, u.name as student_name, u.email as student_email
        FROM public.attendance a
        LEFT JOIN public.courses c ON a.course_id = c.id
        LEFT JOIN public.users u ON a.user_id = u.id
-       ${where}
-       ORDER BY a.timestamp DESC`,
+       ${scope.where}
+       ORDER BY a.timestamp DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params
     )
     const enriched = rows.map(r => ({
@@ -26,7 +92,7 @@ router.get('/api/reports', authenticate, async (req, res) => {
       studentName: r.student_name || 'Unknown',
       studentEmail: r.student_email || '',
     }))
-    res.status(200).json(enriched)
+    res.status(200).json({ data: enriched, meta: { page: effectivePage, limit, total } })
   } catch (err) {
     console.error('Failed to load reports:', err.message)
     res.status(500).json({ error: 'Failed to load reports' })
@@ -35,17 +101,16 @@ router.get('/api/reports', authenticate, async (req, res) => {
 
 router.get('/api/insights', authenticate, async (req, res) => {
   try {
-    const canViewAll = ['admin', 'super_admin', 'lecturer'].includes(req.user.role)
-    const params = canViewAll ? [] : [req.user.id]
-    const where = canViewAll ? '' : 'WHERE a.user_id = $1'
+    const canViewAll = ADMIN_ROLES.includes(req.user.role)
+    const scope = attendanceScope(req)
     const { rows } = await query(
       `SELECT a.*, c.code AS course_code, c.title AS course_title, u.name AS student_name, u.email AS student_email
        FROM public.attendance a
        LEFT JOIN public.courses c ON a.course_id = c.id
        LEFT JOIN public.users u ON a.user_id = u.id
-       ${where}
+       ${scope.where}
        ORDER BY a.timestamp DESC`,
-      params
+      scope.params
     )
 
     const totals = { records: rows.length, present: 0, absent: 0, ooo: 0, late: 0 }
@@ -71,7 +136,7 @@ router.get('/api/insights', authenticate, async (req, res) => {
       course.records += 1
       if (Object.prototype.hasOwnProperty.call(course, row.status)) course[row.status] += 1
 
-      if (canViewAll) {
+      if (canViewAll || req.user.role === 'lecturer') {
         const studentId = row.user_id || 'unknown'
         if (!byStudent.has(studentId)) {
           byStudent.set(studentId, {

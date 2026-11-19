@@ -5,7 +5,7 @@
     v-bind="$attrs"
   >
     <span v-if="loading" class="dk-btn__spinner" aria-hidden="true"></span>
-    <span v-if="!loading && icon" class="dk-btn__icon" v-html="icon"></span>
+    <span v-if="!loading && icon" class="dk-btn__icon" v-safe-html="icon"></span>
     <span class="dk-btn__label"><slot /></span>
   </button>
 </template>

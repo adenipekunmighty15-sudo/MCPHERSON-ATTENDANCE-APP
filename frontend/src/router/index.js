@@ -170,6 +170,12 @@ const routes = [
     meta: { title: 'Reset Password' },
   },
   {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('../pages/ResetPassword.vue'),
+    meta: { title: 'Choose a New Password' },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../pages/NotFound.vue'),

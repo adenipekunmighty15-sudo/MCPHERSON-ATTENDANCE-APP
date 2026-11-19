@@ -20,9 +20,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({
+rondefineProps({
   label: String,
   error: String,
   hint: String,
@@ -36,7 +34,6 @@ const props = defineProps({
   }
 })
 
-const hasError = computed(() => Boolean(props.error))
 </script>
 
 <style scoped>

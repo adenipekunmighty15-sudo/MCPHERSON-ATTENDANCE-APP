@@ -357,11 +357,17 @@ function isSimpleQuery(text) {
   return trimmed.length < 90 && sentenceCount <= 1
 }
 
+function escapeHtml(text) {
+  return String(text).replace(/[<>&"']/g, (c) => ({
+    '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;',
+  })[c])
+}
+
 function fallbackResponse(messages) {
   const lastUser = messages.filter(m => m.role === 'user').slice(-1)[0]
-  const q = lastUser?.content || 'your question'
+  const q = escapeHtml(lastUser?.content || 'your question').slice(0, 100)
   return {
-    final: `I appreciate your question about "${q.slice(0, 100)}". I'm currently unable to generate a full response as my AI providers are temporarily unavailable. Please try again in a moment — I'll be happy to help once the connection is restored.`,
+    final: `I appreciate your question about "${q}". I'm currently unable to generate a full response as my AI providers are temporarily unavailable. Please try again in a moment — I'll be happy to help once the connection is restored.`,
     council: [{ provider: 'fallback', thinking: 'All providers unavailable', answer: 'Fallback response' }],
     finalThinking: 'Primary and backup AI providers were unreachable. Sent fallback message.',
     followUps: ['Can you try asking again?', 'Is there another topic I can help with?'],
