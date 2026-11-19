@@ -978,7 +978,7 @@ async function handleSignup() {
     })
 
     toast.success('Your account is ready. Welcome to McPherson!')
-    router.push(safeRedirect())
+    router.push({ name: 'Dashboard' })
   } catch (err) {
     toast.error(formatAuthError(err, 'Unable to create your account. Please try again.'))
   } finally {

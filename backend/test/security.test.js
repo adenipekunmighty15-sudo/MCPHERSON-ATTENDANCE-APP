@@ -109,6 +109,13 @@ test('registration auto-confirms allowed domains and signs the user straight in'
   assert.match(signUp, /\/auth\/register/)
   assert.match(signUp, /signInWithPassword/)
   assert.doesNotMatch(signUp, /needsConfirmation/)
+
+  const loginPage = read('../frontend/src/pages/Login.vue')
+  const signupHandler = loginPage.slice(
+    loginPage.indexOf('async function handleSignup'),
+    loginPage.indexOf('async function handleForgot')
+  )
+  assert.match(signupHandler, /name: 'Dashboard'/)
 })
 
 test('frontend check-in uses the active session and server-supported GPS fields', () => {
