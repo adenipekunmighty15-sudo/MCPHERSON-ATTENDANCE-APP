@@ -69,10 +69,10 @@ role and active flag are read from `public.users`.
    creates the Supabase user with `email_confirm: true`, writes the
    `public.users` profile with role `student`, and the frontend immediately
    starts a session. There is no confirmation-email step for new accounts. If
-   an older unconfirmed account exists and was never used, signing up again
-   safely reclaims it and completes setup with the new password. Unconfirmed
-   accounts with real activity receive a confirmation-email resend instead.
-   Client-supplied roles are ignored.
+   an older unconfirmed account exists, signing up again resends its
+   confirmation email instead of changing the account. After confirming, the
+   user can choose a new password with Forgot password. Client-supplied roles
+   are ignored.
 7. `POST /api/auth/login` verifies the password through Supabase's salted,
    slow hash, checks `public.users.is_active`, updates `last_login`, and
    returns only safe profile fields. Wrong credentials always produce the same

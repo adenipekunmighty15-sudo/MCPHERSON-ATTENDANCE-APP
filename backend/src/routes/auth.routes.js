@@ -131,37 +131,6 @@ async function createConfirmedAuthUser(email, password, metadata) {
   return { userId: data?.user?.id || null, error }
 }
 
-// Old signup attempts can leave an unconfirmed auth user plus a profile. If it
-// was never used, we can safely delete it and create a fresh confirmed account
-// with the password chosen now. Accounts with sign-in history, external
-// identities, privileged roles or attendance data are never reclaimed.
-async function reclaimUnusedUnconfirmedAccount(existing) {
-  let profile = null
-  try {
-    const { rows } = await query(
-      `SELECT name, department, role, face_descriptor, last_login
-       FROM public.users WHERE id = $1`,
-      [existing.id],
-    )
-    profile = rows[0] || null
-  } catch (e) {
-    console.warn('Reclaim profile lookup failed:', e.message)
-    return null
-  }
-
-  if (!canReclaimUnconfirmedAccount(existing, profile)) return null
-
-  try {
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(existing.id)
-    if (error) throw error
-    await query('DELETE FROM public.users WHERE id = $1', [existing.id])
-    return { profile }
-  } catch (e) {
-    console.warn('Unused account reclaim failed:', e.message)
-    return null
-  }
-}
-
 // Self-service registration. The admin API creates an already-confirmed auth
 // user, so the browser can immediately exchange the password for a session.
 // Role is always student here — the client never chooses its own permissions.
@@ -176,8 +145,6 @@ async function registerHandler(req, res) {
 
   const canonicalDepartmentName = await canonicalDepartment(department)
   metadata.department = canonicalDepartmentName
-  let profileName = fullName
-  let profileDepartment = canonicalDepartmentName
 
   // The database unique indexes below are the race-condition backstop; this
   // check only turns ordinary duplicates into a friendly 409 response.
@@ -196,8 +163,7 @@ async function registerHandler(req, res) {
   }
 
   try {
-    let userId
-    let creation = await createConfirmedAuthUser(email, password, metadata)
+    const creation = await createConfirmedAuthUser(email, password, metadata)
 
     if (creation.error) {
       if (!isDuplicateAccountError(creation.error)) {
@@ -205,49 +171,34 @@ async function registerHandler(req, res) {
         return res.status(500).json({ error: 'Could not create your account. Please try again.' })
       }
 
-      // GoTrue rejects password grants for unconfirmed users, so password
-      // proof cannot finish these old accounts. Reclaim only the ones that
-      // were never used; everything else still needs email confirmation.
+      // GoTrue rejects password grants for unconfirmed users. Preserve the
+      // account and resend its confirmation email instead of changing it.
       const existing = await findAuthUserByEmail(email)
       if (!existing || existing.email_confirmed_at) {
         return res.status(409).json({ error: 'An account with this email already exists. Try signing in.' })
       }
 
-      const reclaimed = await reclaimUnusedUnconfirmedAccount(existing)
-      if (reclaimed) {
-        profileName = reclaimed.profile?.name || profileName
-        profileDepartment = reclaimed.profile?.department || profileDepartment
-        metadata.name = profileName
-        metadata.full_name = profileName
-        metadata.department = profileDepartment
-        creation = await createConfirmedAuthUser(email, password, metadata)
-        if (!creation.error) userId = creation.userId
+      const resend = await resendSignupConfirmation(email)
+      if (!resend.configured) {
+        console.error('Signup confirmation resend is not configured')
+        return res.status(503).json({ error: 'Could not resend the confirmation link right now. Please try again later.' })
       }
-
-      if (!userId) {
-        const resend = await resendSignupConfirmation(email)
-        if (!resend.configured) {
-          console.error('Signup confirmation resend is not configured')
-          return res.status(503).json({ error: 'Could not resend the confirmation link right now. Please try again later.' })
-        }
-        if (!resend.ok) {
-          console.warn(`Signup confirmation resend failed with status ${resend.status}`)
-          return res.status(resend.status === 429 ? 429 : 503).json({
-            error: resend.status === 429
-              ? 'A confirmation email was sent recently. Please check your inbox before trying again.'
-              : 'Could not resend the confirmation link right now. Please try again later.',
-          })
-        }
-        return res.status(200).json({
-          success: true,
-          confirmationRequired: true,
-          message: 'We found an unfinished account for this email and sent a new confirmation link. Confirm it, then use Forgot password to choose a new password.',
+      if (!resend.ok) {
+        console.warn(`Signup confirmation resend failed with status ${resend.status}`)
+        return res.status(resend.status === 429 ? 429 : 503).json({
+          error: resend.status === 429
+            ? 'A confirmation email was sent recently. Please check your inbox before trying again.'
+            : 'Could not resend the confirmation link right now. Please try again later.',
         })
       }
-    } else {
-      userId = creation.userId
+      return res.status(200).json({
+        success: true,
+        confirmationRequired: true,
+        message: 'We found an unfinished account for this email and sent a new confirmation link. Confirm it, then use Forgot password to choose a new password.',
+      })
     }
 
+    const userId = creation.userId
     if (!userId) return res.status(500).json({ error: 'Could not create your account. Please try again.' })
 
     await query(
@@ -261,7 +212,7 @@ async function registerHandler(req, res) {
          provider = EXCLUDED.provider,
          matric_number = EXCLUDED.matric_number,
          staff_id = EXCLUDED.staff_id`,
-      [userId, email, profileName, profileDepartment, identifier, identifier],
+      [userId, email, fullName, canonicalDepartmentName, identifier, identifier],
     )
 
     return res.status(201).json({ success: true, userId })

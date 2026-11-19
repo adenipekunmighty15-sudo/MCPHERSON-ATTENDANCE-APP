@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  canReclaimUnconfirmedAccount,
   isDuplicateAccountError,
   isSafeRedirect,
   normalizeAccountIdentifier,
@@ -113,9 +112,8 @@ test('registration resends confirmation for an existing unconfirmed account', ()
   assert.match(auth, /async function createConfirmedAuthUser[\s\S]*email_confirm:\s*true/)
   assert.match(route, /isDuplicateAccountError\(creation\.error\)/)
   assert.match(route, /resendSignupConfirmation\(email\)/)
-  assert.match(route, /reclaimUnusedUnconfirmedAccount\(existing\)/)
   assert.match(route, /confirmationRequired:\s*true/)
-  assert.doesNotMatch(route, /verifyPassword|updateUserById|waiting for setup/)
+  assert.doesNotMatch(route, /verifyPassword|updateUserById|deleteUser|reclaimUnusedUnconfirmedAccount/)
   assert.match(route, /'student'/)
   assert.doesNotMatch(route, /body\.role/)
   assert.match(auth, /router\.post\('\/api\/auth\/signup', registerHandler\)/)
@@ -138,18 +136,6 @@ test('registration resends confirmation for an existing unconfirmed account', ()
   )
   assert.match(signupHandler, /signupResult\?\.confirmationRequired/)
   assert.match(signupHandler, /name: 'Dashboard'/)
-})
-
-test('unused unconfirmed accounts are reclaimed only when they are safe to replace', () => {
-  const unusedAuth = { last_sign_in_at: null, identities: [] }
-  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, null), true)
-  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { role: 'student' }), true)
-
-  assert.equal(canReclaimUnconfirmedAccount({ last_sign_in_at: '2026-11-19T00:00:00Z', identities: [] }, null), false)
-  assert.equal(canReclaimUnconfirmedAccount({ last_sign_in_at: null, identities: [{ provider: 'google' }] }, null), false)
-  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { role: 'admin' }), false)
-  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { face_descriptor: 'stored' }), false)
-  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { last_login: '2026-11-19T00:00:00Z' }), false)
 })
 
 test('signup confirmation resend sends only the email and anon API key', async () => {

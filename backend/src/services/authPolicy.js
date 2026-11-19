@@ -38,21 +38,6 @@ export function isDuplicateAccountError(error) {
     message.includes('email address has already')
 }
 
-// An unconfirmed auth account can be reclaimed safely only when it has never
-// been used: no sign-in, no external identity, no privileged role and no
-// attendance/biometric data. Anything with real activity must go through a
-// password proof or password reset instead.
-export function canReclaimUnconfirmedAccount(authUser, profile) {
-  const externalIdentity = (authUser?.identities || []).some(
-    (identity) => identity?.provider && identity.provider !== 'email',
-  )
-  if (authUser?.last_sign_in_at || externalIdentity) return false
-  if (!profile) return true
-  if (!['student'].includes(String(profile.role || 'student').toLowerCase())) return false
-  if (profile.face_descriptor || profile.last_login) return false
-  return true
-}
-
 export function validatePassword(password) {
   if (typeof password !== 'string') {
     return { valid: false, error: 'Password must be 8–128 characters with uppercase, lowercase, number and symbol.' }
