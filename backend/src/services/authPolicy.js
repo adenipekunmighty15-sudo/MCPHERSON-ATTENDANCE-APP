@@ -38,6 +38,21 @@ export function isDuplicateAccountError(error) {
     message.includes('email address has already')
 }
 
+// An unconfirmed auth account can be reclaimed safely only when it has never
+// been used: no sign-in, no external identity, no privileged role and no
+// attendance/biometric data. Anything with real activity must go through a
+// password proof or password reset instead.
+export function canReclaimUnconfirmedAccount(authUser, profile) {
+  const externalIdentity = (authUser?.identities || []).some(
+    (identity) => identity?.provider && identity.provider !== 'email',
+  )
+  if (authUser?.last_sign_in_at || externalIdentity) return false
+  if (!profile) return true
+  if (!['student'].includes(String(profile.role || 'student').toLowerCase())) return false
+  if (profile.face_descriptor || profile.last_login) return false
+  return true
+}
+
 export function validatePassword(password) {
   if (typeof password !== 'string') {
     return { valid: false, error: 'Password must be 8–128 characters with uppercase, lowercase, number and symbol.' }
@@ -55,7 +70,7 @@ export function validatePassword(password) {
   }
 }
 
-function pickIdentifier(body) {
+export function pickStudentIdentifier(body = {}) {
   const raw = body.matric ?? body.matric_number ?? body.matricNumber ?? body.staff_id ?? body.staffId
   const value = cleanText(raw, 24)
   return STUDENT_ID_PATTERN.test(value) ? value.toUpperCase() : ''
@@ -76,7 +91,7 @@ export function validateRegistration(body = {}) {
   const fullName = cleanText(body.name ?? body.full_name, 100)
   if (fullName.length < 2) return { error: 'Enter your full name.', status: 400 }
 
-  const identifier = pickIdentifier(body)
+  const identifier = pickStudentIdentifier(body)
   if (!identifier && (body.matric || body.matric_number || body.matricNumber || body.staff_id || body.staffId)) {
     return { error: 'Use 3–24 letters, numbers, /, - or _ for your ID.', status: 400 }
   }

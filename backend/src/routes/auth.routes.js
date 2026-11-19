@@ -6,8 +6,10 @@ import {
   cleanText,
   isDuplicateAccountError,
   normalizeAccountIdentifier,
+  pickStudentIdentifier,
   validateRegistration,
 } from '../services/authPolicy.js'
+import { resendSignupConfirmation } from '../services/signupConfirmation.js'
 import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'crypto'
 import multer from 'multer'
 import { uploadFile, getPublicUrl } from '../services/storage.js'
@@ -119,11 +121,45 @@ async function passwordGrant(email, password) {
   }
 }
 
-// Password proof prevents an unauthenticated caller from confirming somebody
-// else's stale, unconfirmed account.
-async function verifyPassword(email, password) {
-  const result = await passwordGrant(email, password)
-  return result.ok && !!result.data?.access_token
+async function createConfirmedAuthUser(email, password, metadata) {
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: metadata,
+  })
+  return { userId: data?.user?.id || null, error }
+}
+
+// Old signup attempts can leave an unconfirmed auth user plus a profile. If it
+// was never used, we can safely delete it and create a fresh confirmed account
+// with the password chosen now. Accounts with sign-in history, external
+// identities, privileged roles or attendance data are never reclaimed.
+async function reclaimUnusedUnconfirmedAccount(existing) {
+  let profile = null
+  try {
+    const { rows } = await query(
+      `SELECT name, department, role, face_descriptor, last_login
+       FROM public.users WHERE id = $1`,
+      [existing.id],
+    )
+    profile = rows[0] || null
+  } catch (e) {
+    console.warn('Reclaim profile lookup failed:', e.message)
+    return null
+  }
+
+  if (!canReclaimUnconfirmedAccount(existing, profile)) return null
+
+  try {
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(existing.id)
+    if (error) throw error
+    await query('DELETE FROM public.users WHERE id = $1', [existing.id])
+    return { profile }
+  } catch (e) {
+    console.warn('Unused account reclaim failed:', e.message)
+    return null
+  }
 }
 
 // Self-service registration. The admin API creates an already-confirmed auth
@@ -140,6 +176,8 @@ async function registerHandler(req, res) {
 
   const canonicalDepartmentName = await canonicalDepartment(department)
   metadata.department = canonicalDepartmentName
+  let profileName = fullName
+  let profileDepartment = canonicalDepartmentName
 
   // The database unique indexes below are the race-condition backstop; this
   // check only turns ordinary duplicates into a friendly 409 response.
@@ -159,38 +197,55 @@ async function registerHandler(req, res) {
 
   try {
     let userId
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: metadata,
-    })
+    let creation = await createConfirmedAuthUser(email, password, metadata)
 
-    if (error) {
-      if (!isDuplicateAccountError(error)) {
-        console.error('Registration failed:', error.message)
+    if (creation.error) {
+      if (!isDuplicateAccountError(creation.error)) {
+        console.error('Registration failed:', creation.error.message)
         return res.status(500).json({ error: 'Could not create your account. Please try again.' })
       }
 
-      // A previous signup may have left an auth user without confirming it.
-      // Only finish that setup when the caller proves they know its password.
+      // GoTrue rejects password grants for unconfirmed users, so password
+      // proof cannot finish these old accounts. Reclaim only the ones that
+      // were never used; everything else still needs email confirmation.
       const existing = await findAuthUserByEmail(email)
       if (!existing || existing.email_confirmed_at) {
         return res.status(409).json({ error: 'An account with this email already exists. Try signing in.' })
       }
-      if (!(await verifyPassword(email, password))) {
-        return res.status(409).json({ error: 'An account with this email is waiting for setup. Sign in with its password to finish.' })
+
+      const reclaimed = await reclaimUnusedUnconfirmedAccount(existing)
+      if (reclaimed) {
+        profileName = reclaimed.profile?.name || profileName
+        profileDepartment = reclaimed.profile?.department || profileDepartment
+        metadata.name = profileName
+        metadata.full_name = profileName
+        metadata.department = profileDepartment
+        creation = await createConfirmedAuthUser(email, password, metadata)
+        if (!creation.error) userId = creation.userId
       }
 
-      const { data: updated, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
-        email_confirm: true,
-        password,
-        user_metadata: { ...(existing.user_metadata || {}), ...metadata },
-      })
-      if (updateError) throw updateError
-      userId = updated?.user?.id || existing.id
+      if (!userId) {
+        const resend = await resendSignupConfirmation(email)
+        if (!resend.configured) {
+          console.error('Signup confirmation resend is not configured')
+          return res.status(503).json({ error: 'Could not resend the confirmation link right now. Please try again later.' })
+        }
+        if (!resend.ok) {
+          console.warn(`Signup confirmation resend failed with status ${resend.status}`)
+          return res.status(resend.status === 429 ? 429 : 503).json({
+            error: resend.status === 429
+              ? 'A confirmation email was sent recently. Please check your inbox before trying again.'
+              : 'Could not resend the confirmation link right now. Please try again later.',
+          })
+        }
+        return res.status(200).json({
+          success: true,
+          confirmationRequired: true,
+          message: 'We found an unfinished account for this email and sent a new confirmation link. Confirm it, then use Forgot password to choose a new password.',
+        })
+      }
     } else {
-      userId = data?.user?.id
+      userId = creation.userId
     }
 
     if (!userId) return res.status(500).json({ error: 'Could not create your account. Please try again.' })
@@ -206,7 +261,7 @@ async function registerHandler(req, res) {
          provider = EXCLUDED.provider,
          matric_number = EXCLUDED.matric_number,
          staff_id = EXCLUDED.staff_id`,
-      [userId, email, fullName, canonicalDepartmentName, identifier, identifier],
+      [userId, email, profileName, profileDepartment, identifier, identifier],
     )
 
     return res.status(201).json({ success: true, userId })
@@ -257,6 +312,7 @@ router.post('/api/auth/login', async (req, res) => {
   const accountEmail = supaUser.email || email
   const metaName = cleanText(supaUser.user_metadata?.name || supaUser.user_metadata?.full_name, 100)
   const metaDepartment = cleanText(supaUser.user_metadata?.department, 100)
+  const metaIdentifier = pickStudentIdentifier(supaUser.user_metadata || {})
   let profile = null
 
   try {
@@ -274,7 +330,7 @@ router.post('/api/auth/login', async (req, res) => {
         `INSERT INTO public.users (id, email, name, role, department, provider, matric_number, staff_id)
          VALUES ($1, $2, $3, 'student', $4, 'email', $5, $5)
          ON CONFLICT (id) DO NOTHING`,
-        [supaUser.id, accountEmail, name, departmentName, metaName || ''],
+        [supaUser.id, accountEmail, name, departmentName, metaIdentifier],
       )
       rows = await query(
         `SELECT id, email, name, role, department, provider, matric_number, staff_id, is_active, avatar_url

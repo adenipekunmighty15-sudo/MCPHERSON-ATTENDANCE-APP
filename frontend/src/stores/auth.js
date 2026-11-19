@@ -199,7 +199,8 @@ export const useAuthStore = defineStore('auth', () => {
       // The backend creates the auth user with email_confirm=true for allowed
       // domains, so signup always returns a real session and the user lands
       // straight in the app. Role stays server-owned (always student here).
-      await api.post('/auth/signup', { email, password, ...metadata })
+      const { data: registration } = await api.post('/auth/signup', { email, password, ...metadata })
+      if (registration?.confirmationRequired) return registration
 
       const { data, error: supaError } = await supabase.auth.signInWithPassword({ email, password })
       if (supaError) throw supaError

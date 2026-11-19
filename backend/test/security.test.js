@@ -3,11 +3,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  canReclaimUnconfirmedAccount,
   isDuplicateAccountError,
   isSafeRedirect,
   normalizeAccountIdentifier,
+  pickStudentIdentifier,
   validatePassword,
 } from '../src/services/authPolicy.js'
+import { resendSignupConfirmation } from '../src/services/signupConfirmation.js'
 
 const root = join(import.meta.dirname, '..')
 const read = (relativePath) => readFileSync(join(root, relativePath), 'utf8')
@@ -101,16 +104,18 @@ test('Supabase email rate-limit text is hidden from users', () => {
   assert.match(store, /That service is temporarily busy/)
 })
 
-test('registration auto-confirms allowed domains and signs the user straight in', () => {
+test('registration resends confirmation for an existing unconfirmed account', () => {
   const auth = read('src/routes/auth.routes.js')
   const start = auth.indexOf('async function registerHandler')
   const end = auth.indexOf("router.post('/api/auth/confirm-signup'")
   const route = auth.slice(start, end)
   assert.match(route, /validateRegistration\(req\.body/)
-  assert.match(route, /email_confirm:\s*true/)
-  assert.match(route, /isDuplicateAccountError\(error\)/)
-  assert.match(route, /verifyPassword\(email, password\)/)
-  assert.match(route, /email_confirm:\s*true,\s*password/)
+  assert.match(auth, /async function createConfirmedAuthUser[\s\S]*email_confirm:\s*true/)
+  assert.match(route, /isDuplicateAccountError\(creation\.error\)/)
+  assert.match(route, /resendSignupConfirmation\(email\)/)
+  assert.match(route, /reclaimUnusedUnconfirmedAccount\(existing\)/)
+  assert.match(route, /confirmationRequired:\s*true/)
+  assert.doesNotMatch(route, /verifyPassword|updateUserById|waiting for setup/)
   assert.match(route, /'student'/)
   assert.doesNotMatch(route, /body\.role/)
   assert.match(auth, /router\.post\('\/api\/auth\/signup', registerHandler\)/)
@@ -122,6 +127,7 @@ test('registration auto-confirms allowed domains and signs the user straight in'
   const store = read('../frontend/src/stores/auth.js')
   const signUp = store.slice(store.indexOf('async function signUp'), store.indexOf('async function signInWithOAuth'))
   assert.match(signUp, /\/auth\/signup/)
+  assert.match(signUp, /registration\?\.confirmationRequired/)
   assert.match(signUp, /signInWithPassword/)
   assert.doesNotMatch(signUp, /needsConfirmation/)
 
@@ -130,16 +136,74 @@ test('registration auto-confirms allowed domains and signs the user straight in'
     loginPage.indexOf('async function handleSignup'),
     loginPage.indexOf('async function handleForgot')
   )
+  assert.match(signupHandler, /signupResult\?\.confirmationRequired/)
   assert.match(signupHandler, /name: 'Dashboard'/)
+})
+
+test('unused unconfirmed accounts are reclaimed only when they are safe to replace', () => {
+  const unusedAuth = { last_sign_in_at: null, identities: [] }
+  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, null), true)
+  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { role: 'student' }), true)
+
+  assert.equal(canReclaimUnconfirmedAccount({ last_sign_in_at: '2026-11-19T00:00:00Z', identities: [] }, null), false)
+  assert.equal(canReclaimUnconfirmedAccount({ last_sign_in_at: null, identities: [{ provider: 'google' }] }, null), false)
+  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { role: 'admin' }), false)
+  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { face_descriptor: 'stored' }), false)
+  assert.equal(canReclaimUnconfirmedAccount(unusedAuth, { last_login: '2026-11-19T00:00:00Z' }), false)
+})
+
+test('signup confirmation resend sends only the email and anon API key', async () => {
+  let request
+  const result = await resendSignupConfirmation('student@example.edu', {
+    supabaseUrl: 'https://project.example',
+    anonKey: 'public-test-key',
+    fetchImpl: async (url, options) => {
+      request = { url, options }
+      return { ok: true, status: 200 }
+    },
+  })
+
+  assert.deepEqual(result, { configured: true, ok: true, status: 200 })
+  assert.equal(request.url, 'https://project.example/auth/v1/resend')
+  assert.equal(request.options.method, 'POST')
+  assert.equal(request.options.headers.apikey, 'public-test-key')
+  assert.deepEqual(JSON.parse(request.options.body), { type: 'signup', email: 'student@example.edu' })
+  assert.equal(request.options.body.includes('password'), false)
+})
+
+test('signup confirmation resend reports missing configuration and provider failures', async () => {
+  assert.deepEqual(
+    await resendSignupConfirmation('student@example.edu', { supabaseUrl: '', anonKey: '' }),
+    { configured: false, ok: false, status: 0 },
+  )
+
+  const result = await resendSignupConfirmation('student@example.edu', {
+    supabaseUrl: 'https://project.example',
+    anonKey: 'public-test-key',
+    fetchImpl: async () => ({ ok: false, status: 429 }),
+  })
+  assert.deepEqual(result, { configured: true, ok: false, status: 429 })
 })
 
 test('auth policy normalizes identifiers and enforces the full password rules', () => {
   assert.equal(normalizeAccountIdentifier('  MCU123 '), 'mcu123@undergraduate.mcu.edu.ng')
   assert.equal(normalizeAccountIdentifier('STU.DENT@GMAIL.COM'), 'stu.dent@gmail.com')
   assert.equal(normalizeAccountIdentifier('bad id'), '')
+  assert.equal(pickStudentIdentifier({ matric_number: 'mcu/2024-01' }), 'MCU/2024-01')
+  assert.equal(pickStudentIdentifier({ staff_id: 'invalid id' }), '')
   assert.equal(validatePassword('Short1!').valid, false)
   assert.equal(validatePassword('alllower1!').valid, false)
   assert.equal(validatePassword('LongEnough1!').valid, true)
+})
+
+test('a confirmed legacy signup stores its matric identifier, not its name', () => {
+  const auth = read('src/routes/auth.routes.js')
+  const login = auth.slice(
+    auth.indexOf("router.post('/api/auth/login'"),
+    auth.indexOf("router.post('/api/auth/logout'"),
+  )
+  assert.match(login, /pickStudentIdentifier\(supaUser\.user_metadata \|\| \{\}\)/)
+  assert.match(login, /\[supaUser\.id, accountEmail, name, departmentName, metaIdentifier\]/)
 })
 
 test('duplicate account errors are detected across GoTrue message variants', () => {
