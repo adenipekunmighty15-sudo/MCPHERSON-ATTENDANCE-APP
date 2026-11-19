@@ -151,15 +151,38 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     try {
       if (!supabase || !supabaseConfigured) throw new Error('Authentication is not configured')
-      const { data, error: supaError } = await supabase.auth.signInWithPassword({ email, password })
-      if (supaError) throw supaError
-      user.value = buildUser(data)
-      session.value = data.session
+
+      // The API validates policy/account status and performs the password
+      // grant with the public anon key. Supabase still owns the session.
+      const { data } = await api.post('/auth/login', { email, password })
+      const sessionTokens = data?.session
+      if (!sessionTokens?.access_token || !sessionTokens?.refresh_token) {
+        throw new Error('Authentication is not configured')
+      }
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: sessionTokens.access_token,
+        refresh_token: sessionTokens.refresh_token,
+      })
+      if (sessionError) throw sessionError
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const nextSession = sessionData?.session || null
+      user.value = buildUser(nextSession || data?.user)
+      if (user.value && data?.user) {
+        if (data.user.role) user.value.role = data.user.role
+        if (data.user.name) user.value.name = data.user.name
+        if (data.user.department) user.value.department = data.user.department
+        if (data.user.avatarUrl) user.value.avatarUrl = data.user.avatarUrl
+        if (data.user.matricNumber) user.value.matricNumber = data.user.matricNumber
+      }
+      session.value = nextSession
       freshLogin.value = true
       await syncProfile()
-      return data
+      return nextSession
     } catch (err) {
-      const msg = friendlyAuthError(err)
+      const serverMessage = err?.response?.data?.error
+      const msg = friendlyAuthError(serverMessage ? new Error(serverMessage) : err)
       error.value = msg
       throw new Error(msg)
     } finally {
@@ -176,7 +199,7 @@ export const useAuthStore = defineStore('auth', () => {
       // The backend creates the auth user with email_confirm=true for allowed
       // domains, so signup always returns a real session and the user lands
       // straight in the app. Role stays server-owned (always student here).
-      await api.post('/auth/register', { email, password, ...metadata })
+      await api.post('/auth/signup', { email, password, ...metadata })
 
       const { data, error: supaError } = await supabase.auth.signInWithPassword({ email, password })
       if (supaError) throw supaError
@@ -234,11 +257,36 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     error.value = null
+    const currentToken = session.value?.access_token || null
     user.value = null
     session.value = null
+    freshLogin.value = false
+
+    // Revoke the refresh token on the server first. A raw fetch avoids the API
+    // interceptor turning an expired token into a redirect loop on sign-out.
+    if (currentToken) {
+      try {
+        const baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
+        await fetch(`${baseUrl}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${currentToken}`,
+          },
+          keepalive: true,
+        })
+      } catch (e) {
+        console.warn('[auth] Server signout unavailable:', e?.message || e)
+      }
+    }
+
     // Keep the auth subscription alive for cross-tab sign-out / later logins.
-    localStorage.removeItem('mcu_user')
-    try { if (supabase && supabaseConfigured) await supabase.auth.signOut() } catch (e) { console.warn('[auth] Signout error:', e) }
+    try { localStorage.removeItem('mcu_user') } catch { /* optional */ }
+    try {
+      if (supabase && supabaseConfigured) await supabase.auth.signOut({ scope: 'local' })
+    } catch (e) {
+      console.warn('[auth] Signout error:', e?.message || e)
+    }
   }
 
   return {

@@ -2,6 +2,11 @@ import { Router } from 'express'
 import { authenticate, isAllowedEmail } from '../middleware/auth.js'
 import supabaseAdmin from '../config/supabase.js'
 import { query } from '../../lib/db.js'
+import {
+  cleanText,
+  normalizeAccountIdentifier,
+  validateRegistration,
+} from '../services/authPolicy.js'
 import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'crypto'
 import multer from 'multer'
 import { uploadFile, getPublicUrl } from '../services/storage.js'
@@ -40,6 +45,49 @@ function isAlreadyRegisteredError(error) {
   return message.includes('already registered') || message.includes('already exists')
 }
 
+function isUniqueViolation(error) {
+  const constraint = String(error?.constraint || error?.message || '').toLowerCase()
+  return error?.code === '23505' && (
+    constraint.includes('email') || constraint.includes('matric') || constraint.includes('staff')
+  )
+}
+
+function bearerToken(req) {
+  const header = req.headers.authorization || ''
+  return header.startsWith('Bearer ') ? header.slice(7) : ''
+}
+
+function safeProfile(row, fallbackEmail = '') {
+  if (!row) return null
+  return {
+    id: row.id,
+    email: row.email || fallbackEmail,
+    name: row.name || 'User',
+    role: row.role || 'student',
+    department: row.department || 'Computer Science',
+    matricNumber: row.matric_number || row.staff_id || '',
+    avatarUrl: row.avatar_url || '',
+  }
+}
+
+// The departments table is the server-side catalogue. If it has not been
+// seeded yet, the validated display name is still accepted rather than
+// breaking registration.
+async function canonicalDepartment(value) {
+  try {
+    const { rows } = await query(
+      `SELECT name FROM public.departments
+       WHERE lower(name) = $1 OR lower(code) = $1 OR lower(id) = $1
+       LIMIT 1`,
+      [String(value).toLowerCase()],
+    )
+    if (rows[0]?.name) return rows[0].name
+  } catch {
+    // Catalogue migration is optional for local development.
+  }
+  return value
+}
+
 async function findAuthUserByEmail(email) {
   let page = 1
   while (true) {
@@ -53,49 +101,64 @@ async function findAuthUserByEmail(email) {
   }
 }
 
+// Password verification and login both use Supabase's public anon key through
+// the GoTrue password grant. The service_role key is only used to validate the
+// resulting JWT and read the authoritative profile; it never signs passwords.
+async function passwordGrant(email, password) {
+  const url = process.env.VITE_SUPABASE_URL
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY
+  if (!url || !anonKey) return { configured: false, ok: false, status: 0, data: null }
+
+  try {
+    const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: anonKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    const data = await response.json().catch(() => null)
+    return { configured: true, ok: response.ok, status: response.status, data }
+  } catch (error) {
+    console.warn('Password grant unavailable:', error?.message || 'network error')
+    return { configured: true, ok: false, status: 0, data: null }
+  }
+}
+
 // Password proof prevents an unauthenticated caller from confirming somebody
 // else's stale, unconfirmed account.
 async function verifyPassword(email, password) {
-  const url = process.env.VITE_SUPABASE_URL
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY
-  if (!url || !anonKey) return false
-  const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: { apikey: anonKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
-  if (!response.ok) return false
-  const data = await response.json().catch(() => null)
-  return !!data?.access_token
+  const result = await passwordGrant(email, password)
+  return result.ok && !!result.data?.access_token
 }
 
 // Self-service registration. The admin API creates an already-confirmed auth
 // user, so the browser can immediately exchange the password for a session.
 // Role is always student here — the client never chooses its own permissions.
-router.post('/api/auth/register', async (req, res) => {
-  const body = req.body || {}
-  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
-  const password = typeof body.password === 'string' ? body.password : ''
+async function registerHandler(req, res) {
+  const validated = validateRegistration(req.body || {})
+  if (validated.error) return res.status(validated.status).json({ error: validated.error })
 
-  if (!email || !password) return res.status(400).json({ error: 'Email and password are required' })
-  if (!isAllowedEmail(email)) {
-    return res.status(403).json({ error: 'Use an allowed email (@mcu.edu.ng / @undergraduate.mcu.edu.ng / @mcpherson.edu / @gmail.com)' })
+  const { email, password, fullName, identifier, department, metadata } = validated.value
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Portal registration is currently unavailable. Please try again shortly.' })
   }
-  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' })
-  if (!supabaseAdmin) return res.status(503).json({ error: 'Portal registration is currently unavailable. Please try again shortly.' })
 
-  const clean = (value) => (typeof value === 'string' && value.trim() ? value.trim() : '')
-  const displayName = clean(body.name) || clean(body.full_name) || 'User'
-  const department = clean(body.department) || 'Computer Science'
-  const metadata = {
-    name: displayName,
-    full_name: clean(body.full_name) || displayName,
-    matric: clean(body.matric),
-    matric_number: clean(body.matric_number),
-    matricNumber: clean(body.matricNumber),
-    staff_id: clean(body.staff_id),
-    department,
-    role: 'student',
+  const canonicalDepartmentName = await canonicalDepartment(department)
+  metadata.department = canonicalDepartmentName
+
+  // The database unique indexes below are the race-condition backstop; this
+  // check only turns ordinary duplicates into a friendly 409 response.
+  if (identifier) {
+    try {
+      const { rows } = await query(
+        'SELECT id FROM public.users WHERE lower(matric_number) = $1 OR lower(staff_id) = $1 LIMIT 1',
+        [identifier.toLowerCase()],
+      )
+      if (rows.length) {
+        return res.status(409).json({ error: 'An account with this ID already exists. Try signing in.' })
+      }
+    } catch (e) {
+      console.warn('Identifier uniqueness check unavailable:', e.message)
+    }
   }
 
   try {
@@ -137,21 +200,133 @@ router.post('/api/auth/register', async (req, res) => {
     if (!userId) return res.status(500).json({ error: 'Could not create your account. Please try again.' })
 
     await query(
-      `INSERT INTO public.users (id, email, name, role, department, provider)
-       VALUES ($1, $2, $3, 'student', $4, 'email')
+      `INSERT INTO public.users
+         (id, email, name, role, department, provider, matric_number, staff_id)
+       VALUES ($1, $2, $3, 'student', $4, 'email', $5, $6)
        ON CONFLICT (id) DO UPDATE SET
          email = EXCLUDED.email,
          name = EXCLUDED.name,
          department = EXCLUDED.department,
-         provider = EXCLUDED.provider`,
-      [userId, email, displayName, department]
+         provider = EXCLUDED.provider,
+         matric_number = EXCLUDED.matric_number,
+         staff_id = EXCLUDED.staff_id`,
+      [userId, email, fullName, canonicalDepartmentName, identifier, identifier],
     )
 
     return res.status(201).json({ success: true, userId })
   } catch (e) {
+    if (isUniqueViolation(e)) {
+      return res.status(409).json({ error: 'An account with this email or ID already exists. Try signing in.' })
+    }
     console.error('Registration error:', e.message)
     return res.status(500).json({ error: 'Could not create your account. Please try again.' })
   }
+}
+
+router.post('/api/auth/register', registerHandler)
+router.post('/api/auth/signup', registerHandler)
+
+// Credentials are verified by Supabase Auth (salted, slow password hashing).
+// This endpoint adds the app's policy checks and returns only safe profile
+// fields plus the short-lived session the browser will persist.
+router.post('/api/auth/login', async (req, res) => {
+  const body = req.body || {}
+  const email = normalizeAccountIdentifier(body.email ?? body.identifier)
+  if (!email || typeof body.password !== 'string' || !body.password) {
+    return res.status(400).json({ error: 'Enter your email and password.' })
+  }
+
+  const grant = await passwordGrant(email, body.password)
+  if (!grant.configured || !supabaseAdmin) {
+    return res.status(503).json({ error: 'Portal sign-in is currently unavailable. Please try again shortly.' })
+  }
+  if (!grant.ok || !grant.data?.access_token || !grant.data?.refresh_token) {
+    if (grant.status === 429 || grant.status >= 500) {
+      return res.status(503).json({ error: 'That service is temporarily busy. Please try again shortly.' })
+    }
+    // Deliberately generic: never reveal whether the account exists.
+    return res.status(401).json({ error: 'Invalid email or password. Please try again.' })
+  }
+
+  let supaUser
+  try {
+    const validation = await supabaseAdmin.auth.getUser(grant.data.access_token)
+    supaUser = validation.data?.user
+    if (validation.error || !supaUser) return res.status(401).json({ error: 'Invalid email or password. Please try again.' })
+  } catch (e) {
+    console.warn('Token validation unavailable during login:', e.message)
+    return res.status(503).json({ error: 'Portal sign-in is currently unavailable. Please try again shortly.' })
+  }
+
+  const accountEmail = supaUser.email || email
+  const metaName = cleanText(supaUser.user_metadata?.name || supaUser.user_metadata?.full_name, 100)
+  const metaDepartment = cleanText(supaUser.user_metadata?.department, 100)
+  let profile = null
+
+  try {
+    let rows = await query(
+      `SELECT id, email, name, role, department, provider, matric_number, staff_id, is_active, avatar_url
+       FROM public.users WHERE id = $1`,
+      [supaUser.id],
+    )
+    profile = rows[0] || null
+
+    if (!profile) {
+      const name = metaName || cleanText(accountEmail.split('@')[0], 100) || 'User'
+      const departmentName = metaDepartment || 'Computer Science'
+      await query(
+        `INSERT INTO public.users (id, email, name, role, department, provider, matric_number, staff_id)
+         VALUES ($1, $2, $3, 'student', $4, 'email', $5, $5)
+         ON CONFLICT (id) DO NOTHING`,
+        [supaUser.id, accountEmail, name, departmentName, metaName || ''],
+      )
+      rows = await query(
+        `SELECT id, email, name, role, department, provider, matric_number, staff_id, is_active, avatar_url
+         FROM public.users WHERE id = $1`,
+        [supaUser.id],
+      )
+      profile = rows[0] || null
+    }
+
+    if (profile?.is_active === false) {
+      return res.status(403).json({ error: 'This account is not active. Contact the administrator.' })
+    }
+    if (!['admin', 'super_admin'].includes(profile?.role) && !isAllowedEmail(accountEmail)) {
+      return res.status(403).json({ error: 'Use an allowed email to sign in.' })
+    }
+
+    await query('UPDATE public.users SET last_login = NOW() WHERE id = $1', [supaUser.id])
+  } catch (e) {
+    console.warn('Login profile lookup failed:', e.message)
+    return res.status(503).json({ error: 'Portal sign-in is currently unavailable. Please try again shortly.' })
+  }
+
+  const expiresIn = Number(grant.data.expires_in) || 3600
+  return res.status(200).json({
+    session: {
+      access_token: grant.data.access_token,
+      refresh_token: grant.data.refresh_token,
+      token_type: grant.data.token_type || 'bearer',
+      expires_in: expiresIn,
+      expires_at: Math.floor(Date.now() / 1000) + expiresIn,
+    },
+    user: safeProfile(profile, accountEmail),
+  })
+})
+
+// Revoke the current refresh token server-side. The browser clears its local
+// copy as well; the access token remains valid only until its short expiry.
+router.post('/api/auth/logout', authenticate, async (req, res) => {
+  const token = bearerToken(req)
+  if (token && supabaseAdmin) {
+    try {
+      const { error } = await supabaseAdmin.auth.admin.signOut(token, 'local')
+      if (error) console.warn('Logout revoke failed:', error.message)
+    } catch (e) {
+      console.warn('Logout revoke failed:', e.message)
+    }
+  }
+  return res.status(200).json({ success: true })
 })
 
 router.post('/api/auth/confirm-signup', authenticate, async (req, res) => {
@@ -199,7 +374,11 @@ router.post('/api/auth/create-user-profile', authenticate, async (req, res) => {
 
 router.get('/api/auth/me', authenticate, async (req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM public.users WHERE id = $1', [req.user.id])
+    const { rows } = await query(
+      `SELECT id, email, name, role, department, provider, matric_number, staff_id, avatar_url
+       FROM public.users WHERE id = $1`,
+      [req.user.id],
+    )
     if (!rows.length) return res.status(200).json({ id: req.user.id, email: req.user.email, role: req.user.role })
     res.status(200).json(rows[0])
   } catch (err) {

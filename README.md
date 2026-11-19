@@ -41,10 +41,13 @@ minutes by default).
 
 ## Authentication setup
 
-Authentication uses Supabase Auth. The frontend fetches the public Project URL
-and anon key at runtime from `GET /api/public/config`, then signs users in
-directly with Supabase. The backend verifies the access token with the private
-**service_role** key and reads the authoritative role from `public.users`.
+Authentication uses Supabase Auth as the credential and session authority. The
+frontend fetches the public Project URL and anon key at runtime from
+`GET /api/public/config`. The browser calls `POST /api/auth/signup` or
+`POST /api/auth/login`; the API re-validates input, applies account policy, and
+hands the short-lived Supabase session back to the browser. Every protected API
+request is verified with the private **service_role** key, and the authoritative
+role and active flag are read from `public.users`.
 
 1. In Supabase → Project Settings → API, copy the Project URL, anon key and
    service_role key.
@@ -61,14 +64,24 @@ directly with Supabase. The backend verifies the access token with the private
    `@undergraduate.mcu.edu.ng`, `@mcpherson.edu` and `@gmail.com`. Override
    them with `ALLOWED_EMAIL_DOMAINS` (comma separated) in `backend/.env`.
    Admin and super-admin accounts are exempt.
-6. Sign-up is self-service for allowed domains: `POST /api/auth/register`
+6. Sign-up is self-service for allowed domains: `POST /api/auth/signup` (with
+   `/api/auth/register` kept as a compatibility alias) validates the payload,
    creates the Supabase user with `email_confirm: true`, writes the
    `public.users` profile with role `student`, and the frontend immediately
-   exchanges the password for a session. There is no confirmation-email step.
-   If an older unconfirmed account exists, submitting the same password again
-   completes its setup. Client-supplied roles are ignored; the backend remains
-   authoritative.
-7. To also disable Supabase's project-level "Confirm email" switch (so no direct
+   starts a session. There is no confirmation-email step. If an older
+   unconfirmed account exists, submitting the same password again completes
+   its setup. Client-supplied roles are ignored.
+7. `POST /api/auth/login` verifies the password through Supabase's salted,
+   slow hash, checks `public.users.is_active`, updates `last_login`, and
+   returns only safe profile fields. Wrong credentials always produce the same
+   generic `401`; signup/signin/logout have independent rate limits.
+8. `POST /api/auth/logout` revokes the current refresh token server-side and
+   the browser clears its local session. Access tokens remain valid until
+   their short expiry; expired API calls return the user to sign-in with a
+   session-expired notice. "Remember me" chooses persistent vs. tab-scoped
+   session storage. Redirect parameters are restricted to safe same-origin
+   paths.
+9. To also disable Supabase's project-level "Confirm email" switch (so no direct
    client call can spend the built-in email allowance), add a Supabase personal
    access token as `SUPABASE_ACCESS_TOKEN` in the gitignored `backend/.env` and
    run `node scripts/disable-supabase-email-confirmation.mjs` once. The token is
@@ -138,6 +151,14 @@ This creates the chat tables if missing, backfills existing NULLs with safe
 defaults, sets every `public` application column to `NOT NULL`, and verifies the
 result. It does not alter Supabase-managed schemas (`auth`, `storage`,
 `realtime`, `vault`, `extensions`).
+
+The identifier columns and uniqueness constraints used by sign-up are applied
+separately (safe to re-run; existing empty identifiers are ignored):
+
+```powershell
+cd backend
+node scripts/create-auth-constraints.mjs
+```
 
 The university structure (faculties, departments, programmes, academic years,
 semesters, grade system, enrolments and lecturer/course links) is created

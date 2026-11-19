@@ -126,6 +126,12 @@ const statements = [
   `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`,
   `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS face_consent_at TIMESTAMPTZ NOT NULL DEFAULT TIMESTAMPTZ '1970-01-01 00:00:00+00'`,
+  `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS matric_number TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS staff_id TEXT NOT NULL DEFAULT ''`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS users_matric_number_unique
+     ON public.users (lower(matric_number)) WHERE matric_number <> ''`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS users_staff_id_unique
+     ON public.users (lower(staff_id)) WHERE staff_id <> ''`,
   // Indexes for every relationship the API filters/joins on.
   `CREATE INDEX IF NOT EXISTS idx_faculties_code ON public.faculties(code)`,
   `CREATE INDEX IF NOT EXISTS idx_departments_faculty_id ON public.departments(faculty_id)`,

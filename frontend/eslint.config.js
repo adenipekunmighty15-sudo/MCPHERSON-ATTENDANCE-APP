@@ -24,6 +24,7 @@ export default [
         TextDecoder: 'readonly',
         ReadableStream: 'readonly',
         localStorage: 'readonly',
+        sessionStorage: 'readonly',
         location: 'readonly',
         URL: 'readonly',
         Blob: 'readonly',

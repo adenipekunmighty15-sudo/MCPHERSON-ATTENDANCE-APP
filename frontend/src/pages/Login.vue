@@ -228,6 +228,10 @@
               </div>
 
               <div class="field-meta">
+                <label class="remember-me">
+                  <input v-model="rememberMe" type="checkbox" name="remember" />
+                  <span>Remember me</span>
+                </label>
                 <button type="button" class="text-link" @click="handleForgot">Forgot password?</button>
               </div>
 
@@ -425,7 +429,7 @@
 
                   <div v-if="password" id="password-strength" class="strength" :class="`strength-${strengthLabel.toLowerCase()}`" aria-live="polite">
                     <div class="strength-bars" aria-hidden="true">
-                      <span v-for="bar in 4" :key="bar" :class="{ filled: bar <= strengthScore }" />
+                      <span v-for="bar in 5" :key="bar" :class="{ filled: bar <= strengthScore }" />
                     </div>
                     <span class="strength-label">{{ strengthLabel }}</span>
                   </div>
@@ -556,7 +560,7 @@ import {
 import Logo from '../components/Logo.vue'
 import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'
-import { supabaseConfigured } from '../lib/supabase'
+import { supabaseConfigured, setRememberMe } from '../lib/supabase'
 import {
   colleges,
   departments as universityDepartments,
@@ -633,6 +637,7 @@ const helpWidget = ref(null)
 const comboboxRef = ref(null)
 const activeHighlight = ref(0)
 const submitting = ref(false)
+const rememberMe = ref(true)
 
 const errors = reactive({})
 const shake = reactive({})
@@ -695,8 +700,9 @@ function findExactDepartment(query) {
 }
 
 const passwordRequirements = computed(() => [
-  { label: '8+ characters', met: password.value.length >= 8 },
+  { label: '8+ characters', met: password.value.length >= 8 && password.value.length <= 128 },
   { label: 'Uppercase', met: /[A-Z]/.test(password.value) },
+  { label: 'Lowercase', met: /[a-z]/.test(password.value) },
   { label: 'Number', met: /\d/.test(password.value) },
   { label: 'Symbol', met: /[^A-Za-z0-9]/.test(password.value) },
 ])
@@ -704,7 +710,7 @@ const passwordRequirements = computed(() => [
 const strengthScore = computed(() => passwordRequirements.value.filter((item) => item.met).length)
 const strengthLabel = computed(() => {
   if (strengthScore.value <= 1) return 'Weak'
-  if (strengthScore.value <= 3) return 'Fair'
+  if (strengthScore.value <= 4) return 'Fair'
   return 'Strong'
 })
 const passwordsMatch = computed(() => !!confirmPassword.value && password.value === confirmPassword.value)
@@ -734,17 +740,18 @@ function validateField(field) {
 
   if (field === 'email') {
     if (mode.value === 'signin') normalizeSignInEmail()
-    if (email.value && !emailValid.value) {
-      errors.email = 'Use an accepted McPherson or Gmail domain.'
-    }
+    if (!email.value.trim()) errors.email = 'Enter your university email.'
+    else if (!emailValid.value) errors.email = 'Use an accepted McPherson or Gmail domain.'
   }
 
-  if (field === 'fullName' && fullName.value && fullName.value.trim().length < 2) {
-    errors.fullName = 'Enter your full name.'
+  if (field === 'fullName') {
+    if (fullName.value.trim().length < 2) errors.fullName = 'Enter your full name.'
   }
 
-  if (field === 'identifier' && identifier.value && !/^[A-Za-z0-9][A-Za-z0-9/_-]{2,23}$/.test(identifier.value)) {
-    errors.identifier = 'Use 3–24 letters, numbers, /, - or _.'
+  if (field === 'identifier') {
+    const value = identifier.value.trim()
+    if (!value) errors.identifier = 'Enter your matric number or staff ID.'
+    else if (!studentIdPattern.test(value)) errors.identifier = 'Use 3–24 letters, numbers, /, - or _.'
   }
 
   if (field === 'department') {
@@ -758,12 +765,16 @@ function validateField(field) {
     }
   }
 
-  if (field === 'password' && password.value && password.value.length < 8) {
-    errors.password = 'Password must be at least 8 characters.'
+  if (field === 'password') {
+    if (!password.value) errors.password = 'Enter a password.'
+    else if (passwordRequirements.value.some((rule) => !rule.met)) {
+      errors.password = 'Use 8–128 characters with uppercase, lowercase, number and symbol.'
+    }
   }
 
-  if (field === 'confirmPassword' && confirmPassword.value && !passwordsMatch.value) {
-    errors.confirmPassword = 'Passwords do not match.'
+  if (field === 'confirmPassword') {
+    if (!confirmPassword.value) errors.confirmPassword = 'Confirm your password.'
+    else if (!passwordsMatch.value) errors.confirmPassword = 'Passwords do not match.'
   }
 
   if (errors[field]) triggerShake([field])
@@ -917,9 +928,18 @@ function onTabKeydown(event) {
 
 function safeRedirect() {
   const redirect = route.query.redirect
-  if (typeof redirect !== 'string' || !redirect.startsWith('/') || redirect.startsWith('//')) return '/'
-  if (redirect.startsWith('/login') || redirect.startsWith('/signup') || redirect.startsWith('/welcome')) return '/'
-  return redirect
+  if (typeof redirect !== 'string' || !redirect.startsWith('/') || redirect.startsWith('//') || redirect.startsWith('/\\')) return '/'
+  const hasControlChar = Array.from(redirect).some((char) => {
+    const code = char.charCodeAt(0)
+    return code <= 31 || code === 127
+  })
+  if (hasControlChar || /^[a-z][a-z0-9+.-]*:/i.test(redirect.slice(1))) return '/'
+
+  const parsed = new URL(redirect, window.location.origin)
+  if (parsed.origin !== window.location.origin) return '/'
+  const path = parsed.pathname
+  if (/^\/(login|signup|welcome)(\/|$)/i.test(path)) return '/'
+  return `${path}${parsed.search}${parsed.hash}`
 }
 
 function validateAll(fields) {
@@ -949,6 +969,7 @@ async function handleLogin() {
   if (isBusy.value) return
   const loginEmail = normalizeSignInEmail()
   if (!validateAll(['email', 'password']) || !ensureAuthConfigured()) return
+  setRememberMe(rememberMe.value)
   submitting.value = true
   try {
     await authStore.signIn(loginEmail, password.value)
@@ -966,7 +987,7 @@ async function handleSignup() {
   submitting.value = true
   try {
     // Existing store action and metadata contract are unchanged; backend role remains authoritative.
-    await authStore.signUp(email.value.trim(), password.value, {
+    await authStore.signUp(email.value.trim().toLowerCase(), password.value, {
       name: fullName.value.trim(),
       full_name: fullName.value.trim(),
       matric: identifier.value.trim(),
@@ -1093,6 +1114,9 @@ onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown)
   document.addEventListener('click', handleOutsideClick)
   await authStore.ready
+  if (route.query.reason === 'session-expired') {
+    toast.warning('Your session ended. Please sign in again.')
+  }
   if (authStore.isAuthenticated) router.push(safeRedirect())
 })
 
@@ -1872,8 +1896,29 @@ onUnmounted(() => {
 
 .field-meta {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin: -2px 2px 12px;
+}
+
+.remember-me {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--slate-text);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-me input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
 }
 
 .text-link {
@@ -2012,7 +2057,7 @@ onUnmounted(() => {
 .strength-bars {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 4px;
 }
 

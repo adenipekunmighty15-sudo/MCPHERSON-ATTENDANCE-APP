@@ -4,9 +4,56 @@ const apiUrl = import.meta.env.VITE_API_URL || '/api'
 
 let client = null
 let initPromise = null
+let authStorageKey = ''
+
+const REMEMBER_FLAG = 'mcu_remember_session'
 
 // Live ESM binding: importers see this flip to true once boot config resolves.
 export let supabaseConfigured = false
+
+function activeStorage() {
+  try {
+    return localStorage.getItem(REMEMBER_FLAG) === 'false' ? sessionStorage : localStorage
+  } catch {
+    return localStorage
+  }
+}
+
+function createAuthStorage() {
+  return {
+    getItem(storageKey) {
+      try { return activeStorage().getItem(storageKey) } catch { return null }
+    },
+    setItem(storageKey, value) {
+      try {
+        const active = activeStorage()
+        const inactive = active === localStorage ? sessionStorage : localStorage
+        inactive.removeItem(storageKey)
+        active.setItem(storageKey, value)
+      } catch { /* storage may be disabled; Supabase then stays in-memory */ }
+    },
+    removeItem(storageKey) {
+      try {
+        localStorage.removeItem(storageKey)
+        sessionStorage.removeItem(storageKey)
+      } catch { /* nothing to remove */ }
+    },
+  }
+}
+
+// The "Remember me" checkbox controls where Supabase persists the session.
+// The token itself is still owned by Supabase and never exposed to our code.
+export function setRememberMe(remember) {
+  try { localStorage.setItem(REMEMBER_FLAG, remember ? 'true' : 'false') } catch { /* optional */ }
+  if (authStorageKey) {
+    try {
+      const target = activeStorage()
+      const inactive = target === localStorage ? sessionStorage : localStorage
+      inactive.removeItem(authStorageKey)
+    } catch { /* optional */ }
+  }
+}
+
 
 function wrap(value) {
   if (!value || typeof value !== 'object') return value
@@ -67,11 +114,14 @@ export async function initSupabase() {
       }
 
       if (url && key) {
+        const projectRef = new URL(url).hostname.split('.')[0]
+        authStorageKey = `sb-${projectRef}-auth-token`
         client = createClient(url, key, {
           auth: {
             persistSession: true,
             autoRefreshToken: true,
             detectSessionInUrl: true,
+            storage: createAuthStorage(),
           },
         })
         supabaseConfigured = true

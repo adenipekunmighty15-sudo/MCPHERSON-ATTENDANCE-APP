@@ -2,6 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  isSafeRedirect,
+  normalizeAccountIdentifier,
+  validatePassword,
+} from '../src/services/authPolicy.js'
 
 const root = join(import.meta.dirname, '..')
 const read = (relativePath) => readFileSync(join(root, relativePath), 'utf8')
@@ -97,23 +102,25 @@ test('Supabase email rate-limit text is hidden from users', () => {
 
 test('registration auto-confirms allowed domains and signs the user straight in', () => {
   const auth = read('src/routes/auth.routes.js')
-  const start = auth.indexOf("router.post('/api/auth/register'")
+  const start = auth.indexOf('async function registerHandler')
   const end = auth.indexOf("router.post('/api/auth/confirm-signup'")
   const route = auth.slice(start, end)
-  assert.match(route, /isAllowedEmail\(email\)/)
+  assert.match(route, /validateRegistration\(req\.body/)
   assert.match(route, /email_confirm:\s*true/)
   assert.match(route, /isAlreadyRegisteredError\(error\)/)
   assert.match(route, /verifyPassword\(email, password\)/)
   assert.match(route, /email_confirm:\s*true,\s*password/)
   assert.match(route, /'student'/)
   assert.doesNotMatch(route, /body\.role/)
+  assert.match(auth, /router\.post\('\/api\/auth\/signup', registerHandler\)/)
 
   const limiter = read('src/middleware/limiter.js')
   assert.match(limiter, /\/api\/auth\/register/)
+  assert.match(limiter, /\/api\/auth\/signup/)
 
   const store = read('../frontend/src/stores/auth.js')
   const signUp = store.slice(store.indexOf('async function signUp'), store.indexOf('async function signInWithOAuth'))
-  assert.match(signUp, /\/auth\/register/)
+  assert.match(signUp, /\/auth\/signup/)
   assert.match(signUp, /signInWithPassword/)
   assert.doesNotMatch(signUp, /needsConfirmation/)
 
@@ -123,6 +130,65 @@ test('registration auto-confirms allowed domains and signs the user straight in'
     loginPage.indexOf('async function handleForgot')
   )
   assert.match(signupHandler, /name: 'Dashboard'/)
+})
+
+test('auth policy normalizes identifiers and enforces the full password rules', () => {
+  assert.equal(normalizeAccountIdentifier('  MCU123 '), 'mcu123@undergraduate.mcu.edu.ng')
+  assert.equal(normalizeAccountIdentifier('STU.DENT@GMAIL.COM'), 'stu.dent@gmail.com')
+  assert.equal(normalizeAccountIdentifier('bad id'), '')
+  assert.equal(validatePassword('Short1!').valid, false)
+  assert.equal(validatePassword('alllower1!').valid, false)
+  assert.equal(validatePassword('LongEnough1!').valid, true)
+})
+
+test('redirect validator rejects open redirects and auth-loop paths', () => {
+  assert.equal(isSafeRedirect('/study-hub?tab=notes'), true)
+  assert.equal(isSafeRedirect('//evil.example'), false)
+  assert.equal(isSafeRedirect('/\\evil.example'), false)
+  assert.equal(isSafeRedirect('https://evil.example'), false)
+  assert.equal(isSafeRedirect('/login?reason=expired'), false)
+  assert.equal(isSafeRedirect('/welcome'), false)
+})
+
+test('login and logout endpoints use generic errors and revoke the session', () => {
+  const auth = read('src/routes/auth.routes.js')
+  assert.match(auth, /router\.post\('\/api\/auth\/login'/)
+  assert.match(auth, /router\.post\('\/api\/auth\/logout', authenticate/)
+  assert.match(auth, /auth\.admin\.signOut\(token, 'local'\)/)
+  assert.match(auth, /grant_type=password/)
+
+  const login = auth.slice(
+    auth.indexOf("router.post('/api/auth/login'"),
+    auth.indexOf("router.post('/api/auth/logout'"),
+  )
+  assert.match(login, /Invalid email or password\. Please try again\./)
+  assert.doesNotMatch(login, /res\.status\([^)]*\)\.json\(\{ error: [^}]*\.message/)
+
+  const limiter = read('src/middleware/limiter.js')
+  assert.match(limiter, /\/api\/auth\/login/)
+  assert.match(limiter, /login:\$\{ipKey\(req\)\}/)
+})
+
+test('frontend stores sessions deliberately and signs out through the API', () => {
+  const store = read('../frontend/src/stores/auth.js')
+  const signIn = store.slice(store.indexOf('async function signIn'), store.indexOf('async function signUp'))
+  assert.match(signIn, /api\.post\('\/auth\/login'/)
+  assert.match(signIn, /supabase\.auth\.setSession/)
+  assert.doesNotMatch(signIn, /signInWithPassword/)
+
+  const logoutStart = store.indexOf('async function logout')
+  const logout = store.slice(logoutStart, store.indexOf('return {', logoutStart))
+  assert.match(logout, /\/auth\/logout/)
+  assert.match(logout, /signOut\(\{ scope: 'local' \}\)/)
+
+  const supabaseLib = read('../frontend/src/lib/supabase.js')
+  assert.match(supabaseLib, /setRememberMe/)
+  assert.match(supabaseLib, /sessionStorage/)
+
+  const loginPage = read('../frontend/src/pages/Login.vue')
+  assert.match(loginPage, /rememberMe/)
+  assert.match(loginPage, /Lowercase/)
+  assert.match(loginPage, /session-expired/)
 })
 
 test('frontend check-in uses the active session and server-supported GPS fields', () => {

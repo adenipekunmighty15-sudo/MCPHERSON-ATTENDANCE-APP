@@ -23,8 +23,8 @@ const invalidationMap = {
   '/general-chat/messages': ['GET:/general-chat/messages'],
 }
 
-function getCacheKey(method, url, data) {
-  return `${method}:${url}:${data ? JSON.stringify(data) : ''}`
+function getCacheKey(method, url, data, userId = 'anonymous') {
+  return `${userId}:${method}:${url}:${data ? JSON.stringify(data) : ''}`
 }
 
 function invalidateCache(method, url) {
@@ -72,7 +72,10 @@ axiosApi.interceptors.response.use(
       } catch { /* best effort: redirect still applies */ }
 
       const loginPath = currentPath.startsWith('/admin/portal') ? '/admin/portal/login' : '/login'
-      window.location.replace(`${loginPath}?redirect=${encodeURIComponent(currentPath)}`)
+      const destination = new URL(loginPath, window.location.origin)
+      destination.searchParams.set('redirect', currentPath)
+      destination.searchParams.set('reason', 'session-expired')
+      window.location.replace(destination.toString())
     }
     return Promise.reject(err)
   }
@@ -82,7 +85,12 @@ async function callApi(method, url, data, config) {
   try {
     if (method === 'GET') {
       const cacheable = !url.replace(/^\/+/, '').startsWith('messages/')
-      const cacheKey = getCacheKey(method, url, config?.params)
+      // Most GET endpoints return user-specific data. Keep each account's
+      // short-lived cache separate when accounts change in the same browser.
+      const { data: { session } } = supabase
+        ? await supabase.auth.getSession()
+        : { data: { session: null } }
+      const cacheKey = getCacheKey(method, url, config?.params, session?.user?.id || 'anonymous')
       const cached = cacheable ? cache.get(cacheKey) : null
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) return { data: cached.data }
       const { data: res } = await axiosApi.get(url, config)
