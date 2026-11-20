@@ -22,10 +22,11 @@ Scope: single university (McPherson University), Cubbes-inspired workflow, origi
 | Assets | Authentic crest and campus photo retained; original SVG illustration set and social share card created; `docs/ASSET_MANIFEST.md` documents what still needs the university. |
 | Documentation | README updated with check-in rules; this status report separates verified work from external dependencies. |
 | Motion principles | Reusable directives for exaggeration, origin awareness, staggering, squash/stretch, rubber banding, anticipation, arcs, follow-through, secondary action, peak-end emphasis, frequency of use and Doherty-threshold timing. Applied to Landing, Dashboard, Attendance, Login and the ID card. |
+| Companion stack | `next-app/` is now the primary entry surface using Next.js App Router, TypeScript, Tailwind CSS and Lenis. It adds a flip-book hero, pointer-parallax campus art, magnetic actions, cursor spotlight, scroll progress, scroll-synced storytelling index, an interactive 3D object and scrambled text. The Vue portal remains as the working legacy attendance app until its flows are ported. |
 
 ## Stack note
 
-The running app is Vue 3 + Vite + Tailwind with Lenis smooth scrolling, GSAP, Motion-v and Three.js already installed and in use. Next.js and TypeScript are **not** part of this app yet; adding them is a separate migration decision, not a drop-in dependency.
+The attendance portal remains Vue 3 + Vite + Tailwind with Lenis smooth scrolling, GSAP, Motion-v and Three.js. A separate `next-app/` companion surface uses Next.js App Router, TypeScript, Tailwind and Lenis; it links into the Vue portal and does not replace it. The original framework choice was kept deliberately because a full portal rewrite is a separate, high-risk migration.
 
 ## Motion principle mapping
 

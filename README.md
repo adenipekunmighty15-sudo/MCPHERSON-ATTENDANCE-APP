@@ -23,6 +23,18 @@ Vue 3 + Vite + Tailwind frontend with Lenis smooth scrolling, GSAP, Motion-v and
 5. In another terminal, start the UI with `npm run dev` from `frontend`.
 6. Set `VITE_API_URL` to the API origin for the frontend build.
 
+## Companion Next.js app
+
+`next-app/` is a standalone Next.js + TypeScript + Tailwind + Lenis entry surface. It links into the Vue portal and does not replace the attendance workflows.
+
+```powershell
+cd next-app
+npm install
+npm run dev
+```
+
+Set `NEXT_PUBLIC_PORTAL_URL` to the Vue portal origin before building it for production.
+
 The API requires `DATABASE_URL`, `VITE_SUPABASE_URL`, and `SUPABASE_SERVICE_KEY`.
 Face registration additionally requires a private 32-byte hexadecimal
 `FACE_ENCRYPTION_KEY`. Existing unencrypted face descriptors are not returned;

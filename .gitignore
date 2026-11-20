@@ -7,6 +7,13 @@ frontend/.env.development
 frontend/.env.production
 frontend/*.local
 
+# Next.js companion app
+next-app/node_modules/
+next-app/.next/
+next-app/.env*
+!next-app/.env.example
+next-app/*.tsbuildinfo
+
 # Backend
 backend/node_modules/
 backend/.env
