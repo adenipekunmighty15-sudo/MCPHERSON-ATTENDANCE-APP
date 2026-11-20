@@ -1,53 +1,25 @@
 <template>
   <div class="ai-chat" :class="{ 'chat-active': hasMessages }">
-    <ParticlesSwarm v-if="!hasMessages" />
-
-    <div v-if="!hasMessages" class="radial-glow" />
-
-    <!-- Left icon rail -->
-    <aside class="icon-rail">
-      <div class="rail-top">
-        <button class="rail-btn" @click="newChat" title="New chat" aria-label="New chat">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button class="rail-btn" @click="newChat" title="Compose" aria-label="Compose">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button class="rail-btn" @click="showHistory = !showHistory" title="Search history" aria-label="Search history">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        </button>
-        <div class="rail-divider" />
-        <button class="rail-btn" @click="gotoStudyHub" title="Study Hub" aria-label="Study Hub">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-        </button>
-        <button class="rail-btn" @click="showHistory = !showHistory" title="History" aria-label="History">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        </button>
-      </div>
-      <div class="rail-bottom">
-        <button class="rail-btn" @click="gotoSettings" title="Settings" aria-label="Settings">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-        <button class="rail-btn rail-avatar" @click="gotoProfile" title="Profile" aria-label="Profile">
-          {{ userInitial }}
-        </button>
-      </div>
+    <aside class="chat-sidebar" :class="{ 'mobile-open': showHistory }">
+      <div class="sidebar-brand"><div class="brand-mark" aria-hidden="true">M</div><span>McPherson AI</span><button class="sidebar-close" @click="showHistory = false" aria-label="Close navigation"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m18 6-12 12M6 6l12 12"/></svg></button></div>
+      <button class="sidebar-action new-chat-action" @click="newChat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg><span>New chat</span></button>
+      <label class="sidebar-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input v-model="conversationFilter" type="search" placeholder="Search chats" aria-label="Search chats"></label>
+      <button class="sidebar-action study-hub-action" @click="gotoStudyHub"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3H20v16H5.5A2.5 2.5 0 0 0 3 21z"/><path d="M3 5.5v13A2.5 2.5 0 0 1 5.5 16H20"/></svg><span>Study Hub</span></button>
+      <div class="sidebar-section-title">Recent</div>
+      <div class="sidebar-conversations"><p v-if="filteredConversations.length === 0" class="sidebar-empty">{{ conversations.length ? 'No matching chats' : 'Your conversations will appear here' }}</p><button v-for="conv in filteredConversations" :key="conv.id" @click="loadConversation(conv)" class="sidebar-conversation" :class="{ active: conversationId === conv.id }"><span class="conversation-title">{{ conv.title }}</span></button></div>
+      <div class="sidebar-bottom"><button class="sidebar-action" @click="gotoSettings"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a2 2 0 0 0-1.51 1z"/></svg><span>Settings</span></button><button class="profile-action" @click="gotoProfile"><span class="profile-avatar">{{ userInitial }}</span><span class="profile-name">{{ authStore.user?.name || 'Student account' }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div>
     </aside>
+    <div v-if="showHistory" class="sidebar-scrim" @click="showHistory = false" />
 
     <!-- Main area -->
     <main class="chat-main">
 
-      <!-- Top-right utility bar -->
-      <div class="utility-bar">
-        <button class="upgrade-btn" @click="gotoSettings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2L21 12l-6.6 2.8L12 22l-2.4-7.2L3 12l6.6-2.8z"/></svg>
-          Upgrade
-        </button>
-      </div>
+      <div class="utility-bar"><button class="mobile-menu-button" @click="showHistory = true" aria-label="Open navigation"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><button class="model-label" @click="showExpertMenu = !showExpertMenu" ref="expertRef" aria-label="Choose study mode">{{ selectedExpert.label }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m7 10 5 5 5-5"/></svg></button><span class="provider-status">{{ activeProviderLabel }}</span><div v-if="showExpertMenu" class="expert-dropdown top-dropdown"><div class="dropdown-header">Choose a study mode</div><button v-for="ex in experts" :key="ex.id" @click="selectExpert(ex)" class="dropdown-item" :class="{ active: ex.id === selectedExpert.id }"><span class="ex-icon">{{ ex.icon }}</span><div><div class="ex-name">{{ ex.label }}</div><div class="ex-desc">{{ ex.description }}</div></div></button></div></div>
 
       <!-- Empty state -->
       <div v-if="!hasMessages" class="empty-state">
-        <p class="empty-headline">Any new ideas to explore?</p>
+        <p class="empty-kicker">McPherson AI</p>
+        <h1 class="empty-headline">What would you like to work on?</h1>
 
         <div class="empty-input-row">
           <AIChatInput
@@ -68,10 +40,11 @@
             <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
           </button>
         </div>
+        <div class="prompt-suggestions"><button @click="input = 'Explain a course concept in simple terms'">Explain a concept</button><button @click="input = 'Help me plan a focused study session'">Plan a study session</button><button @click="input = 'Review my writing and suggest improvements'">Review my writing</button></div>
       </div>
 
       <!-- Messages area -->
-      <div v-if="hasMessages" class="messages-area" ref="messagesRef" @scroll="onScroll" :class="{ 'has-messages': hasMessages }">
+      <div v-if="hasMessages" class="messages-area" ref="messagesRef" :class="{ 'has-messages': hasMessages }">
         <div class="messages-inner">
           <div v-for="(msg, i) in mindStore.messages" :key="i" class="msg-row" :class="msg.role">
             <div v-if="msg.role === 'assistant'" class="msg-avatar ai">
@@ -80,16 +53,9 @@
               </div>
             </div>
             <div class="msg-body" :class="msg.role">
-              <div v-if="msg.role === 'assistant' && msg.thinking" class="thinking-toggle">
-                <button @click="toggleThinking(i)" class="think-btn">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ rotated: msg.showThinking }"><path d="m9 18 6-6-6-6"/></svg>
-                  <span>See thinking steps</span>
-                </button>
-                <div v-if="msg.showThinking" class="thinking-text">{{ msg.thinking }}</div>
-              </div>
               <div class="msg-content" v-safe-html="renderMarkdown(msg.content)" />
               <div v-if="msg.role === 'assistant'" class="msg-footer">
-                <span class="msg-meta">{{ selectedExpert.label }} · {{ formatElapsed(msg.elapsed) }}</span>
+                <span class="msg-meta">{{ activeProviderLabel }} · {{ formatElapsed(msg.elapsed) }}</span>
                 <div class="msg-actions">
                   <button @click="copyMessage(msg.content)" title="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                   <button @click="regenerateMessage(i)" title="Regenerate"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>
@@ -149,11 +115,11 @@
           <div class="model-selector toolbar-item" ref="expertRefBottom">
             <button class="model-btn" @click="showExpertMenuBottom = !showExpertMenuBottom">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              {{ selectedExpert.label === 'General Assistant' ? 'Flash' : selectedExpert.label.split(' ')[0] }}
+              {{ selectedExpert.label }}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div v-if="showExpertMenuBottom" class="expert-dropdown bottom-dropdown">
-              <div class="dropdown-header">Thinking level</div>
+              <div class="dropdown-header">Choose a study mode</div>
               <button v-for="ex in experts" :key="ex.id" @click="selectExpert(ex); showExpertMenuBottom = false" class="dropdown-item" :class="{ active: ex.id === selectedExpert.id }">
                 <span class="ex-icon">{{ ex.icon }}</span>
                 <div><div class="ex-name">{{ ex.label }}</div><div class="ex-desc">{{ ex.description }}</div></div>
@@ -185,25 +151,6 @@
         <p v-if="error" class="input-error">{{ error }}</p>
       </div>
 
-      <!-- History sidebar -->
-      <div v-if="showHistory" class="history-overlay" @click="showHistory = false" />
-      <aside class="history-sidebar" :class="{ open: showHistory }">
-        <div class="history-header">
-          <span class="history-title">History</span>
-          <button @click="showHistory = false" class="close-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-        </div>
-        <div class="history-list">
-          <div v-if="conversations.length === 0" class="history-empty">No saved chats yet</div>
-          <button v-for="conv in conversations" :key="conv.id" @click="loadConversation(conv)" class="history-item">
-            <div class="history-name">{{ conv.title }}</div>
-            <div class="history-meta">{{ formatDate(conv.updatedAt || conv.updated_at) }} · {{ conv.model }}</div>
-          </button>
-        </div>
-        <div class="history-footer">
-          <button @click="newChat()" class="history-action">+ New chat</button>
-          <button @click="deleteOldConversations" class="history-action secondary">Delete old (50d+)</button>
-        </div>
-      </aside>
     </main>
   </div>
 </template>
@@ -217,7 +164,6 @@ import { supabase, supabaseConfigured } from '../lib/supabase'
 import api from '../lib/api'
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/atom-one-dark.min.css'
-import ParticlesSwarm from '../components/three/ParticlesSwarm.vue'
 import AIChatInput from '../components/AIChatInput.vue'
 
 let katex = null
@@ -240,13 +186,25 @@ const messagesRef = ref(null)
 const expertRef = ref(null)
 const expertRefBottom = ref(null)
 const followUps = ref([])
-const showScrollButton = ref(false)
 const showHistory = ref(false)
 const conversations = ref([])
+const conversationFilter = ref('')
 const conversationId = ref(null)
 const showExpertMenu = ref(false)
 const showExpertMenuBottom = ref(false)
 const selectedExpert = ref({ id: 'general', label: 'General Assistant', icon: '\u{1F9E0}' })
+const anthropicAvailable = ref(false)
+const activeModelId = ref('')
+const filteredConversations = computed(() => {
+  const filter = conversationFilter.value.trim().toLowerCase()
+  return filter ? conversations.value.filter(conv => (conv.title || '').toLowerCase().includes(filter)) : conversations.value
+})
+const activeProviderLabel = computed(() => {
+  if (selectedExpert.value.id !== 'general') return selectedExpert.value.label
+  if (activeModelId.value === 'claude-sonnet-5-5') return 'Claude Sonnet 5.5'
+  if (activeModelId.value) return activeModelId.value === 'council' ? 'AI Council' : 'AI Assistant'
+  return anthropicAvailable.value ? 'Claude Sonnet 5.5' : 'AI Assistant'
+})
 const streaming = ref(false)
 const streamThinking = ref('')
 const streamAnswer = ref('')
@@ -445,7 +403,7 @@ async function sendStream(msg) {
     const token = session?.access_token || null
     if (!token) throw new Error('No auth token')
 
-    const history = mindStore.messages.slice(-6).map(m => ({ role: m.role, content: m.content }))
+    const history = mindStore.messages.slice(0, -1).slice(-40).map(m => ({ role: m.role, content: m.content }))
     const baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/api\/?$/, '')
 
     const response = await fetch(`${baseUrl}/api/ai/chat/stream`, {
@@ -487,11 +445,13 @@ async function sendStream(msg) {
               case 'thinking': streamThinking.value = data.content || ''; break
               case 'status': streamThinking.value = data.message || ''; break
               case 'answer': streamAnswer.value = data.content || ''; break
+              case 'delta': streamAnswer.value += data.content || ''; break
               case 'verifying': verifying.value = true; verificationCount.value = data.count || 0; break
               case 'verified': verifying.value = false; break
               case 'done':
                 streamThinking.value = data.thinking || streamThinking.value
                 streamAnswer.value = data.answer || streamAnswer.value
+                activeModelId.value = data.model || activeModelId.value
                 if (data.conversationId) conversationId.value = data.conversationId
                 if (data.followUps) followUps.value = data.followUps
                 setTimeout(() => scrollToBottom(true), 100)
@@ -542,13 +502,15 @@ function rateMessage(index, rating) {
   msg.rating = msg.rating === rating ? null : rating
 }
 
-function toggleThinking(index) {
-  const msg = mindStore.messages[index]
-  if (msg) msg.showThinking = !msg.showThinking
-}
-
 async function fetchConversations() {
   try { const { data } = await api.get('/chats'); conversations.value = Array.isArray(data) ? data : [] } catch { conversations.value = [] }
+}
+
+async function checkAIProviders() {
+  try {
+    const { data } = await api.get('/ai/models')
+    anthropicAvailable.value = Boolean(data?.models?.some(model => model.id === 'anthropic' && model.status === 'online'))
+  } catch { anthropicAvailable.value = false }
 }
 
 async function loadConversation(conv) {
@@ -557,6 +519,7 @@ async function loadConversation(conv) {
     const msgs = Array.isArray(data) ? data : []
     mindStore.setMessages(msgs.map(m => ({ role: m.role, content: m.content, council: [], thinking: '', elapsed: null, rating: null, showThinking: false })))
     conversationId.value = conv.id
+    activeModelId.value = conv.model || ''
     showHistory.value = false
     followUps.value = []
     await nextTick()
@@ -567,22 +530,11 @@ async function loadConversation(conv) {
 function newChat() {
   mindStore.clearChat()
   conversationId.value = null
+  activeModelId.value = ''
   followUps.value = []
   showHistory.value = false
   streamAnswer.value = ''
   streamThinking.value = ''
-}
-
-async function deleteOldConversations() {
-  try { await api.post('/chats/cleanup', { days: 50 }); await fetchConversations() } catch (e) { console.warn(e) }
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr); const now = new Date(); const diff = now - d
-  if (diff < 86400000) return 'Today'
-  if (diff < 172800000) return 'Yesterday'
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function scrollToBottom(force = false) {
@@ -593,12 +545,6 @@ function scrollToBottom(force = false) {
   })
 }
 
-function onScroll() {
-  const el = messagesRef.value
-  if (!el) return
-  showScrollButton.value = el.scrollHeight - el.scrollTop - el.clientHeight > 200
-}
-
 function handleClickOutside(e) {
   if (expertRef.value && !expertRef.value.contains(e.target)) showExpertMenu.value = false
   if (expertRefBottom.value && !expertRefBottom.value.contains(e.target)) showExpertMenuBottom.value = false
@@ -607,6 +553,7 @@ function handleClickOutside(e) {
 onMounted(() => {
   scrollToBottom()
   fetchConversations()
+  checkAIProviders()
   document.addEventListener('click', handleClickOutside)
 })
 
@@ -636,6 +583,7 @@ onUnmounted(() => {
 .table-cell { padding: 6px 10px; border-bottom: 1px solid var(--color-border); color: var(--color-text-primary); }
 .table-header { font-weight: 600; color: var(--color-text-primary); background: var(--color-surface-elevated); text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
 .markdown-table tr:last-child td { border-bottom: none; }
+
 </style>
 
 <style scoped>
@@ -1065,4 +1013,109 @@ onUnmounted(() => {
   .input-area { padding: 8px 12px 16px; }
   .history-sidebar { width: 260px; }
 }
+/* Calm, conversation-first chat layout */
+.ai-chat {
+  background: #faf9f6;
+  color: #292824;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.ai-chat.chat-active { background: #fff; }
+.chat-sidebar {
+  width: 264px;
+  min-width: 264px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 15px 12px 12px;
+  background: #f2f1ed;
+  border-right: 1px solid #e8e6e0;
+  color: #3c3a34;
+  z-index: 5;
+}
+.sidebar-brand { height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 19px; font-size: 15px; font-weight: 650; letter-spacing: -0.25px; }
+.brand-mark { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 9px; background: #c96b42; color: #fffaf5; font-family: Georgia, serif; font-size: 16px; font-weight: 700; }
+.sidebar-close { display: none; margin-left: auto; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #716e65; cursor: pointer; }
+.sidebar-action { min-height: 38px; width: 100%; display: flex; align-items: center; gap: 10px; padding: 0 10px; border: 0; border-radius: 9px; background: transparent; color: #5a574f; text-align: left; font: inherit; font-size: 13px; cursor: pointer; }
+.sidebar-action:hover, .sidebar-conversation:hover, .profile-action:hover { background: #e8e6df; color: #292824; }
+.new-chat-action { border: 1px solid #e4e1d9; background: #faf9f6; color: #393730; font-weight: 600; }
+.new-chat-action:hover { background: #fff; border-color: #d6d2c8; }
+.sidebar-search { height: 37px; display: flex; align-items: center; gap: 9px; margin: 9px 0 4px; padding: 0 10px; border: 1px solid transparent; border-radius: 9px; color: #89867d; }
+.sidebar-search:focus-within { background: #fff; border-color: #dedbd3; }
+.sidebar-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #393730; font: inherit; font-size: 12px; }
+.sidebar-search input::placeholder { color: #8c897f; }
+.study-hub-action { margin-top: 4px; }
+.sidebar-section-title { padding: 22px 9px 8px; color: #858177; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sidebar-conversations { flex: 1; min-height: 0; overflow-y: auto; }
+.sidebar-empty { margin: 0; padding: 8px 9px; color: #928f86; font-size: 12px; line-height: 1.5; }
+.sidebar-conversation { width: 100%; min-height: 34px; display: block; overflow: hidden; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: #5a574f; text-align: left; cursor: pointer; }
+.sidebar-conversation.active { background: #e8e6df; color: #292824; }
+.conversation-title { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-bottom { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid #e1dfd8; }
+.profile-action { min-height: 46px; display: flex; align-items: center; gap: 10px; padding: 4px 8px; border: 0; border-radius: 9px; background: transparent; color: #56534b; text-align: left; cursor: pointer; }
+.profile-avatar { width: 29px; height: 29px; flex: 0 0 29px; display: grid; place-items: center; border-radius: 50%; background: #d5d0c5; color: #48443c; font-size: 12px; font-weight: 700; }
+.profile-name { flex: 1; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-scrim { display: none; }
+.chat-main { align-items: stretch; background: #faf9f6; }
+.chat-active .chat-main { background: #fff; }
+.utility-bar { top: 13px; right: 24px; }
+.mobile-menu-button { display: none; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #68655d; cursor: pointer; }
+.mobile-menu-button:hover { background: #efeee9; }
+.model-label { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border: 0; border-radius: 9px; background: transparent; color: #56534d; font: inherit; font-size: 13px; font-weight: 550; cursor: pointer; }
+.model-label:hover { background: #efeee9; }
+.provider-status { padding: 0 8px; color: #8c877d; font-size: 11px; }
+.top-dropdown { top: calc(100% + 6px); left: auto; right: 0; width: 260px; }
+.empty-state { max-width: 820px; gap: 16px; padding: 80px 32px 56px; }
+.empty-kicker { margin: 0; color: #9a624b; font-size: 12px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
+.empty-headline { max-width: 620px; margin: 0 0 18px; color: #34322d; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(32px, 4vw, 46px); font-weight: 400; letter-spacing: -1.2px; line-height: 1.16; }
+.prompt-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 3px; }
+.prompt-suggestions button { padding: 8px 12px; border: 1px solid #e7e4dc; border-radius: 18px; background: rgba(255,255,255,.75); color: #68645c; font: inherit; font-size: 11px; cursor: pointer; transition: background .16s, border-color .16s; }
+.prompt-suggestions button:hover { background: #fff; border-color: #d2cec3; }
+.input-pill { border-color: #e3e0d8; border-radius: 22px; box-shadow: 0 7px 25px rgba(42, 38, 28, .07); }
+.input-pill:focus-within { border-color: #c9b8a9; box-shadow: 0 8px 27px rgba(42, 38, 28, .1); }
+.empty-input-row :deep(.ai-chat-input), .bottom-input-row :deep(.ai-chat-input) { padding: 0; border: 0; background: transparent; }
+.empty-input-row :deep(.glow-ring), .bottom-input-row :deep(.glow-ring) { display: none; }
+.empty-input-row :deep(.input-wrapper), .bottom-input-row :deep(.input-wrapper) { padding: 12px 14px; border: 1px solid #e3e0d8; border-radius: 18px; background: #fff; box-shadow: 0 7px 25px rgba(42, 38, 28, .07); }
+.empty-input-row :deep(.ai-chat-input.is-focused .input-wrapper), .bottom-input-row :deep(.ai-chat-input.is-focused .input-wrapper) { border-color: #c9b8a9; box-shadow: 0 8px 27px rgba(42, 38, 28, .1); }
+.empty-input-row :deep(.send-btn), .bottom-input-row :deep(.send-btn), .empty-input-row :deep(.send-btn.has-text), .bottom-input-row :deep(.send-btn.has-text) { background: #c96b42; border-color: #c96b42; color: #fffaf5; box-shadow: none; }
+.empty-input-row :deep(.send-btn:hover:not(:disabled)), .bottom-input-row :deep(.send-btn:hover:not(:disabled)) { background: #b65c35; border-color: #b65c35; color: #fffaf5; }
+.attach-btn:hover, .mic-btn:hover, .model-btn:hover { background: #f1efea; color: #775b4b; }
+.messages-area { padding-top: 78px; background: #fff; }
+.messages-area.has-messages { background: #fff; }
+.messages-inner { max-width: 760px; gap: 24px; }
+.msg-row { display: flex; gap: 0; }
+.msg-avatar { display: none; }
+.msg-row.user, .chat-active .msg-row.user { justify-content: flex-end; }
+.msg-body { max-width: 100%; color: #34322d; font-size: 15px; line-height: 1.72; }
+.msg-body.assistant { width: 100%; }
+.msg-body.user { max-width: min(82%, 620px); padding: 10px 15px; border-radius: 18px; background: #f1f0ec; }
+.msg-content { line-height: 1.72; }
+.msg-footer { justify-content: flex-start; gap: 16px; margin-top: 14px; padding: 0; border: 0; }
+.msg-meta { color: #97938a; font-size: 10px; }
+.msg-actions button:hover { background: #f1f0ec; }
+.stream-label { color: #827d73; text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 450; }
+.pulse-dot, .cursor-blink { background: #c96b42; }
+.input-area { max-width: 820px; padding: 12px 24px 20px; }
+.input-toolbar { margin-bottom: 8px; }
+.model-btn { color: #716d64; background: transparent; font-size: 11px; font-weight: 500; }
+.council-toggle-btn { border-color: #e5e2db; }
+.council-toggle-btn.active { background: #c96b42; border-color: #c96b42; }
+.follow-up-row { max-width: 760px; }
+.follow-up-chip { border-color: #e5e2db; color: #68645c; }
+.follow-up-chip:hover { background: #f5f3ef; border-color: #cfc8bd; color: #514c43; }
+@media (max-width: 768px) {
+  .chat-sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 280px; min-width: 0; transform: translateX(-101%); transition: transform .22s ease; box-shadow: 10px 0 32px rgba(35, 32, 26, .08); }
+  .chat-sidebar.mobile-open { transform: translateX(0); }
+  .sidebar-close { display: grid; }
+  .sidebar-scrim { display: block; position: fixed; inset: 0; z-index: 4; background: rgba(30, 28, 24, .25); }
+  .mobile-menu-button { display: grid; }
+  .utility-bar { top: 8px; left: 10px; right: 12px; justify-content: space-between; }
+  .empty-state { padding: 65px 20px 30px; }
+  .empty-headline { font-size: 34px; }
+  .prompt-suggestions { max-width: 380px; }
+  .messages-area { padding: 62px 16px 12px; }
+  .msg-body { font-size: 14px; }
+  .msg-body.user { max-width: 90%; }
+  .input-area { padding: 8px 12px 16px; }
+}
+
 </style>

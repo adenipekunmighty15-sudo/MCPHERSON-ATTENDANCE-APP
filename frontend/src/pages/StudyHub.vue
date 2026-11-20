@@ -704,7 +704,7 @@ const formattedTime = computed(() => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 })
 const currentDuration = computed(() => presets.find(p => p.minutes === totalSeconds.value / 60)?.minutes || 25)
-const timerColor = computed(() => timerState.value === 'running' ? '#E05B4A' : timerState.value === 'paused' ? '#D4AF37' : '#96A0B5')
+const timerColor = computed(() => timerState.value === 'running' ? '#E05B4A' : timerState.value === 'paused' ? '#F9AC8A' : '#96A0B5')
 const timerStateLabel = computed(() => timerState.value === 'running' ? 'FOCUSING' : timerState.value === 'paused' ? 'PAUSED' : 'READY')
 
 function setDuration(minutes) {
@@ -769,7 +769,7 @@ watch(goals, saveGoals, { deep: true })
 </script>
 
 <style scoped>
-.hub { --navy: #0B192C; --gold: #D4AF37; --ink: #16233A; --muted: #7C879B; --line: #E7EBF2; --bg: #F6F7FA; display: grid; grid-template-columns: 232px minmax(0, 1fr) 280px; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+.hub { --navy: #010A2A; --gold: #F9AC8A; --ink: #16233A; --muted: #7C879B; --line: #E7EBF2; --bg: #F6F7FA; display: grid; grid-template-columns: 232px minmax(0, 1fr) 280px; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 .rail, .side { background: #fff; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .rail { border-right: 1px solid var(--line); padding: 24px 16px; display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 6px 22px; }
@@ -812,8 +812,8 @@ watch(goals, saveGoals, { deep: true })
 .hero h1 em { font-style: italic; color: var(--gold); }
 .hero p { color: #68758E; font-size: 13px; line-height: 1.6; max-width: 600px; margin: 0 auto; }
 
-.composer { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 12px 40px rgba(11, 25, 44, .05); transition: border-color .2s, box-shadow .2s; }
-.composer.dragging { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(212, 175, 55, .12); }
+.composer { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 12px 40px rgba(1, 10, 42, .05); transition: border-color .2s, box-shadow .2s; }
+.composer.dragging { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(249, 172, 138, .12); }
 .composer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .composer-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--navy); }
 .composer-hint { font-size: 10px; color: #A3ACBB; }
@@ -858,7 +858,7 @@ watch(goals, saveGoals, { deep: true })
 .section-head .sub { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
 .pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .pack-card { text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; cursor: pointer; transition: transform .18s, box-shadow .18s; }
-.pack-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(11, 25, 44, .07); }
+.pack-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(1, 10, 42, .07); }
 .pack-card-top { display: flex; justify-content: space-between; align-items: center; }
 .pack-icon { width: 36px; height: 36px; border-radius: 10px; background: #F4F1E6; color: var(--gold); display: grid; place-items: center; }
 .pack-date { font-size: 10px; color: #A3ACBB; }
@@ -970,7 +970,7 @@ watch(goals, saveGoals, { deep: true })
 .timer-label span { font-size: 8px; font-weight: 700; letter-spacing: .12em; margin-top: 3px; }
 .timer-controls { display: flex; justify-content: center; gap: 8px; }
 .timer-main { border: 0; background: #3F8F6B; color: #fff; padding: 8px 22px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
-.timer-main.pause { background: #D4AF37; }
+.timer-main.pause { background: #F9AC8A; }
 .timer-icon { width: 32px; border: 1px solid var(--line); background: #fff; border-radius: 8px; color: #7C879B; display: grid; place-items: center; cursor: pointer; }
 .presets { display: flex; gap: 6px; margin-top: 14px; }
 .presets button { flex: 1; border: 1px solid var(--line); background: #F8FAFC; color: #7C879B; border-radius: 7px; padding: 6px; font-size: 10px; font-weight: 600; cursor: pointer; }

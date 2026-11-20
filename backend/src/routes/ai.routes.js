@@ -4,7 +4,7 @@ import { query } from '../../lib/db.js'
 import { webSearch, searchImages } from '../../lib/webSearch.js'
 import OpenAI from 'openai'
 import { randomUUID } from 'crypto'
-import { getAvailableProviders, getAI } from '../config/ai.js'
+import { getAvailableProviders, getAI, streamAnthropicResponse } from '../config/ai.js'
 import { aiChat, generateFollowUps, generateChatTitle } from '../services/aiService.js'
 import { resolve4, resolve6 } from 'node:dns/promises'
 import net from 'node:net'
@@ -209,6 +209,7 @@ router.get('/api/ai/models', authenticate, async (req, res) => {
       if (client) {
         status = 'online'
         const names = {
+          anthropic: 'Claude Sonnet 5.5',
           'nvidia-ultra': 'Nemotron 3 Ultra', openai: 'GPT-4o Mini', gemini: 'Gemini Flash',
           deepseek: 'DeepSeek V4 Pro', llama: 'Llama 3.1 70B', phi4: 'Phi-4', groq: 'Groq Llama 3.3',
           hermes: 'Hermes 3 405B', minimax: 'MiniMax', 'nemotron-nano': 'Nemotron Nano 8B',
@@ -496,18 +497,18 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
     }
 
     const expertPrompts = {
-      general: 'You are a distinguished university professor at McPherson University. Respond like a scholar — thorough, detailed, well-structured with academic depth, real-world examples, and contextual insights.',
-      math: 'You are a distinguished mathematics professor. Explain concepts with scholarly depth — step-by-step derivations, real-world applications, historical context, and multiple example problems. Use LaTeX for all math ($...$ inline, $$...$$ display).',
-      programming: 'You are a senior computer science professor. Teach coding concepts with academic rigor — theory, best practices, code examples, design patterns, and real-world architecture considerations.',
-      medical: 'You are a professor of medical sciences. Explain anatomy, physiology, pharmacology and health concepts with clinical depth, referencing mechanisms, research, and practical applications.',
-      history: 'You are a professor of history. Provide rich, narrative-driven explanations with historical context, cause-effect analysis, scholarly perspectives, and significance of events.',
-      writing: 'You are a professor of English and composition. Guide with scholarly depth — essay structure, rhetorical devices, argumentation theory, stylistic analysis, and exemplary models.',
-      physics: 'You are a physics professor. Explain physical laws with mathematical rigor — derivations, real-world applications, experimental evidence, and problem-solving strategies. Use LaTeX for all math ($...$ inline, $$...$$ display).',
-      chemistry: 'You are a chemistry professor. Explain reactions and theories with academic depth — mechanisms, kinetics, thermodynamics, laboratory techniques, and industrial applications.',
-      literature: 'You are a professor of literature. Analyze texts with scholarly depth — themes, symbolism, historical context, critical theory perspectives, and close reading techniques.',
-      career: 'You are a senior career counselor and faculty advisor. Provide comprehensive guidance on university choices, career paths, professional development, industry trends, and actionable strategies.',
+      general: 'You are a thoughtful, helpful university assistant. Answer naturally and directly, matching the requested level of detail.',
+      math: 'You are a patient mathematics tutor. Explain the key idea clearly, show the necessary steps, and check the result. Format math with LaTeX.',
+      programming: 'You are a practical programming mentor. Explain the code or concept clearly, give a focused example, and help the student learn.',
+      medical: 'You are a clear medical sciences tutor. Explain mechanisms and terminology carefully, and distinguish general education from personal medical advice.',
+      history: 'You are a history tutor. Explain events with relevant context, causes, and consequences without adding unnecessary detail.',
+      writing: 'You are a supportive writing coach. Give specific, constructive suggestions and preserve the writer’s intent and voice.',
+      physics: 'You are a patient physics tutor. Explain the physical idea, show useful equations, and work through the requested calculation. Format math with LaTeX.',
+      chemistry: 'You are a clear chemistry tutor. Explain reactions and concepts with accurate notation and an example when useful.',
+      literature: 'You are a thoughtful literature guide. Ground interpretations in the text and distinguish evidence from possible readings.',
+      career: 'You are a practical career advisor. Give balanced guidance and concrete next steps, noting when advice depends on the student’s circumstances.',
     }
-    const systemPrompt = expertPrompts[expert] || expertPrompts.general
+    const systemPrompt = (expertPrompts[expert] || expertPrompts.general) + ' Be conversational and clear. Use headings only when helpful, be concise for simple requests, and do not reveal private step-by-step reasoning.'
 
     let webContext = ''
     if (doWebSearch) {
@@ -523,8 +524,8 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
     }
 
     const messages = [
-      { role: 'system', content: systemPrompt + (webContext ? ' ' + webContext : '') + ' Use LaTeX for math: $...$ inline, $$...$$ display. Structure your response with <thinking>Your thorough step-by-step reasoning</thinking> before your comprehensive, scholarly answer.' },
-      ...sanitizeHistory(history, 6),
+      { role: 'system', content: systemPrompt + (webContext ? ' ' + webContext : '') + ' Use LaTeX for math when useful: $...$ inline, $$...$$ display.' },
+      ...sanitizeHistory(history, 40),
       { role: 'user', content: message.trim() },
     ]
 
@@ -542,10 +543,55 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
             result.final || 'I was unable to generate a complete response.', result.finalThinking || '', startTime, 'council', result.followUps)
         } catch {}
       }
+    } else if (getAI('anthropic')) {
+      const controller = new AbortController()
+      let answer = ''
+      let responseModel = 'claude-sonnet-5-5'
+      const abortIfClientLeaves = () => {
+        if (!res.writableEnded) controller.abort()
+      }
+      res.once('close', abortIfClientLeaves)
+      sendEvent('status', { provider: 'anthropic', message: 'Claude is thinking...' })
+      try {
+        answer = await streamAnthropicResponse(messages, {
+          signal: controller.signal,
+          onText: delta => {
+            answer += delta
+            if (!res.destroyed) sendEvent('delta', { content: delta })
+          },
+        }) || answer
+      } catch (err) {
+        if (!controller.signal.aborted) console.warn('Claude request failed; using available fallback:', err?.message || err)
+      } finally {
+        res.off('close', abortIfClientLeaves)
+      }
+
+      if (controller.signal.aborted || res.destroyed) return
+      if (!answer) {
+        responseModel = 'ai-assistant'
+        sendEvent('status', { provider: 'fallback', message: 'Claude is unavailable. Trying another AI provider...' })
+        const fallback = await aiChat(messages, {
+          turboMode: true,
+          fastMode: true,
+          verifyWithSearch: false,
+          excludeProviders: ['anthropic'],
+        })
+        answer = fallback?.final || ''
+      }
+      if (answer) {
+        sendEvent('answer', { content: answer, done: true })
+        try {
+          await saveAndDone(sendEvent, bodyConvId, req.user.id, message, answer, '', startTime, responseModel, [])
+        } catch {}
+      } else {
+        const noProviders = 'I couldn’t reach an AI provider just now. Please try again in a moment.'
+        sendEvent('answer', { content: noProviders, done: true })
+        try { await saveAndDone(sendEvent, bodyConvId, req.user.id, message, noProviders, '', startTime, 'unavailable', []) } catch {}
+      }
     } else {
       // ─── TURBO MODE: fast single response ───
       const timeout = doWebSearch ? 15000 : 10000
-      sendEvent('status', { provider: 'turbo', message: 'Thinking...' })
+      sendEvent('status', { provider: 'turbo', message: 'Claude is not configured. Using the available assistant...' })
       const verifyWithSearch = needsVerification(message.trim())
       const result = await Promise.race([
         aiChat(messages, { turboMode: true, fastMode: true, verifyWithSearch }),
@@ -625,12 +671,12 @@ async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, 
     if (parseInt(msgCount[0].c) === 1) {
       generateChatTitle(convId, userId, message.trim(), finalAnswer)
     }
-    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime, conversationId: convId }
+    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime, conversationId: convId, model }
     if (followUps) doneData.followUps = followUps
     sendEvent('done', doneData)
   } catch (dbErr) {
     console.error('Failed to save chat:', dbErr.message)
-    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime }
+    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime, model }
     if (followUps) doneData.followUps = followUps
     sendEvent('done', doneData)
   }

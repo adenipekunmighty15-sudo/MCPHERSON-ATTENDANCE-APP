@@ -1,6 +1,6 @@
 <template>
   <main class="landing-page">
-    <header class="landing-header">
+    <header class="landing-header" v-reveal:down>
       <router-link to="/welcome" class="landing-brand" aria-label="McPherson University home">
         <span class="brand-crest" aria-hidden="true">
           <Logo :size="44" />
@@ -13,20 +13,20 @@
       <nav class="landing-actions" aria-label="Account">
         <a href="#portal-guide" class="landing-explore">Explore portal</a>
         <router-link :to="loginLink" class="landing-signin">Sign in</router-link>
-        <router-link :to="signupLink" class="landing-create">Create account <ArrowUpRight :size="16" /></router-link>
+        <router-link :to="signupLink" class="landing-create ux-touch-target ux-primary-action" v-magnetic="0.12" v-ripple v-squash v-anticipate v-origin v-instant>Create account <ArrowUpRight :size="16" /></router-link>
       </nav>
     </header>
 
     <section class="landing-hero">
-      <div class="landing-copy">
+      <div class="landing-copy" v-reveal:left="{ delay: 80 }">
         <span class="landing-eyebrow"><span></span>THE McPHERSON UNIVERSITY PORTAL</span>
         <h1>Your campus.<br /><em>In one place.</em></h1>
         <p class="landing-intro">
           A clearer way to stay connected to classes, attendance, study tools and the people who make campus life matter.
         </p>
-        <div class="landing-cta-row">
-          <router-link :to="loginLink" class="landing-primary">Enter your portal <ArrowUpRight :size="18" /></router-link>
-          <router-link to="/forgot-password" class="landing-secondary">Need help signing in?</router-link>
+        <div class="landing-cta-row" v-follow>
+          <router-link :to="loginLink" class="landing-primary ux-touch-target ux-primary-action ux-solid" v-magnetic="0.16" v-ripple v-squash v-anticipate v-origin v-instant>Enter your portal <ArrowUpRight :size="18" /></router-link>
+          <router-link to="/forgot-password" class="landing-secondary ux-touch-target ux-secondary-action" v-ripple>Need help signing in?</router-link>
         </div>
         <div class="landing-trust">
           <span class="trust-mark"><ShieldCheck :size="17" /></span>
@@ -34,20 +34,29 @@
         </div>
       </div>
 
-      <div class="landing-art" aria-hidden="true">
+      <div class="landing-art ux-solid" aria-hidden="true" v-reveal:scale="{ delay: 120 }" v-peak>
         <div class="art-glow"></div>
         <div class="art-orbit orbit-one"></div>
         <div class="art-orbit orbit-two"></div>
-        <div class="art-crest">
-          <Logo :size="210" class="art-crest-logo" />
+        <div class="art-image-wrap">
+          <SpatialImage
+            :src="campusImage"
+            alt="McPherson University campus"
+            eyebrow="MCU · CAMPUS"
+            badge="LIVE"
+            location="Seriki Sotayo"
+            kicker="The Citadel of Champions"
+            title="McPherson University"
+            caption="Ogun State, Nigeria"
+          />
         </div>
         <div class="art-caption"><span></span> SERIKI SOTAYO, OGUN STATE</div>
-        <div class="art-pill pill-top"><BookOpenCheck :size="15" /> Courses & timetable</div>
-        <div class="art-pill pill-bottom"><MapPinned :size="15" /> Campus attendance</div>
+        <div class="art-pill pill-top" v-parallax="0.05" v-arc="{ lift: 14, distance: 20 }"><BookOpenCheck :size="15" /> Courses &amp; timetable</div>
+        <div class="art-pill pill-bottom" v-parallax="0.08" v-arc="{ lift: 12, distance: -18 }"><MapPinned :size="15" /> Campus attendance</div>
       </div>
     </section>
 
-    <section class="campus-pulse" aria-label="Campus at a glance">
+    <section class="campus-pulse" aria-label="Campus at a glance" v-stagger="{ step: 90 }">
       <article class="pulse-item">
         <strong>01</strong>
         <span><b>Verified check-in</b><small>GPS and class-code attendance</small></span>
@@ -62,23 +71,13 @@
       </article>
     </section>
 
-    <section id="portal-guide" class="landing-features" aria-label="Portal features">
-      <article class="feature-card">
-        <span class="feature-icon feature-blue"><MapPinned :size="19" /></span>
-        <h2>Show up with confidence</h2>
-        <p>Access attendance sessions and your check-in history from one campus portal.</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon feature-gold"><CalendarDays :size="19" /></span>
-        <h2>Stay in sync</h2>
-        <p>Keep your courses, class schedule and campus conversations close at hand.</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon feature-green"><GraduationCap :size="20" /></span>
-        <h2>Make study time count</h2>
-        <p>Find study tools and learning resources in your academic workspace.</p>
-      </article>
-    </section>
+    <div id="portal-guide" class="landing-features-wrap" v-reveal="{ delay: 60 }">
+      <SpatialRail
+        kicker="EXPLORE THE PORTAL"
+        title="Move through your campus day"
+        :items="features"
+      />
+    </div>
 
     <footer class="landing-footer">
       <span>McPherson University <span aria-hidden="true">·</span> Citadel of Champions</span>
@@ -92,6 +91,36 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowUpRight, BookOpenCheck, CalendarDays, GraduationCap, MapPinned, ShieldCheck } from 'lucide-vue-next'
 import Logo from '../components/Logo.vue'
+import SpatialImage from '../components/premium/SpatialImage.vue'
+import SpatialRail from '../components/premium/SpatialRail.vue'
+import campusImage from '../assets/mcu-campus.jpg'
+
+const features = [
+  {
+    icon: MapPinned,
+    title: 'Show up with confidence',
+    kicker: 'ATTENDANCE',
+    text: 'Access live attendance sessions and your verified check-in history from one clear campus portal.',
+    meta: 'Open attendance',
+    tone: 'blue',
+  },
+  {
+    icon: CalendarDays,
+    title: 'Stay in sync',
+    kicker: 'ACADEMIC DAY',
+    text: 'Keep your courses, class schedule and campus notices together without hunting across tabs.',
+    meta: 'View timetable',
+    tone: 'gold',
+  },
+  {
+    icon: GraduationCap,
+    title: 'Make study time count',
+    kicker: 'STUDY SUPPORT',
+    text: 'Find notes, quizzes and AI study tools in a workspace designed around your courses.',
+    meta: 'Explore Study Hub',
+    tone: 'green',
+  },
+]
 
 const route = useRoute()
 const redirectQuery = computed(() => {
@@ -113,7 +142,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   color: #0f172a;
   background:
     radial-gradient(ellipse at 86% 22%, rgba(245, 158, 11, 0.1), transparent 28rem),
-    radial-gradient(ellipse at 4% 88%, rgba(23, 107, 77, 0.06), transparent 32rem),
+    radial-gradient(ellipse at 4% 88%, rgba(66, 139, 202, 0.06), transparent 32rem),
     #f8fafc;
 }
 
@@ -143,7 +172,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   height: 44px;
   display: grid;
   place-items: center;
-  color: #176b4d;
+  color: #428bca;
 }
 
 .brand-wordmark {
@@ -208,7 +237,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 
 .landing-signin:hover,
 .landing-secondary:hover {
-  color: #176b4d;
+  color: #428bca;
 }
 
 .landing-create,
@@ -221,8 +250,8 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   padding: 0 17px;
   border-radius: 12px;
   color: #fff;
-  background: #176b4d;
-  box-shadow: 0 8px 18px rgba(23, 107, 77, 0.16);
+  background: #428bca;
+  box-shadow: 0 8px 18px rgba(66, 139, 202, 0.16);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -232,7 +261,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 .landing-create:hover,
 .landing-primary:hover {
   transform: translateY(-2px);
-  background: #11543C;
+  background: #2f6da3;
 }
 
 .landing-hero {
@@ -282,7 +311,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .landing-copy h1 em {
-  color: #176b4d;
+  color: #428bca;
   font-weight: 500;
 }
 
@@ -321,7 +350,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   place-items: center;
   border: 1px solid #dbe5f1;
   border-radius: 11px;
-  color: #176b4d;
+  color: #428bca;
   background: #fff;
 }
 
@@ -348,19 +377,29 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   isolation: isolate;
 }
 
+.art-image-wrap {
+  position: relative;
+  z-index: 1;
+  width: min(78%, 410px);
+}
+
+.landing-art .art-caption {
+  display: none;
+}
+
 .art-glow {
   position: absolute;
   width: min(78%, 430px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(23, 107, 77, 0.13), rgba(23, 107, 77, 0.04) 48%, transparent 72%);
+  background: radial-gradient(circle, rgba(66, 139, 202, 0.13), rgba(66, 139, 202, 0.04) 48%, transparent 72%);
 }
 
 .art-orbit {
   position: absolute;
   width: min(88%, 500px);
   aspect-ratio: 1;
-  border: 1px solid rgba(23, 107, 77, 0.14);
+  border: 1px solid rgba(66, 139, 202, 0.14);
   border-radius: 50%;
   transform: rotate(-24deg) scaleY(0.74);
 }
@@ -380,7 +419,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.15);
   border-radius: 48% 48% 44% 44% / 25% 25% 58% 58%;
-  background: linear-gradient(145deg, #176b4d, #0f172a 76%);
+  background: linear-gradient(145deg, #428bca, #0f172a 76%);
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2), inset 0 0 0 9px rgba(248, 250, 252, 0.035);
   color: #f8fafc;
 }
@@ -466,7 +505,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .pulse-item > strong {
-  color: #176b4d;
+  color: #428bca;
   font-family: var(--font-display);
   font-size: 20px;
   font-variant-numeric: tabular-nums;
@@ -512,7 +551,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   border-radius: 11px;
 }
 
-.feature-blue { color: #176b4d; background: rgba(23, 107, 77, 0.08); }
+.feature-blue { color: #428bca; background: rgba(66, 139, 202, 0.08); }
 .feature-gold { color: #b45309; background: rgba(245, 158, 11, 0.13); }
 .feature-green { color: #047857; background: rgba(16, 185, 129, 0.1); }
 
@@ -530,6 +569,12 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   line-height: 1.6;
 }
 
+.landing-features-wrap {
+  width: min(100%, 1320px);
+  margin: 0 auto;
+  padding: 22px 0 50px;
+}
+
 .landing-footer {
   width: min(100%, 1320px);
   min-height: 58px;
@@ -544,7 +589,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .landing-footer a {
-  color: #176b4d;
+  color: #428bca;
   font-weight: 700;
   text-decoration: none;
 }
@@ -560,6 +605,8 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   .landing-art {
     min-height: 380px;
   }
+
+  .art-image-wrap { width: min(84%, 360px); }
 
   .pill-top { right: -14px; }
   .pill-bottom { left: -12px; }
@@ -623,6 +670,10 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   .landing-art {
     min-height: 310px;
     margin-top: -6px;
+  }
+
+  .art-image-wrap {
+    width: min(90%, 330px);
   }
 
   .art-crest {

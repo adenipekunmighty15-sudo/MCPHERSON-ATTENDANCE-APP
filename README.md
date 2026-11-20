@@ -1,6 +1,6 @@
 # McPherson Attendance App
 
-Vue/Vite frontend with an Express API backed by Supabase/PostgreSQL.
+Vue 3 + Vite + Tailwind frontend with Lenis smooth scrolling, GSAP, Motion-v and Three.js, backed by an Express API and Supabase/PostgreSQL.
 
 ## Live app
 
@@ -93,6 +93,22 @@ With no credentials configured, the UI shows readable "authentication is not
 configured" messages and protected API routes return 503. Guest logins and
 invented accounts are not accepted.
 
+## Attendance check-in rules
+
+- The live-session list is authenticated. Students only receive sessions for
+  courses where they have an `active` row in `public.enrollments`; lecturers see
+  their own sessions; administrators see all sessions.
+- Check-in requires an active session, a valid rotating six-digit code, device
+  GPS coordinates with accuracy of 100 m or better, and an active enrollment for
+  the session's course. Student-supplied role, course, status and enrollment are
+  never trusted.
+- A student must have an active enrollment row before check-in will succeed. If
+  legacy data has missing enrollments, import them first — do not bypass this
+  check.
+- Check-in attempts and session/code endpoints have dedicated in-memory rate
+  limits with `Retry-After`. For multiple backend instances, replace the
+  in-memory stores with a shared Redis-backed store.
+
 ## Deployment
 
 Deploy the API on Render and the static frontend on Vercel. Set `VITE_API_URL`
@@ -115,6 +131,8 @@ inlines `VITE_*` values into the browser bundle):
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY` — public value used by the browser bootstrap endpoint
 - `SUPABASE_SERVICE_KEY`
+- `ANTHROPIC_API_KEY` — optional Claude Messages API key. The chat uses Claude Sonnet 5.5 when configured.
+- `ANTHROPIC_MODEL` — optional model override; defaults to `claude-sonnet-5-5`.
 - `NVIDIA_API_KEY` — master NVIDIA key. Reaches any NVIDIA-hosted model and is
   used for generation, image understanding, and as the Kimi fallback.
 - `NVIDIA_MODEL` — defaults to `nvidia/nemotron-3.5-lightning-30b-a3b`.

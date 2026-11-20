@@ -1,18 +1,18 @@
 <template>
   <div class="dash-page">
     <div class="dashboard-wrap">
-      <header class="dash-header">
+      <header class="dash-header" v-reveal:down>
         <div>
           <div class="dash-eyebrow"><span class="eyebrow-mark"></span>{{ formattedDate }}</div>
           <h1>{{ timeGreeting }}, <span>{{ firstName }}</span></h1>
           <p>Your campus day, thoughtfully organized.</p>
         </div>
-        <button class="refresh-button" type="button" aria-label="Refresh dashboard" :disabled="loading" @click="loadDashboard">
+        <button class="refresh-button ux-touch-target" type="button" aria-label="Refresh dashboard" :disabled="loading" @click="loadDashboard" v-ripple v-squash v-origin v-instant>
           <svg :class="{ spinning: loading }" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"/></svg>
         </button>
       </header>
 
-      <section class="campus-hero">
+      <section class="campus-hero" v-reveal="{ delay: 60 }">
         <div class="hero-copy">
           <span class="hero-kicker">MCU · STUDENT PORTAL</span>
           <h2>Make room for<br /><em>what matters.</em></h2>
@@ -22,16 +22,17 @@
           </p>
           <p v-else-if="scheduleLoaded">A little space in your day. Check your timetable for what’s next.</p>
           <p v-else>Your academic essentials, all in one place.</p>
-          <router-link to="/attendance" class="hero-action">
+          <router-link to="/attendance" class="hero-action ux-touch-target ux-primary-action ux-solid" v-magnetic="0.14" v-ripple v-squash v-anticipate v-origin v-instant>
             <ClipboardCheck :size="17" />
             Open attendance
             <ArrowUpRight :size="16" />
           </router-link>
         </div>
         <div class="hero-art" aria-hidden="true">
+          <SpatialScene class="hero-spatial" variant="orb" :intensity="0.9" />
           <div class="hero-orbit orbit-outer"></div>
           <div class="hero-orbit orbit-inner"></div>
-          <Logo :size="120" class="hero-stamp" />
+          <Logo :size="96" class="hero-stamp" />
           <span class="hero-spark spark-one">✳</span>
           <span class="hero-spark spark-two">✳</span>
         </div>
@@ -41,7 +42,7 @@
         </div>
       </section>
 
-      <section class="active-session-card" aria-label="Attendance check-in">
+      <section class="active-session-card ux-solid" aria-label="Attendance check-in" v-reveal="{ delay: 120 }" v-peak>
         <div class="session-symbol"><MapPin :size="19" /></div>
         <div class="session-card-copy">
           <span class="section-kicker">ATTENDANCE CHECK-IN</span>
@@ -59,7 +60,7 @@
           </template>
         </div>
         <span v-if="activeSession" class="session-live-badge"><i></i> LIVE</span>
-        <router-link to="/attendance" class="session-action">
+        <router-link to="/attendance" class="session-action ux-touch-target ux-primary-action" v-magnetic="0.12" v-ripple v-squash v-anticipate v-origin v-instant>
           {{ authStore.user?.role === 'lecturer' ? 'Manage sessions' : 'Open check-in' }}
           <ArrowUpRight :size="16" />
         </router-link>
@@ -70,8 +71,15 @@
         <button type="button" @click="loadDashboard">Try again</button>
       </div>
 
-      <section class="stats-grid" aria-label="Academic overview">
-        <article v-for="stat in stats" :key="stat.label" class="stat-card">
+      <section class="stats-grid" aria-label="Academic overview" v-stagger="{ step: 70, variant: 'scale' }">
+        <article
+          v-for="stat in stats"
+          :key="stat.label"
+          class="stat-card"
+          v-tilt="{ max: 5 }"
+          v-spotlight
+          v-ripple
+        >
           <div class="stat-topline">
             <span class="stat-icon" :class="`tone-${stat.tone}`"><component :is="stat.icon" :size="18" /></span>
             <span class="stat-label">{{ stat.label }}</span>
@@ -97,7 +105,7 @@
           <div v-if="loading && !scheduleLoaded" class="schedule-loading" aria-label="Loading schedule">
             <div v-for="index in 3" :key="index" class="schedule-placeholder"><span></span><i></i><b></b></div>
           </div>
-          <div v-else-if="schedule.length" class="schedule-list">
+          <div v-else-if="schedule.length" class="schedule-list" v-stagger="{ step: 70, variant: 'left' }">
             <article v-for="(item, index) in schedule" :key="item.id" class="schedule-item" :class="`schedule-${item.status}`">
               <div class="timeline-rail">
                 <span class="timeline-dot"><Check v-if="item.status === 'done'" :size="12" /></span>
@@ -134,7 +142,9 @@
                 <ArrowUpRight :size="16" />
               </router-link>
             </div>
-            <StudentIDCard :student="idCardStudent" />
+            <div class="id-card-slot">
+              <StudentIDCard :student="idCardStudent" />
+            </div>
           </section>
 
           <section class="surface-card shortcuts-card">
@@ -175,7 +185,7 @@
         <div v-if="loading && !coursesLoaded" class="course-grid">
           <div v-for="index in 3" :key="index" class="course-skeleton"><span></span><i></i><b></b></div>
         </div>
-        <div v-else-if="courses.length" class="course-grid">
+        <div v-else-if="courses.length" class="course-grid" v-stagger="{ step: 80, variant: 'up' }">
           <article v-for="course in courses" :key="course.id" class="course-card">
             <div class="course-card-top">
               <span class="course-code">{{ course.code }}</span>
@@ -207,6 +217,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import Logo from '../components/Logo.vue'
 import StudentIDCard from '../components/StudentIDCard.vue'
+import SpatialScene from '../components/premium/SpatialScene.vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../lib/api'
 import { ArrowUpRight, BookOpen, Calendar, CalendarDays, Check, ClipboardCheck, Library, MapPin, MessageSquare, Trophy } from 'lucide-vue-next'
@@ -499,8 +510,8 @@ onBeforeUnmount(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #d97706;
-  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.13);
+  background: #d97757;
+  box-shadow: 0 0 0 4px rgba(217, 119, 87, 0.14);
 }
 
 .dash-header h1 {
@@ -565,9 +576,9 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 26px;
   background:
-    radial-gradient(ellipse at 82% 40%, rgba(245, 158, 11, 0.2), transparent 34%),
-    linear-gradient(115deg, #0f172a 5%, #176b4d 62%, #11543C 100%);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+    radial-gradient(ellipse at 82% 40%, rgba(249, 172, 138, 0.24), transparent 34%),
+    linear-gradient(115deg, #010a2a 5%, #123b66 58%, #428bca 100%);
+  box-shadow: 0 24px 54px rgba(1, 10, 42, 0.22);
   color: #f8fafc;
 }
 
@@ -591,7 +602,7 @@ onBeforeUnmount(() => {
 }
 
 .hero-copy h2 em {
-  color: #fbbf24;
+  color: #f9ac8a;
   font-weight: 500;
 }
 
@@ -611,8 +622,8 @@ onBeforeUnmount(() => {
   margin-top: 20px;
   padding: 0 15px;
   border-radius: 12px;
-  background: #f59e0b;
-  color: #0f172a;
+  background: #f9ac8a;
+  color: #010a2a;
   font-size: 12px;
   font-weight: 750;
   text-decoration: none;
@@ -621,8 +632,8 @@ onBeforeUnmount(() => {
 
 .hero-action:hover {
   transform: translateY(-2px);
-  background: #fbbf24;
-  color: #0f172a;
+  background: #ffc4ad;
+  color: #010a2a;
 }
 
 .hero-action svg:last-child {
@@ -638,10 +649,19 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
 }
 
+.hero-spatial {
+  inset: -56px -46px;
+  opacity: 0.96;
+}
+
+.hero-art > :not(.hero-spatial) {
+  z-index: 1;
+}
+
 .hero-orbit {
   position: absolute;
   inset: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.28);
+  border: 1px solid rgba(249, 172, 138, 0.3);
   border-radius: 50%;
 }
 
@@ -651,7 +671,7 @@ onBeforeUnmount(() => {
 
 .orbit-inner {
   inset: 35px;
-  border-color: rgba(245, 158, 11, 0.38);
+  border-color: rgba(249, 172, 138, 0.4);
   transform: rotate(32deg) scaleX(0.75);
 }
 
@@ -659,12 +679,13 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 50%;
   left: 50%;
+  opacity: 0.94;
   transform: translate(-50%, -50%) rotate(-8deg);
 }
 
 .hero-spark {
   position: absolute;
-  color: #fbbf24;
+  color: #f9ac8a;
   font-size: 20px;
 }
 
@@ -676,7 +697,7 @@ onBeforeUnmount(() => {
 .spark-two {
   bottom: 23px;
   left: 36px;
-  color: rgba(251, 191, 36, 0.68);
+  color: rgba(249, 172, 138, 0.72);
   font-size: 12px;
 }
 
@@ -705,8 +726,8 @@ onBeforeUnmount(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
+  background: #f9ac8a;
+  box-shadow: 0 0 0 4px rgba(249, 172, 138, 0.2);
 }
 
 .active-session-card {
@@ -1169,7 +1190,13 @@ onBeforeUnmount(() => {
   align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
-  padding: 3px 3px 12px;
+  padding: 3px 3px 8px;
+}
+
+/* The card renders with a resting lift inside its layout slot. Reserve a
+   little room here so the raised card never collides with the panel heading. */
+.id-card-slot {
+  padding-top: 10px;
 }
 
 .identity-panel-head h2 {

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <main class="auth-page">
     <div class="ambient-orbs" aria-hidden="true">
       <span class="ambient-orb orb-navy" />
@@ -8,7 +8,7 @@
     <div class="auth-shell">
       <!-- ── EDITORIAL SHOWCASE (45%) ───────────────────────────────── -->
       <section class="auth-showcase" aria-label="McPherson University portal showcase">
-        <img class="showcase-image" :src="campusImage" alt="" aria-hidden="true" />
+        <img v-parallax="{ speed: 0.08, clamp: 24 }" class="showcase-image" :src="campusImage" alt="" aria-hidden="true" />
         <div class="showcase-scrim" aria-hidden="true" />
 
         <div class="crest-pattern" aria-hidden="true">
@@ -96,13 +96,22 @@
               <Logo :size="34" />
             </span>
             <span class="mobile-brand-copy">
-              <strong>McPherson University</strong>
-              <small>Citadel of Champions</small>
+              <strong>{{ currentUniversity.name }}</strong>
+              <small>{{ currentUniversity.tagline }}</small>
             </span>
             <span class="onboarding-badge badge-compact">
               <span class="badge-pulse" aria-hidden="true" />
               {{ mode === 'signup' ? 'SETUP' : 'SECURE' }}
             </span>
+          </div>
+
+          <div class="university-lockup" aria-label="McPherson University portal">
+            <span class="university-lockup-mark" aria-hidden="true"><Logo :size="22" /></span>
+            <span class="university-lockup-copy">
+              <strong>{{ currentUniversity.name }}</strong>
+              <small>{{ currentUniversity.shortCode }} &middot; Official student &amp; staff portal</small>
+            </span>
+            <span class="university-lockup-status"><i aria-hidden="true" /> LIVE</span>
           </div>
 
           <header class="auth-heading">
@@ -113,7 +122,7 @@
             <p>
               {{ mode === 'signin'
                 ? 'Use your registered university account to access your portal.'
-                : 'Set up your McPherson portal account in one short step.' }}
+                : `Set up your ${currentUniversity.name} portal account in one short step.` }}
             </p>
           </header>
 
@@ -194,7 +203,7 @@
                 </div>
                 <p v-if="errors.email" id="signin-email-error" class="field-error" role="alert">{{ errors.email }}</p>
                 <DomainChips id="signin-email-chips" @apply="applyDomain" />
-                <p id="signin-email-hint" class="field-hint">Matric number? We’ll add @undergraduate.mcu.edu.ng automatically.</p>
+                <p id="signin-email-hint" class="field-hint">@{{ defaultStudentDomain }} automatically appended if missing.</p>
               </div>
 
               <div class="field" :class="fieldClass('password')">
@@ -235,7 +244,7 @@
                 <button type="button" class="text-link" @click="handleForgot">Forgot password?</button>
               </div>
 
-              <button type="submit" class="submit-btn" :disabled="isBusy" :aria-busy="isBusy">
+              <button v-magnetic="0.16" v-ripple v-squash v-anticipate v-origin v-instant type="submit" class="submit-btn ux-touch-target ux-primary-action ux-solid" :disabled="isBusy" :aria-busy="isBusy">
                 <span>{{ isBusy ? 'Signing in...' : 'Sign In' }}</span>
                 <ArrowRight v-if="!isBusy" :size="17" aria-hidden="true" />
                 <Loader2 v-else class="spin" :size="17" aria-hidden="true" />
@@ -260,6 +269,33 @@
               novalidate
               @submit.prevent="handleSignup"
             >
+              <fieldset class="role-switch" :disabled="isBusy">
+                <legend>I am joining as</legend>
+                <div class="role-switch-track" role="radiogroup" aria-label="Account type">
+                  <button
+                    type="button"
+                    role="radio"
+                    :aria-checked="userRole === 'student'"
+                    :class="{ active: userRole === 'student' }"
+                    @click="setRole('student')"
+                  >
+                    <GraduationCap :size="15" aria-hidden="true" />
+                    Student
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    :aria-checked="userRole === 'lecturer'"
+                    :class="{ active: userRole === 'lecturer' }"
+                    @click="setRole('lecturer')"
+                  >
+                    <BriefcaseBusiness :size="15" aria-hidden="true" />
+                    Lecturer
+                  </button>
+                </div>
+              </fieldset>
+
+              <template v-if="userRole === 'student'">
               <div class="field-grid">
                 <div class="field" :class="fieldClass('fullName')">
                   <div class="input-wrap">
@@ -294,9 +330,10 @@
                       @input="clearError('identifier')"
                       @blur="validateField('identifier')"
                     />
-                    <label for="signup-id">Matric / Staff ID</label>
+                    <label for="signup-id">{{ roleLabel }}</label>
                   </div>
                   <p v-if="errors.identifier" class="field-error" role="alert">{{ errors.identifier }}</p>
+                  <p class="field-hint">Matric number format: {{ studentIdFormat }}.</p>
                 </div>
               </div>
 
@@ -320,8 +357,10 @@
                   <Check v-if="emailValid" class="valid-check" :size="17" aria-hidden="true" />
                 </div>
                 <p v-if="errors.email" id="signup-email-error" class="field-error" role="alert">{{ errors.email }}</p>
-                <DomainChips id="signup-email-chips" @apply="applyDomain" />
+                <DomainChips :id=" 'signup-email-chips' " :domains="allowedEmailDomains" @apply="applyDomain" />
               </div>
+
+              <p id="signup-email-hint" class="field-hint">Accepted domains: {{ allowedEmailDomains.join(', ') }}</p>
 
               <div ref="comboboxRef" class="field combobox-field" :class="fieldClass('department')">
                 <div class="input-wrap combo-wrap" :class="{ 'is-open': departmentOpen }">
@@ -454,7 +493,7 @@
                       placeholder=" "
                       :aria-invalid="!!errors.confirmPassword"
                       @input="clearError('confirmPassword')"
-                      @blur="validateField('confirmPassword')"
+                      @blur="onConfirmBlur"
                     />
                     <label for="signup-confirm">Confirm password</label>
                     <Check v-if="passwordsMatch" class="match-check" :size="17" aria-label="Passwords match" />
@@ -475,7 +514,7 @@
                 </div>
               </div>
 
-              <button type="submit" class="submit-btn" :disabled="isBusy" :aria-busy="isBusy">
+              <button v-magnetic="0.16" v-ripple v-squash v-anticipate v-origin v-instant type="submit" class="submit-btn ux-touch-target ux-primary-action ux-solid" :disabled="isBusy" :aria-busy="isBusy">
                 <span>{{ isBusy ? 'Creating account...' : 'Create Account' }}</span>
                 <ArrowRight v-if="!isBusy" :size="17" aria-hidden="true" />
                 <Loader2 v-else class="spin" :size="17" aria-hidden="true" />
@@ -487,11 +526,27 @@
                 <GoogleIcon />
                 <span>Continue with Google</span>
               </button>
+              </template>
+
+              <div v-else class="role-note" role="status">
+                <span class="role-note-icon"><ShieldCheck :size="18" aria-hidden="true" /></span>
+                <div>
+                  <strong>Lecturer accounts are provisioned by the university.</strong>
+                  <p>
+                    Staff accounts are created by the ICT directorate so teaching permissions stay verified.
+                    Sign in with your staff email, or contact
+                    <a href="mailto:ict@mcu.edu.ng">ict@mcu.edu.ng</a> to request access.
+                  </p>
+                  <router-link to="/login" class="text-link">Go to staff sign in</router-link>
+                </div>
+              </div>
             </form>
           </Transition>
         </div>
 
-        <p class="workspace-footer">&copy; {{ year }} McPherson University <span aria-hidden="true">&middot;</span> Citadel of Champions</p>
+        <p class="workspace-footer">
+  &copy; {{ year }} {{ currentUniversity.name }} <span aria-hidden="true">&middot;</span> {{ currentUniversity.tagline }}
+</p>
       </section>
     </div>
 
@@ -542,6 +597,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Bell,
+  BriefcaseBusiness,
   CalendarDays,
   Check,
   ChevronDown,
@@ -562,8 +618,8 @@ import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'
 import { supabaseConfigured, setRememberMe } from '../lib/supabase'
 import {
+  university as currentUniversity,
   colleges,
-  departments as universityDepartments,
   searchDepartments,
 } from '../data/university'
 import campusImage from '../assets/mcu-campus.jpg'
@@ -593,11 +649,13 @@ const GoogleIcon = {
 const DomainChips = {
   name: 'DomainChips',
   emits: ['apply'],
-  props: { id: { type: String, default: undefined } },
+  props: {
+    id: { type: String, default: undefined },
+    domains: { type: Array, default: () => [] },
+  },
   setup(props, { emit }) {
-    const chips = ['mcu.edu.ng', 'undergraduate.mcu.edu.ng', 'mcpherson.edu', 'gmail.com']
     return () => h('div', { id: props.id, class: 'domain-chips', role: 'group', 'aria-label': 'Quick-fill email domains' },
-      chips.map((domain) => h('button', {
+      props.domains.map((domain) => h('button', {
         type: 'button',
         key: domain,
         class: 'domain-chip',
@@ -644,11 +702,40 @@ const shake = reactive({})
 
 const year = new Date().getFullYear()
 const tabs = ['signin', 'signup']
-const allowedDomains = ['mcu.edu.ng', 'undergraduate.mcu.edu.ng', 'mcpherson.edu', 'gmail.com']
-const defaultStudentDomain = 'undergraduate.mcu.edu.ng'
-const studentIdPattern = /^[A-Za-z0-9][A-Za-z0-9/_-]{2,23}$/
 
-const departments = universityDepartments
+// Single-tenant configuration: McPherson University.
+const allowedEmailDomains = currentUniversity.allowedEmailDomains
+const availableDepartments = currentUniversity.departments
+const departments = availableDepartments
+const defaultStudentDomain = 'undergraduate.mcu.edu.ng'
+const studentIdPattern = currentUniversity.idFormatRegex
+const staffIdPattern = /^\d{8,10}$/
+const studentIdFormat = '3–24 letters, numbers, /, - or _'
+
+// Role toggle state (signup). The backend always creates student accounts, so
+// the lecturer option explains the ICT provisioning route instead of letting a
+// visitor choose their own permissions.
+const userRole = ref('student')
+const idFormatRegex = computed(() => (userRole.value === 'lecturer' ? staffIdPattern : studentIdPattern))
+
+// Confirm-password errors appear only after blur or form submit.
+const touched = reactive({
+  confirmPassword: false,
+})
+
+function setRole(role) {
+  if (!['student', 'lecturer'].includes(role) || userRole.value === role) return
+  userRole.value = role
+  identifier.value = ''
+  delete errors.identifier
+  delete errors.confirmPassword
+  touched.confirmPassword = false
+}
+
+function onConfirmBlur() {
+  touched.confirmPassword = true
+  validateField('confirmPassword')
+}
 
 const highlights = [
   { title: 'Attendance', text: 'Check in with confidence and see your session status before you leave class.', source: 'STUDENT EXPERIENCE' },
@@ -664,10 +751,8 @@ const shakeTimers = []
 function isValidEmail(value) {
   const candidate = String(value || '').trim()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate)) return false
-  // 🔓 Temporary: allow any email domain for testing (remove for production)
-  // const domain = candidate.slice(candidate.lastIndexOf('@') + 1).toLowerCase()
-  // return allowedDomains.includes(domain)
-  return true
+  const domain = candidate.slice(candidate.lastIndexOf('@') + 1).toLowerCase()
+  return allowedEmailDomains.includes(domain)
 }
 
 const emailValid = computed(() => isValidEmail(email.value))
@@ -702,11 +787,11 @@ function findExactDepartment(query) {
 }
 
 const passwordRequirements = computed(() => [
-  { label: '8+ characters', met: password.value.length >= 8 && password.value.length <= 128 },
-  { label: 'Uppercase', met: true },  // 🔓 Temporary: relaxed for testing
-  { label: 'Lowercase', met: true },  // 🔓 Temporary: relaxed for testing
-  { label: 'Number', met: true },     // 🔓 Temporary: relaxed for testing
-  { label: 'Symbol', met: true },     // 🔓 Temporary: relaxed for testing
+  { label: '8–128 characters', met: password.value.length >= 8 && password.value.length <= 128 },
+  { label: 'Uppercase', met: /[A-Z]/.test(password.value) },
+  { label: 'Lowercase', met: /[a-z]/.test(password.value) },
+  { label: 'Number', met: /\d/.test(password.value) },
+  { label: 'Symbol', met: /[^A-Za-z0-9]/.test(password.value) },
 ])
 
 const strengthScore = computed(() => passwordRequirements.value.filter((item) => item.met).length)
@@ -716,6 +801,13 @@ const strengthLabel = computed(() => {
   return 'Strong'
 })
 const passwordsMatch = computed(() => !!confirmPassword.value && password.value === confirmPassword.value)
+
+// Role-aware label for the ID field
+const roleLabel = computed(() => {
+  if (userRole.value === 'lecturer') return 'Staff ID'
+  if (userRole.value === 'student') return 'Matric Number'
+  return 'Matric / Staff ID'
+})
 
 function fieldClass(field) {
   return {
@@ -743,7 +835,7 @@ function validateField(field) {
   if (field === 'email') {
     if (mode.value === 'signin') normalizeSignInEmail()
     if (!email.value.trim()) errors.email = 'Enter your university email.'
-    else if (!emailValid.value) errors.email = 'Use an accepted McPherson or Gmail domain.'
+    else if (!emailValid.value) errors.email = `Use an accepted domain (${allowedEmailDomains.join(', ')}).`
   }
 
   if (field === 'fullName') {
@@ -752,8 +844,12 @@ function validateField(field) {
 
   if (field === 'identifier') {
     const value = identifier.value.trim()
-    if (!value) errors.identifier = 'Enter your matric number or staff ID.'
-    else if (!studentIdPattern.test(value)) errors.identifier = 'Use 3–24 letters, numbers, /, - or _.'
+    if (!value) errors.identifier = userRole.value === 'lecturer' ? 'Enter your staff ID.' : 'Enter your matric number.'
+    else if (!idFormatRegex.value.test(value)) {
+      errors.identifier = userRole.value === 'lecturer'
+        ? 'Use an 8–10 digit staff ID.'
+        : `Use ${studentIdFormat} for your matric number.`
+    }
   }
 
   if (field === 'department') {
@@ -775,14 +871,23 @@ function validateField(field) {
   }
 
   if (field === 'confirmPassword') {
-    if (!confirmPassword.value) errors.confirmPassword = 'Confirm your password.'
-    else if (!passwordsMatch.value) errors.confirmPassword = 'Passwords do not match.'
+    // Only show error after user has blurred the field or submitted the form
+    if (touched.confirmPassword) {
+      if (!confirmPassword.value) errors.confirmPassword = 'Confirm your password.'
+      else if (!passwordsMatch.value) errors.confirmPassword = 'Passwords do not match.'
+    }
   }
 
   if (errors[field]) triggerShake([field])
 }
 
 function applyDomain(domain) {
+  // Only apply if domain is in the allowed list for the current university
+  if (!allowedEmailDomains.includes(domain)) {
+    errors.email = `@${domain} is not an accepted university domain.`
+    triggerShake(['email'])
+    return
+  }
   const localPart = email.value.split('@')[0].trim()
   if (!localPart) {
     errors.email = 'Enter your username first, then pick a domain.'
@@ -795,7 +900,7 @@ function applyDomain(domain) {
 
 function openDepartments() {
   departmentOpen.value = true
-  const selected = departments.find((dept) => dept.name === department.value)
+  const selected = availableDepartments.find((dept) => dept.name === department.value)
   activeDepartmentCode.value = (selected || flatDepartments.value[0])?.code || ''
 }
 
@@ -985,7 +1090,13 @@ async function handleLogin() {
 }
 
 async function handleSignup() {
-  if (isBusy.value || !validateAll(['fullName', 'identifier', 'email', 'department', 'password', 'confirmPassword']) || !ensureAuthConfigured()) return
+  if (isBusy.value) return
+  if (userRole.value !== 'student') {
+    toast.info('Lecturer accounts are created by the ICT directorate. Please sign in or contact ict@mcu.edu.ng.')
+    return
+  }
+  touched.confirmPassword = true
+  if (!validateAll(['fullName', 'identifier', 'email', 'department', 'password', 'confirmPassword']) || !ensureAuthConfigured()) return
   submitting.value = true
   try {
     // Existing store action and metadata contract are unchanged; backend role remains authoritative.
@@ -1024,7 +1135,7 @@ async function handleForgot() {
     return
   }
   if (!emailValid.value) {
-    errors.email = 'Use an accepted McPherson or Gmail domain.'
+    errors.email = 'Use an accepted university email domain.'
     triggerShake(['email'])
     return
   }
@@ -1137,11 +1248,11 @@ onUnmounted(() => {
 
 <style scoped>
 .auth-page {
-  --navy: #0b192c;
-  --navy-deep: #07111f;
-  --navy-soft: #142744;
-  --gold: #d4af37;
-  --gold-light: #f2df9c;
+  --navy: #010a2a;
+  --navy-deep: #020617;
+  --navy-soft: #0e2a4a;
+  --gold: #428bca;
+  --gold-light: #f9ac8a;
   --slate-bg: #f8fafc;
   --slate-line: #e2e8f0;
   --slate-text: #475569;
@@ -1149,7 +1260,7 @@ onUnmounted(() => {
   position: relative;
   display: grid;
   place-items: center;
-  overflow: visible;  /* allow inner auth-shell to breathe */
+  overflow: visible;
   padding: clamp(12px, 2vw, 28px);
   background: var(--slate-bg);
   color: var(--navy);
@@ -1181,7 +1292,7 @@ onUnmounted(() => {
   height: 420px;
   top: -190px;
   left: -150px;
-  background: rgba(11, 25, 44, 0.14);
+  background: rgba(1, 10, 42, 0.14);
 }
 
 .orb-gold {
@@ -1189,7 +1300,7 @@ onUnmounted(() => {
   height: 340px;
   right: -120px;
   bottom: -160px;
-  background: rgba(212, 175, 55, 0.2);
+  background: rgba(249, 172, 138, 0.2);
 }
 
 .auth-shell {
@@ -1200,15 +1311,13 @@ onUnmounted(() => {
   min-height: 620px;
   display: grid;
   grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
-  overflow: visible;  /* allow inner content to flow naturally */
+  overflow: visible;
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 34px 90px rgba(11, 25, 44, 0.14), 0 8px 24px rgba(11, 25, 44, 0.05);
+  box-shadow: 0 34px 90px rgba(1, 10, 42, 0.14), 0 8px 24px rgba(1, 10, 42, 0.05);
   backdrop-filter: blur(20px);
 }
-
-/* ── SHOWCASE ── */
 .auth-showcase {
   position: relative;
   display: flex;
@@ -1217,6 +1326,7 @@ onUnmounted(() => {
   gap: 14px;
   padding: clamp(24px, 2.4vw, 38px);
   overflow: hidden;
+  border-radius: 30px 0 0 30px;
   color: #f8fafc;
   isolation: isolate;
 }
@@ -1239,8 +1349,8 @@ onUnmounted(() => {
 .showcase-scrim {
   z-index: -2;
   background:
-    radial-gradient(circle at 84% 16%, rgba(212, 175, 55, 0.18), transparent 32%),
-    linear-gradient(158deg, rgba(20, 39, 68, 0.97) 0%, rgba(11, 25, 44, 0.96) 58%, rgba(7, 17, 31, 0.98) 100%);
+    radial-gradient(circle at 84% 16%, rgba(249, 172, 138, 0.18), transparent 32%),
+    linear-gradient(158deg, rgba(14, 42, 74, 0.97) 0%, rgba(1, 10, 42, 0.96) 58%, rgba(1, 10, 42, 0.98) 100%);
 }
 
 .crest-pattern {
@@ -1269,7 +1379,7 @@ onUnmounted(() => {
   height: 360px;
   right: -100px;
   bottom: -150px;
-  border-color: rgba(212, 175, 55, 0.3);
+  border-color: rgba(249, 172, 138, 0.3);
   animation-direction: reverse;
   animation-duration: 26s;
 }
@@ -1384,8 +1494,8 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.16);
+  background: var(--gold-light);
+  box-shadow: 0 0 0 4px rgba(249, 172, 138, 0.16);
 }
 
 .showcase-copy h1 {
@@ -1424,17 +1534,17 @@ onUnmounted(() => {
 }
 
 .badge-light {
-  border: 1px solid rgba(212, 175, 55, 0.35);
-  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(249, 172, 138, 0.35);
+  background: rgba(249, 172, 138, 0.12);
   color: var(--gold-light);
 }
 
 .badge-compact {
   margin: 0;
   padding: 5px 8px;
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  background: rgba(212, 175, 55, 0.1);
-  color: #8a6d13;
+  border: 1px solid rgba(249, 172, 138, 0.28);
+  background: rgba(249, 172, 138, 0.1);
+  color: #b45f3e;
   letter-spacing: 0.1em;
 }
 
@@ -1444,13 +1554,13 @@ onUnmounted(() => {
   height: 6px;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--gold);
+  background: var(--gold-light);
 }
 
 .badge-pulse::after {
   position: absolute;
   inset: -3px;
-  border: 1px solid var(--gold);
+  border: 1px solid var(--gold-light);
   border-radius: 50%;
   content: '';
   animation: badgePulse 1.8s ease-out infinite;
@@ -1469,7 +1579,7 @@ onUnmounted(() => {
   border: 1px solid rgba(248, 250, 252, 0.14);
   border-radius: 15px;
   background: rgba(248, 250, 252, 0.07);
-  box-shadow: 0 12px 28px rgba(7, 17, 31, 0.16);
+  box-shadow: 0 12px 28px rgba(1, 10, 42, 0.16);
   backdrop-filter: blur(12px);
   transition: transform 200ms ease, border-color 200ms ease, background 200ms ease;
   animation: cardFloat 7s ease-in-out infinite;
@@ -1480,13 +1590,13 @@ onUnmounted(() => {
 
 .glass-card:hover {
   transform: translateX(-4px);
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: rgba(249, 172, 138, 0.4);
   background: rgba(248, 250, 252, 0.1);
 }
 
 .glass-card-accent {
-  border-color: rgba(212, 175, 55, 0.3);
-  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(249, 172, 138, 0.3);
+  background: rgba(249, 172, 138, 0.1);
 }
 
 .glass-icon {
@@ -1496,7 +1606,7 @@ onUnmounted(() => {
   place-items: center;
   flex: 0 0 auto;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.16);
+  background: rgba(249, 172, 138, 0.16);
   color: var(--gold-light);
 }
 
@@ -1525,7 +1635,7 @@ onUnmounted(() => {
   max-width: 520px;
   min-height: 96px;
   padding: 13px 18px;
-  border-left: 2px solid rgba(212, 175, 55, 0.55);
+  border-left: 2px solid rgba(249, 172, 138, 0.55);
   border-radius: 0 14px 14px 0;
   background: linear-gradient(90deg, rgba(248, 250, 252, 0.06), transparent);
 }
@@ -1568,7 +1678,7 @@ onUnmounted(() => {
 
 .rotate-controls button.active {
   width: 34px;
-  background: var(--gold);
+  background: var(--gold-light);
 }
 
 .showcase-footer {
@@ -1612,10 +1722,15 @@ onUnmounted(() => {
 /* ── WORKSPACE ── */
 .auth-workspace {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 0;
   overflow-y: auto;
-  padding: clamp(20px, 2.6vw, 42px) clamp(20px, 3vw, 52px) 48px;
+  padding: clamp(20px, 2.6vw, 42px) clamp(20px, 3vw, 52px) 28px;
+  border-radius: 0 30px 30px 0;
   background: rgba(248, 250, 252, 0.55);
   scrollbar-width: none;
 }
@@ -1634,7 +1749,7 @@ onUnmounted(() => {
   right: 28px;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--navy) 0%, #1b3150 48%, var(--gold) 100%);
+  background: linear-gradient(90deg, var(--navy) 0%, #16406b 48%, var(--gold) 100%);
   background-size: 220% 100%;
   background-position: 0% 0;
   content: '';
@@ -1647,13 +1762,183 @@ onUnmounted(() => {
   display: none;
 }
 
+.university-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 9px 11px;
+  border: 1px solid var(--slate-line);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(1, 10, 42, 0.03);
+}
+
+.university-lockup-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: rgba(1, 10, 42, 0.06);
+  color: var(--navy);
+}
+
+.university-lockup-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.university-lockup-copy strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.university-lockup-copy small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.university-lockup-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.university-lockup-status i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.role-switch {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+.role-switch legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.role-switch-track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--slate-line);
+  border-radius: 12px;
+  background: #eef2f7;
+}
+
+.role-switch button {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.role-switch button:hover { color: var(--navy); }
+
+.role-switch button.active {
+  border-color: rgba(1, 10, 42, 0.06);
+  background: #fff;
+  color: var(--navy);
+  box-shadow: 0 4px 12px rgba(1, 10, 42, 0.1);
+}
+
+.role-switch button:active { transform: scale(0.98); }
+.role-switch:disabled button { cursor: not-allowed; opacity: 0.7; }
+
+.role-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgba(249, 172, 138, 0.32);
+  border-radius: 14px;
+  background: rgba(249, 172, 138, 0.08);
+}
+
+.role-note-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: rgba(249, 172, 138, 0.16);
+  color: #b45f3e;
+}
+
+.role-note > div {
+  display: grid;
+  gap: 6px;
+}
+
+.role-note strong {
+  color: var(--navy);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.role-note p {
+  margin: 0;
+  color: #57534e;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.role-note a:not(.text-link) {
+  color: var(--navy);
+  font-weight: 750;
+}
+
+.role-note .text-link { justify-self: start; margin-top: 2px; }
+
 .auth-heading {
   margin-bottom: 16px;
 }
 
 .auth-eyebrow {
   margin: 0 0 6px;
-  color: #8a6d13;
+  color: #b45f3e;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -1707,10 +1992,10 @@ onUnmounted(() => {
   bottom: 4px;
   left: 4px;
   width: calc(50% - 4px);
-  border: 1px solid rgba(11, 25, 44, 0.05);
+  border: 1px solid rgba(1, 10, 42, 0.05);
   border-radius: 10px;
   background: #fff;
-  box-shadow: 0 5px 14px rgba(11, 25, 44, 0.1);
+  box-shadow: 0 5px 14px rgba(1, 10, 42, 0.1);
   transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -1786,7 +2071,7 @@ onUnmounted(() => {
   outline: none;
   border-color: transparent;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.14);
+  box-shadow: 0 0 0 3px rgba(249, 172, 138, 0.14);
 }
 
 .input-wrap label {
@@ -1860,7 +2145,7 @@ onUnmounted(() => {
 
 .field-action:hover {
   color: var(--navy);
-  background: rgba(11, 25, 44, 0.07);
+  background: rgba(1, 10, 42, 0.07);
 }
 
 .field-error,
@@ -1884,9 +2169,9 @@ onUnmounted(() => {
 
 .domain-chip {
   padding: 4px 8px;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid rgba(249, 172, 138, 0.3);
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.08);
+  background: rgba(249, 172, 138, 0.08);
   color: #7a5f10;
   font-family: inherit;
   font-size: 9px;
@@ -1896,8 +2181,8 @@ onUnmounted(() => {
 }
 
 .domain-chip:hover {
-  border-color: rgba(212, 175, 55, 0.6);
-  background: rgba(212, 175, 55, 0.16);
+  border-color: rgba(249, 172, 138, 0.6);
+  background: rgba(249, 172, 138, 0.16);
   transform: translateY(-1px);
 }
 
@@ -1941,7 +2226,7 @@ onUnmounted(() => {
   transition: color 160ms ease;
 }
 
-.text-link:hover { color: #8a6d13; }
+.text-link:hover { color: #b45f3e; }
 
 /* ── COMBOBOX ── */
 .combobox-field { position: relative; }
@@ -1957,7 +2242,7 @@ onUnmounted(() => {
   z-index: 2;
   padding: 3px 6px;
   border-radius: 6px;
-  background: rgba(11, 25, 44, 0.07);
+  background: rgba(1, 10, 42, 0.07);
   color: var(--navy);
   font-size: 9px;
   font-weight: 800;
@@ -1998,7 +2283,7 @@ onUnmounted(() => {
   border: 1px solid var(--slate-line);
   border-radius: 13px;
   background: #fff;
-  box-shadow: 0 18px 38px rgba(11, 25, 44, 0.16);
+  box-shadow: 0 18px 38px rgba(1, 10, 42, 0.16);
   list-style: none;
 }
 
@@ -2021,14 +2306,14 @@ onUnmounted(() => {
 }
 
 .combo-group-label {
-  color: #8a6d13;
+  color: #b45f3e;
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.combo-list li[role='option'].active { background: rgba(11, 25, 44, 0.06); }
+.combo-list li[role='option'].active { background: rgba(1, 10, 42, 0.06); }
 .combo-list li[role='option'].selected { color: var(--navy); font-weight: 700; }
 .combo-list li[role='option'] svg { margin-left: auto; color: #059669; }
 
@@ -2036,7 +2321,7 @@ onUnmounted(() => {
   min-width: 34px;
   padding: 3px 5px;
   border-radius: 6px;
-  background: rgba(212, 175, 55, 0.14);
+  background: rgba(249, 172, 138, 0.14);
   color: #7a5f10;
   font-size: 9px;
   font-weight: 800;
@@ -2087,7 +2372,7 @@ onUnmounted(() => {
 }
 
 .strength-weak .strength-label { color: #dc2626; }
-.strength-fair .strength-label { color: #8a6d13; }
+.strength-fair .strength-label { color: #b45f3e; }
 .strength-strong .strength-label { color: #059669; }
 
 .req-list {
@@ -2147,14 +2432,14 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(11, 25, 44, 0.16);
+  box-shadow: 0 8px 20px rgba(1, 10, 42, 0.16);
   transition: transform 160ms ease, box-shadow 180ms ease;
 }
 
 .submit-btn::after {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.38), transparent);
+  background: linear-gradient(90deg, transparent, rgba(249, 172, 138, 0.38), transparent);
   content: '';
   transform: translateX(-100%);
   transition: transform 620ms ease;
@@ -2165,7 +2450,7 @@ onUnmounted(() => {
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(11, 25, 44, 0.24);
+  box-shadow: 0 14px 28px rgba(1, 10, 42, 0.24);
 }
 
 .submit-btn:hover:not(:disabled)::after { transform: translateX(100%); }
@@ -2211,8 +2496,8 @@ onUnmounted(() => {
 }
 
 .oauth-btn:hover:not(:disabled) {
-  border-color: rgba(11, 25, 44, 0.28);
-  box-shadow: 0 9px 20px rgba(11, 25, 44, 0.09);
+  border-color: rgba(1, 10, 42, 0.28);
+  box-shadow: 0 9px 20px rgba(1, 10, 42, 0.09);
   transform: translateY(-2px);
 }
 
@@ -2221,15 +2506,14 @@ onUnmounted(() => {
 .google-icon { width: 16px; height: 16px; flex: 0 0 auto; }
 
 .workspace-footer {
-  position: absolute;
-  bottom: 12px;
+  position: static;
   margin: 0;
   color: #94a3b8;
   font-size: 9px;
   text-align: center;
 }
 
-.workspace-footer span { margin-inline: 4px; color: #8a6d13; }
+.workspace-footer span { margin-inline: 4px; color: #b45f3e; }
 
 .spin { animation: spin 700ms linear infinite; }
 
@@ -2264,7 +2548,7 @@ onUnmounted(() => {
   border: 1px solid var(--slate-line);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 20px 46px rgba(11, 25, 44, 0.18);
+  box-shadow: 0 20px 46px rgba(1, 10, 42, 0.18);
   backdrop-filter: blur(14px);
 }
 
@@ -2283,7 +2567,7 @@ onUnmounted(() => {
   place-items: center;
   flex: 0 0 auto;
   border-radius: 10px;
-  background: rgba(11, 25, 44, 0.08);
+  background: rgba(1, 10, 42, 0.08);
   color: var(--navy);
   font-size: 15px;
   font-weight: 800;
@@ -2304,7 +2588,7 @@ onUnmounted(() => {
   transition: background 160ms ease;
 }
 
-.help-link:hover { background: rgba(11, 25, 44, 0.07); }
+.help-link:hover { background: rgba(1, 10, 42, 0.07); }
 
 .help-link-icon {
   width: 28px;
@@ -2328,13 +2612,13 @@ onUnmounted(() => {
   height: 42px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(212, 175, 55, 0.4);
+  border: 1px solid rgba(249, 172, 138, 0.4);
   border-radius: 50%;
   background: var(--navy);
   color: var(--gold-light);
   font-family: var(--font-display, Georgia, serif);
   font-size: 18px;
-  box-shadow: 0 10px 24px rgba(11, 25, 44, 0.26);
+  box-shadow: 0 10px 24px rgba(1, 10, 42, 0.26);
   cursor: pointer;
   transition: transform 180ms ease, background 180ms ease;
 }
@@ -2377,6 +2661,7 @@ onUnmounted(() => {
     display: block;
     overflow: visible;
     padding: 28px 16px 56px;
+    border-radius: 0;
     background: linear-gradient(180deg, var(--navy) 0 112px, var(--slate-bg) 112px);
   }
 
@@ -2387,7 +2672,7 @@ onUnmounted(() => {
     border: 1px solid var(--slate-line);
     border-radius: 22px;
     background: #fff;
-    box-shadow: 0 20px 44px rgba(11, 25, 44, 0.12);
+    box-shadow: 0 20px 44px rgba(1, 10, 42, 0.12);
   }
 
   .auth-card::before { left: 22px; right: 22px; }

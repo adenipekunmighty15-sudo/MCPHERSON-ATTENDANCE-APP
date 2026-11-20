@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#010a2a"/>
+      <stop offset="1" stop-color="#0e2a4a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#navy)"/>
+  <circle cx="1040" cy="110" r="260" fill="#428bca" opacity="0.16"/>
+  <circle cx="130" cy="560" r="300" fill="#f9ac8a" opacity="0.12"/>
+  <text x="96" y="268" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="8" fill="#f9ac8a">McPHERSON UNIVERSITY</text>
+  <text x="96" y="374" font-family="Inter, Arial, sans-serif" font-size="86" font-weight="800" fill="#ffffff">Attendance, elevated.</text>
+  <text x="96" y="446" font-family="Inter, Arial, sans-serif" font-size="32" fill="#cbd5e1">A smarter campus experience for Nigeria&apos;s Citadel of Champions.</text>
+  <rect x="96" y="500" width="180" height="8" rx="4" fill="#f9ac8a"/>
+</svg>

@@ -5,6 +5,7 @@ import { envKeyForProvider, PROVIDER_ENV_KEYS } from '../src/config/providerKeys
 
 test('every provider served by the AI config resolves to its real env key', () => {
   const expected = {
+    anthropic: 'ANTHROPIC_API_KEY',
     openai: 'OPENAI_API_KEY',
     openrouter: 'OPENROUTER_API_KEY',
     groq: 'GROQ_API_KEY',

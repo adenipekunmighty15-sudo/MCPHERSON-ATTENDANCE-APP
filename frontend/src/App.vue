@@ -1,5 +1,6 @@
 <template>
   <div class="app-root">
+    <ScrollProgress />
     <LoadingScreen v-if="!loadingStore.isAppReady" :loading="true" />
     <template v-else>
       <router-view />
@@ -15,6 +16,7 @@ import { useLoadingStore } from './stores/loading'
 import { useTheme } from './composables/useTheme'
 import LoadingScreen from './components/LoadingScreen.vue'
 import Toast from './components/Toast.vue'
+import ScrollProgress from './components/premium/ScrollProgress.vue'
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()

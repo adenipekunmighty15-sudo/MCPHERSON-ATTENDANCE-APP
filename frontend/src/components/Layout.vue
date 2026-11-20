@@ -1734,8 +1734,8 @@ onUnmounted(() => {
 
 .layout-bg {
   background-image:
-    linear-gradient(rgba(23, 107, 77, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23, 107, 77, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(66, 139, 202, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(66, 139, 202, 0.025) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: linear-gradient(to bottom, black, transparent 72%);
 }
@@ -2230,7 +2230,7 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #176B4D, #D97706);
+  background: linear-gradient(135deg, #428BCA, #D97706);
   color: #FFFFFF;
   font-size: 13px;
   font-weight: 800;

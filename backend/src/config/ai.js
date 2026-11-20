@@ -1,9 +1,13 @@
 import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 
-let _nvidia, _nvidiaUltra, _nvidiaLlama, _deepseek, _phi4, _openrouter, _groq, _minimax, _nemotronNano, _mistralNemotron, _mistralLarge, _gemma4, _stepfun, _diffusiongemma, _ollamaLlama, _ollamaQwen, _zai, _deepseekV4Flash, _deepseekV4Pro, _nemotronUltra2, _gptOss20b, _gptOss120b, _nemotronSuper120b, _llama33, _nemotronSuper49bV15, _nemotronSuper49bV1, _nemotronNano8b, _mistralNemotron2, _kimi, _inkling, _poolside
+let _anthropic, _nvidia, _nvidiaUltra, _nvidiaLlama, _deepseek, _phi4, _openrouter, _groq, _minimax, _nemotronNano, _mistralNemotron, _mistralLarge, _gemma4, _stepfun, _diffusiongemma, _ollamaLlama, _ollamaQwen, _zai, _deepseekV4Flash, _deepseekV4Pro, _nemotronUltra2, _gptOss20b, _gptOss120b, _nemotronSuper120b, _llama33, _nemotronSuper49bV15, _nemotronSuper49bV1, _nemotronNano8b, _mistralNemotron2, _kimi, _inkling, _poolside
 
 function getAI(provider) {
   try {
+    if (provider === 'anthropic' && !_anthropic && process.env.ANTHROPIC_API_KEY) {
+      _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    }
     if (provider === 'nvidia' && !_nvidia && process.env.NVIDIA_API_KEY) {
       _nvidia = new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: 'https://integrate.api.nvidia.com/v1' })
     }
@@ -103,7 +107,7 @@ function getAI(provider) {
   } catch (e) {
     console.error(`Failed to init provider ${provider}:`, e.message)
   }
-  const clients = { nvidia: _nvidia, 'nvidia-ultra': _nvidiaUltra, llama: _nvidiaLlama, deepseek: _deepseek, phi4: _phi4, openrouter: _openrouter, groq: _groq, minimax: _minimax, 'nemotron-nano': _nemotronNano, 'mistral-nemotron': _mistralNemotron, 'mistral-large': _mistralLarge, 'gemma-4': _gemma4, stepfun: _stepfun, diffusiongemma: _diffusiongemma, 'ollama-llama': _ollamaLlama, 'ollama-qwen': _ollamaQwen, 'z-ai': _zai, 'deepseek-v4-flash': _deepseekV4Flash, 'deepseek-v4-pro': _deepseekV4Pro, 'nemotron-ultra': _nemotronUltra2, 'gpt-oss-20b': _gptOss20b, 'gpt-oss-120b': _gptOss120b, 'nemotron-super-120b': _nemotronSuper120b, 'llama-3.3': _llama33, 'nemotron-super-49b-v15': _nemotronSuper49bV15, 'nemotron-super-49b-v1': _nemotronSuper49bV1, 'nemotron-nano-8b': _nemotronNano8b, 'mistral-nemotron-2': _mistralNemotron2, kimi: _kimi, inkling: _inkling, poolside: _poolside }
+  const clients = { anthropic: _anthropic, nvidia: _nvidia, 'nvidia-ultra': _nvidiaUltra, llama: _nvidiaLlama, deepseek: _deepseek, phi4: _phi4, openrouter: _openrouter, groq: _groq, minimax: _minimax, 'nemotron-nano': _nemotronNano, 'mistral-nemotron': _mistralNemotron, 'mistral-large': _mistralLarge, 'gemma-4': _gemma4, stepfun: _stepfun, diffusiongemma: _diffusiongemma, 'ollama-llama': _ollamaLlama, 'ollama-qwen': _ollamaQwen, 'z-ai': _zai, 'deepseek-v4-flash': _deepseekV4Flash, 'deepseek-v4-pro': _deepseekV4Pro, 'nemotron-ultra': _nemotronUltra2, 'gpt-oss-20b': _gptOss20b, 'gpt-oss-120b': _gptOss120b, 'nemotron-super-120b': _nemotronSuper120b, 'llama-3.3': _llama33, 'nemotron-super-49b-v15': _nemotronSuper49bV15, 'nemotron-super-49b-v1': _nemotronSuper49bV1, 'nemotron-nano-8b': _nemotronNano8b, 'mistral-nemotron-2': _mistralNemotron2, kimi: _kimi, inkling: _inkling, poolside: _poolside }
   return clients[provider] || null
 }
 
@@ -112,6 +116,21 @@ async function getAiResponse(provider, messages, options = {}) {
   if (!client) return null
 
   try {
+    if (provider === 'anthropic') {
+      const system = messages.filter(message => message.role === 'system').map(message => message.content).join('\n\n')
+      const claudeMessages = messages
+        .filter(message => message.role === 'user' || message.role === 'assistant')
+        .map(message => ({ role: message.role, content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content) }))
+      if (!claudeMessages.length) return null
+      const response = await client.messages.create({
+        model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
+        max_tokens: options.max_tokens || 4096,
+        ...(system ? { system } : {}),
+        messages: claudeMessages,
+        temperature: options.temperature ?? 0.3,
+      }, { signal: options.signal })
+      return response.content.filter(block => block.type === 'text').map(block => block.text).join('\n').trim() || null
+    }
     if (provider === 'nvidia') {
       const completion = await client.chat.completions.create({
         // One master key can address any NVIDIA-hosted model via options.model.
@@ -395,8 +414,37 @@ async function getAiResponse(provider, messages, options = {}) {
   return null
 }
 
+async function streamAnthropicResponse(messages, { signal, onText, max_tokens = 4096, temperature = 0.3 } = {}) {
+  const client = getAI('anthropic')
+  if (!client) return null
+
+  const system = messages.filter(message => message.role === 'system').map(message => message.content).join('\n\n')
+  const claudeMessages = messages
+    .filter(message => message.role === 'user' || message.role === 'assistant')
+    .map(message => ({ role: message.role, content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content) }))
+  if (!claudeMessages.length) return null
+
+  const stream = await client.messages.create({
+    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
+    max_tokens,
+    ...(system ? { system } : {}),
+    messages: claudeMessages,
+    temperature,
+    stream: true,
+  }, { signal })
+
+  let answer = ''
+  for await (const event of stream) {
+    if (event.type !== 'content_block_delta' || event.delta?.type !== 'text_delta') continue
+    answer += event.delta.text
+    onText?.(event.delta.text)
+  }
+  return answer.trim() || null
+}
+
 function getAvailableProviders() {
   const available = []
+  if (process.env.ANTHROPIC_API_KEY) available.push('anthropic')
   if (process.env.NVIDIA_API_KEY) available.push('nvidia')
   if (process.env.NVIDIA_LLAMA_KEY) available.push('llama')
   if (process.env.PHI4_KEY) available.push('phi4')
@@ -431,10 +479,11 @@ function getAvailableProviders() {
 }
 
 const specialistRoles = {
+  anthropic: 'You are a thoughtful, clear, and helpful university assistant. Give direct answers, explain uncertainty, and adapt detail to the question.',
   nvidia: 'You are the NVIDIA SPECIALIST. Provide accurate, well-structured answers with clear reasoning and practical examples.',
-  'nvidia-ultra': 'You are the CHIEF JUSTICE of the McPherson AI Council. You preside over all deliberations with supreme authority. Your reasoning is deep, nuanced, and decisive. You synthesize all expert testimonies into a single authoritative verdict.',
+  'nvidia-ultra': 'You are a careful academic reviewer. Compare the evidence, identify meaningful disagreements, and present a clear, balanced conclusion without exposing private reasoning.',
   llama: 'You are the TECHNICAL ARCHITECT. Focus on technical accuracy, structure, and precision.',
-  deepseek: 'You are the REASONING MASTER. Use deep Chain-of-Thought to find hidden connections.',
+  deepseek: 'You are a careful analyst. Check facts and logic, identify relevant connections, and present a concise, well-supported answer.',
   groq: 'You are the RAPID ANALYST. Provide high-velocity insights and identify key pillars instantly.',
   phi4: 'You are the ACADEMIC SPECIALIST. Focus on textbook-level accuracy and scientific rigor.',
   minimax: 'You are the CONTEXT GUARDIAN. Ensure the response stays perfectly aligned with the source material.',
@@ -446,12 +495,12 @@ const specialistRoles = {
   'ollama-llama': 'You are the LOCAL SAGE. Provide fast, efficient reasoning with a focus on practical insights.',
   'ollama-qwen': 'You are the LOCAL POLYMATH. Deliver well-rounded, comprehensive answers with deep contextual understanding.',
   'z-ai': 'You are the GLM LINGUIST. Specialize in precise multilingual reasoning and structured logic.',
-  'deepseek-v4-flash': 'You are the FLASH REASONER. Deliver rapid yet deep chain-of-thought responses with high reasoning effort.',
+  'deepseek-v4-flash': 'You are a fast, careful analyst. Give a direct answer and include only the explanation needed to make it clear.',
   'deepseek-v4-pro': 'You are the PRO ANALYST. Provide precise, factual responses with deep technical insight.',
-  'nemotron-ultra': 'You are the SUPREME JUDGE. Use ultra-deep reasoning with thinking enabled to deliver authoritative, well-justified verdicts.',
+  'nemotron-ultra': 'You are a rigorous reviewer. Weigh the available evidence and deliver a clear, well-supported conclusion.',
   'gpt-oss-20b': 'You are the OPEN SOURCE ANALYST. Provide efficient, practical insights with a focus on real-world applications.',
-  'gpt-oss-120b': 'You are the DEEP REASONER. Leverage extensive parameters for nuanced, highly detailed analysis and complex problem-solving.',
-  'nemotron-super-120b': 'You are the SUPER ANALYST. Use advanced reasoning with thinking capabilities for complex problem-solving.',
+  'gpt-oss-120b': 'You are a careful research assistant. Analyze complex questions and explain the conclusion clearly without exposing private reasoning.',
+  'nemotron-super-120b': 'You are a thoughtful academic assistant. Solve the question carefully and present the conclusion with a clear, brief explanation.',
   'llama-3.3': 'You are the LLAMA SAGE. Provide balanced, well-reasoned responses with broad knowledge across domains.',
   'nemotron-super-49b-v15': 'You are the NEMOTRON STRATEGIST. Deliver strategic insights with super-scale reasoning.',
   'nemotron-super-49b-v1': 'You are the NEMOTRON ADVISOR. Provide clear, structured analysis with deep contextual understanding.',
@@ -503,4 +552,4 @@ Return only the extracted study content — no preamble, no commentary.`
   return null
 }
 
-export { getAI, getAiResponse, getAvailableProviders, specialistRoles, understandImage }
+export { getAI, getAiResponse, getAvailableProviders, specialistRoles, understandImage, streamAnthropicResponse }

@@ -69,10 +69,10 @@ router.get('/api/courses/enrolled', authenticate, async (req, res) => {
       d.name AS "departmentName"
     FROM public.enrollments e
     LEFT JOIN public.courses c ON c.id::text = e.course_id
-    LEFT JOIN public.users lecturer ON lecturer.id = c.lecturer_id
+    LEFT JOIN public.users lecturer ON lecturer.id::text = c.lecturer_id::text
     LEFT JOIN public.departments d ON d.id = c.department_id
-    WHERE (e.user_id = $1 AND COALESCE(e.status, 'active') <> 'dropped')
-       OR c.lecturer_id = $1
+    WHERE (e.user_id::text = $1::text AND lower(trim(COALESCE(e.status::text, 'active'))) <> 'dropped')
+       OR c.lecturer_id::text = $1::text
     UNION
     SELECT DISTINCT
       c.id, c.code, c.title, c.level, c.units AS "creditUnits",
@@ -87,8 +87,8 @@ router.get('/api/courses/enrolled', authenticate, async (req, res) => {
       lower(d.code) = lower(student.department)
     )
     JOIN public.courses c ON c.department_id::text = d.id::text
-    LEFT JOIN public.users lecturer ON lecturer.id = c.lecturer_id
-    WHERE student.id = $1
+    LEFT JOIN public.users lecturer ON lecturer.id::text = c.lecturer_id::text
+    WHERE student.id::text = $1::text
     ORDER BY code NULLS LAST, "courseName", title`
 
   try {
@@ -102,7 +102,9 @@ router.get('/api/courses/enrolled', authenticate, async (req, res) => {
   }
 
   try {
-    const legacySql = baseSql.replace('e.status,', 'e.enrollment_status AS status,').replace(/COALESCE\(e\.status, 'active'\)/, "COALESCE(e.enrollment_status, 'Active')")
+    const legacySql = baseSql
+      .replace('e.status,', 'e.enrollment_status AS status,')
+      .replace("e.status::text, 'active'", "e.enrollment_status::text, 'active'")
     const { rows } = await query(legacySql, [req.user.id])
     res.status(200).json(rows)
   } catch (err) {

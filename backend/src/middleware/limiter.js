@@ -70,6 +70,51 @@ const aiLimiter = rateLimit({
   message: { error: 'AI rate limit exceeded. Please wait a minute before requesting more AI generations.' },
 })
 
+// Attendance is the security-critical write path. Keep these counters tight
+// enough to blunt code guessing while staying usable for a normal class.
+function tooManyRequests(req, res, next, options) {
+  const resetAt = req.rateLimit?.resetTime?.getTime?.()
+  const retryAfter = Number.isFinite(resetAt)
+    ? Math.max(1, Math.ceil((resetAt - Date.now()) / 1000))
+    : Math.ceil(options.windowMs / 1000)
+  res.setHeader('Retry-After', String(retryAfter))
+  res.status(options.statusCode || 429).json({
+    error: typeof options.message === 'function'
+      ? options.message(req, res, next, options)
+      : options.message,
+  })
+}
+
+const attendanceLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyGenerator: requestKey,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: tooManyRequests,
+  message: { error: 'Too many attendance attempts. Please wait a moment before trying again.' },
+})
+
+const sessionLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyGenerator: requestKey,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: tooManyRequests,
+  message: { error: 'Too many session requests. Please slow down and try again.' },
+})
+
+const checkinCodeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 12,
+  keyGenerator: requestKey,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: tooManyRequests,
+  message: { error: 'Too many check-in code requests. Please wait a moment.' },
+})
+
 function applyLimiters(app) {
   app.use(attachVerifiedUser)
   app.use(globalLimiter)
@@ -79,6 +124,12 @@ function applyLimiters(app) {
   app.use('/api/auth/logout', loginLimiter)
   app.use('/api/auth/confirm-signup', authLimiter)
   app.use('/api/auth/create-user-profile', authLimiter)
+  app.post('/api/attendance', attendanceLimiter)
+  app.get('/api/sessions/active', sessionLimiter)
+  app.post('/api/sessions/start', sessionLimiter)
+  app.post('/api/sessions/end/:id', sessionLimiter)
+  app.get('/api/sessions/:id/checkin-code', checkinCodeLimiter)
+  app.get('/api/sessions/:id/attendees', sessionLimiter)
   app.use('/api/study-materials/chat', aiLimiter)
   app.use('/api/study-materials/upload', aiLimiter)
   app.use('/api/study-materials/:id/chat', aiLimiter)
@@ -100,4 +151,13 @@ function applyLimiters(app) {
   app.use('/api/rag/chat', aiLimiter)
 }
 
-export { globalLimiter, authLimiter, loginLimiter, aiLimiter, applyLimiters }
+export {
+  globalLimiter,
+  authLimiter,
+  loginLimiter,
+  aiLimiter,
+  attendanceLimiter,
+  sessionLimiter,
+  checkinCodeLimiter,
+  applyLimiters,
+}

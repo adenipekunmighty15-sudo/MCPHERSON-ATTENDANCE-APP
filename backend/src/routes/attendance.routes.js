@@ -39,15 +39,34 @@ function configuredCheckinKey(res) {
   return null
 }
 
-router.get('/api/sessions/active', async (req, res) => {
+router.get('/api/sessions/active', authenticate, async (req, res) => {
   try {
+    const role = req.user.role
+    const params = []
+    let where = "WHERE ls.status = 'active'"
+
+    if (role === 'lecturer') {
+      params.push(req.user.id)
+      where += ' AND ls.lecturer_id = $1'
+    } else if (!['admin', 'super_admin'].includes(role)) {
+      // Students only see live sessions for courses they are actively
+      // enrolled in. Never trust a course filter supplied by the browser.
+      params.push(req.user.id)
+      where += ` AND EXISTS (
+        SELECT 1 FROM public.enrollments e
+        WHERE e.user_id = $1 AND e.status = 'active'
+          AND e.course_id::text = ls.course_id::text
+      )`
+    }
+
     const { rows } = await query(
-      `SELECT id, timetable_id AS "timetableId", course_id AS "courseId",
-        course_name AS "courseName", lecturer_id AS "lecturerId",
-        lecturer_name AS "lecturerName", venue_id AS "venueId",
-        room, started_at AS "startedAt", ended_at AS "endedAt", status
-       FROM public.live_sessions WHERE status = 'active'
-       ORDER BY started_at DESC`
+      `SELECT ls.id, ls.timetable_id AS "timetableId", ls.course_id AS "courseId",
+        ls.course_name AS "courseName", ls.lecturer_id AS "lecturerId",
+        ls.lecturer_name AS "lecturerName", ls.venue_id AS "venueId",
+        ls.room, ls.started_at AS "startedAt", ls.ended_at AS "endedAt", ls.status
+       FROM public.live_sessions ls ${where}
+       ORDER BY ls.started_at DESC`,
+      params
     )
     res.status(200).json(rows)
   } catch (err) {
@@ -292,10 +311,9 @@ router.post('/api/attendance', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Invalid location coordinates' })
     }
     if (
-      accuracy !== undefined &&
-      (typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy <= 0 || accuracy > 100)
+      typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy <= 0 || accuracy > 100
     ) {
-      return res.status(400).json({ error: 'GPS accuracy must be 100 meters or better' })
+      return res.status(400).json({ error: 'GPS accuracy within 100 meters is required for check-in' })
     }
 
     const { rows: sessionRows } = await query(
@@ -314,8 +332,20 @@ router.post('/api/attendance', authenticate, async (req, res) => {
     }
     const sessionCourseId = session.course_id || ''
     const sessionCourseName = session.course_name || ''
-    if (!sessionCourseId && !sessionCourseName) {
-      return res.status(400).json({ error: 'The active session is missing its course' })
+    if (!sessionCourseId) {
+      return res.status(400).json({ error: 'The active session is missing a course identifier' })
+    }
+
+    // Enrollment is an authority decision. It must never be supplied or
+    // inferred from the client, including for lecturers and administrators.
+    const { rows: enrollmentRows } = await query(
+      `SELECT 1 FROM public.enrollments
+       WHERE user_id = $1 AND course_id::text = $2 AND status = 'active'
+       LIMIT 1`,
+      [req.user.id, sessionCourseId]
+    )
+    if (!enrollmentRows.length) {
+      return res.status(403).json({ error: 'You are not actively enrolled in this course' })
     }
 
     let venueLocation = 'GPS'

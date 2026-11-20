@@ -81,7 +81,7 @@ async function handleLogin() {
 .login-container { width: 100%; max-width: 420px; position: relative; z-index: 1; }
 .login-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 24px; padding: 40px 36px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
 .card-header { text-align: center; margin-bottom: 32px; }
-.header-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(135deg, var(--color-primary), #11543c); color: #fff; border-radius: 16px; margin-bottom: 16px; }
+.header-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(135deg, var(--color-primary), #2f6da3); color: #fff; border-radius: 16px; margin-bottom: 16px; }
 .header-title { font-size: 24px; font-weight: 800; color: var(--color-text-primary); margin: 0 0 4px; font-family: 'Fraunces', Georgia, serif; }
 .header-subtitle { font-size: 14px; color: var(--color-text-tertiary); margin: 0; }
 .login-form { display: flex; flex-direction: column; gap: 20px; }

@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import * as Components from './components'
 import safeHtml from './directives/safeHtml'
+import { premiumDirectives } from './directives/premium'
 import { initSupabase } from './lib/supabase'
 import './index.css'
 import './design-kit/tokens.css'
@@ -37,6 +38,12 @@ app.use(router)
 app.use(MotionPlugin)
 app.directive('confetti', vConfetti)
 app.directive('safe-html', safeHtml)
+
+// Premium interaction layer: scroll reveals, 3D tilt, parallax, magnetic
+// buttons, tactile ripples and pointer spotlights.
+Object.entries(premiumDirectives).forEach(([name, directive]) => {
+  app.directive(name, directive)
+})
 
 // Auto-register global UI components
 Object.entries(Components).forEach(([name, component]) => {

@@ -173,7 +173,7 @@ async function fetchCourses() {
     error.value = ''
   } catch (err) {
     enrolledCourses.value = []
-    error.value = err?.response?.data?.message || err?.message || 'Unable to load enrolled courses.'
+    error.value = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Unable to load enrolled courses.'
   } finally {
     loading.value = false
   }

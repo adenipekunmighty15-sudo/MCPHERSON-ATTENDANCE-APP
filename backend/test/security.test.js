@@ -63,6 +63,30 @@ test('attendance check-in requires a session and computes status on the server',
   assert.doesNotMatch(attendance, /const validStatus = status/)
 })
 
+test('live sessions are authenticated and scoped to enrolled courses', () => {
+  const attendance = read('src/routes/attendance.routes.js')
+  const activeRoute = attendance.slice(
+    attendance.indexOf("router.get('/api/sessions/active'"),
+    attendance.indexOf("router.get('/api/sessions/:id/checkin-code'")
+  )
+  assert.match(activeRoute, /authenticate/)
+  assert.match(activeRoute, /public\.enrollments/)
+  assert.match(activeRoute, /e\.status = 'active'/)
+})
+
+test('check-in verifies enrollment and requires GPS accuracy', () => {
+  const attendance = read('src/routes/attendance.routes.js')
+  assert.match(attendance, /You are not actively enrolled in this course/)
+  assert.match(attendance, /GPS accuracy within 100 meters is required/)
+})
+
+test('attendance and session endpoints have dedicated rate limits', () => {
+  const limiter = read('src/middleware/limiter.js')
+  assert.match(limiter, /Retry-After/)
+  assert.match(limiter, /app\.post\(['"]\/api\/attendance['"]/)
+  assert.match(limiter, /app\.get\(['"]\/api\/sessions\/active['"]/)
+})
+
 test('friend-facing gems cannot be updated through a public-gem condition', () => {
   const gems = read('src/services/gemsService.js')
   assert.doesNotMatch(gems, /user_id = \$1 OR is_public = false/)

@@ -1,18 +1,24 @@
 <template>
-  <div class="attendance-page" style="background: #F5F1EA; min-height: 100dvh;">
+  <div class="attendance-page" style="background: #F6F8FC; min-height: 100dvh;">
     <div class="max-w-7xl mx-auto px-6 py-8 lg:px-8">
       <!-- Header -->
       <div class="flex items-start justify-between mb-8 gap-4">
         <div>
-          <div class="text-[10px] font-semibold uppercase tracking-[1.5px] mb-1.5" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">Attendance records</div>
-          <h1 class="text-3xl lg:text-4xl font-bold leading-tight" style="font-family: 'Fraunces', Georgia, serif; color: #1A1A2E;">Attendance Log</h1>
+          <div class="text-[10px] font-semibold uppercase tracking-[1.5px] mb-1.5" style="color: #94A3B8; font-family: 'Inter', system-ui, sans-serif;">Attendance records</div>
+          <h1 class="text-3xl lg:text-4xl font-bold leading-tight" style="font-family: 'Inter', Georgia, serif; color: #010A2A;">Attendance Log</h1>
         </div>
         <button
           v-if="!isLecturer"
+          v-magnetic="0.14"
+          v-ripple
+          v-squash
+          v-anticipate
+          v-origin
+          v-instant
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-200 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ux-touch-target ux-primary-action ux-solid"
           @click="checkIn"
           :disabled="checkingIn || !activeSession || !/^\d{6}$/.test(checkinCode)"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-200 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          style="background: #2F855A; font-family: 'Inter', system-ui, sans-serif;"
+          style="background: #428BCA; font-family: 'Inter', system-ui, sans-serif;"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           {{ checkingIn ? 'Checking in…' : 'Check In with GPS' }}
@@ -20,82 +26,83 @@
       </div>
 
       <!-- Active session / feedback -->
-      <div v-if="sessionsLoading" class="mb-6 rounded-xl p-4 text-sm" style="background: #FFFFFF; color: #68758E; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+      <div v-if="sessionsLoading" class="mb-6 rounded-xl p-4 text-sm" style="background: #FFFFFF; color: #64748B; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
         Loading active sessions…
       </div>
-      <div v-else-if="sessions.length" class="mb-6 rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+      <div v-else-if="sessions.length" v-peak v-follow class="mb-6 rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
         <div>
-          <label for="active-session" class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: #96A0B5;">Active session</label>
-          <select id="active-session" v-model="selectedSessionId" class="text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E6ED; color: #1A1A2E; background: #FFFFFF;">
+          <label for="active-session" class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: #94A3B8;">Active session</label>
+          <select id="active-session" v-model="selectedSessionId" class="text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E8F0; color: #010A2A; background: #FFFFFF;">
             <option v-for="session in sessions" :key="session.id" :value="session.id">{{ session.label }}</option>
           </select>
-          <p v-if="activeSession?.room || activeSession?.startedAt" class="text-xs mt-2" style="color: #68758E;">
+          <p v-if="activeSession?.room || activeSession?.startedAt" class="text-xs mt-2" style="color: #64748B;">
             {{ [activeSession?.room, formatTime(activeSession?.startedAt)].filter(Boolean).join(' · ') }}
           </p>
         </div>
-        <p class="text-xs max-w-md" style="color: #68758E;">
+        <p class="text-xs max-w-md" style="color: #64748B;">
           Check-in uses your device GPS and is verified against the session venue. QR, NFC and face check-in are not enabled.
         </p>
       </div>
-      <div v-else class="mb-6 rounded-xl p-4 text-sm" style="background: #FFFFFF; color: #68758E; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-        {{ isLecturer ? 'No active sessions are currently available. Start one using the lecturer controls below.' : 'No active sessions are currently available. Check in when your lecturer starts a session.' }}
+      <div v-else class="mb-6 rounded-xl p-4 flex items-center gap-4 text-sm" style="background: #FFFFFF; color: #64748B; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+        <img v-if="!isLecturer" :src="verificationIllustration" alt="" aria-hidden="true" class="w-28 h-20 object-contain shrink-0" />
+        <span>{{ isLecturer ? 'No active sessions are currently available. Start one using the lecturer controls below.' : 'No active sessions are currently available. Check in when your lecturer starts a session.' }}</span>
       </div>
 
-      <section v-if="isLecturer" class="mb-6 rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-        <h2 class="text-base font-bold mb-4" style="color: #1A1A2E;">Lecturer session controls</h2>
+      <section v-if="isLecturer" v-reveal class="mb-6 rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+        <h2 class="text-base font-bold mb-4" style="color: #010A2A;">Lecturer session controls</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <label class="text-xs font-semibold" style="color: #68758E;">
+          <label class="text-xs font-semibold" style="color: #64748B;">
             Course
-            <select v-model="selectedCourseId" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E6ED; color: #1A1A2E; background: #FFFFFF;" :disabled="lecturerOptionsLoading || !lecturerCourses.length">
+            <select v-model="selectedCourseId" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E8F0; color: #010A2A; background: #FFFFFF;" :disabled="lecturerOptionsLoading || !lecturerCourses.length">
               <option value="" disabled>Select a course</option>
               <option v-for="course in lecturerCourses" :key="course.id" :value="course.id">{{ course.label }}</option>
             </select>
           </label>
-          <label class="text-xs font-semibold" style="color: #68758E;">
+          <label class="text-xs font-semibold" style="color: #64748B;">
             Timetable slot
-            <select v-model="selectedTimetableId" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E6ED; color: #1A1A2E; background: #FFFFFF;" :disabled="lecturerOptionsLoading || !matchingTimetableSlots.length">
+            <select v-model="selectedTimetableId" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E8F0; color: #010A2A; background: #FFFFFF;" :disabled="lecturerOptionsLoading || !matchingTimetableSlots.length">
               <option value="" disabled>Select a slot</option>
               <option v-for="slot in matchingTimetableSlots" :key="slot.id" :value="slot.id">{{ slot.label }}</option>
             </select>
           </label>
-          <label class="text-xs font-semibold" style="color: #68758E;">
+          <label class="text-xs font-semibold" style="color: #64748B;">
             Venue (optional)
-            <select v-model="selectedVenueId" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E6ED; color: #1A1A2E; background: #FFFFFF;" :disabled="lecturerOptionsLoading">
+            <select v-model="selectedVenueId" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E8F0; color: #010A2A; background: #FFFFFF;" :disabled="lecturerOptionsLoading">
               <option value="">No venue selected</option>
               <option v-for="venue in venues" :key="venue.id" :value="venue.id">{{ venue.label }}</option>
             </select>
-            <span v-if="selectedVenue" class="mt-1 block text-[10px] font-medium" style="color: #68758E;">
+            <span v-if="selectedVenue" class="mt-1 block text-[10px] font-medium" style="color: #64748B;">
               {{ selectedVenue.radiusMeters == null ? 'This venue has no GPS radius configured.' : `GPS geofence: ${selectedVenue.radiusMeters} m` }}
             </span>
           </label>
-          <label class="text-xs font-semibold" style="color: #68758E;">
+          <label class="text-xs font-semibold" style="color: #64748B;">
             Room (optional)
-            <input v-model="sessionRoom" type="text" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E6ED; color: #1A1A2E; background: #FFFFFF;" placeholder="Room name or number" />
+            <input v-model="sessionRoom" type="text" class="mt-1 w-full text-sm rounded-lg px-3 py-2 border" style="border-color: #E2E8F0; color: #010A2A; background: #FFFFFF;" placeholder="Room name or number" />
           </label>
         </div>
         <div class="mt-4 flex flex-wrap items-center gap-3">
-          <button @click="startSession" :disabled="startingSession || !selectedCourseId || !selectedTimetableId" class="rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50" style="background: #2F855A;">
+          <button v-ripple v-squash v-anticipate v-origin v-instant @click="startSession" :disabled="startingSession || !selectedCourseId || !selectedTimetableId" class="rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50 ux-touch-target ux-primary-action" style="background: #428BCA;">
             {{ startingSession ? 'Starting…' : 'Start session' }}
           </button>
-          <span v-if="lecturerOptionsLoading" class="text-xs" style="color: #68758E;">Loading courses, timetable, and venues…</span>
-          <span v-else-if="selectedCourseId && !matchingTimetableSlots.length" class="text-xs" style="color: #B91C1C;">No timetable slots are available for this course.</span>
-          <span v-if="lecturerOptionsError" class="text-xs" role="alert" style="color: #B91C1C;">{{ lecturerOptionsError }}</span>
-          <span v-if="sessionControlError" class="text-xs" role="alert" style="color: #B91C1C;">{{ sessionControlError }}</span>
+          <span v-if="lecturerOptionsLoading" class="text-xs" style="color: #64748B;">Loading courses, timetable, and venues…</span>
+          <span v-else-if="selectedCourseId && !matchingTimetableSlots.length" class="text-xs" style="color: #D94A4A;">No timetable slots are available for this course.</span>
+          <span v-if="lecturerOptionsError" class="text-xs" role="alert" style="color: #D94A4A;">{{ lecturerOptionsError }}</span>
+          <span v-if="sessionControlError" class="text-xs" role="alert" style="color: #D94A4A;">{{ sessionControlError }}</span>
         </div>
       </section>
 
       <section v-if="isLecturer && activeSession" class="mb-6 rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div class="text-[9px] font-bold uppercase tracking-[0.16em] mb-1" style="color: #D97706;">Active session projector</div>
-            <h2 class="text-base font-bold" style="color: #1A1A2E;">Rotating check-in code</h2>
-            <p class="text-xs mt-1" style="color: #68758E;">Share this code with students in the selected session.</p>
+            <div class="text-[9px] font-bold uppercase tracking-[0.16em] mb-1" style="color: #E9A23B;">Active session projector</div>
+            <h2 class="text-base font-bold" style="color: #010A2A;">Rotating check-in code</h2>
+            <p class="text-xs mt-1" style="color: #64748B;">Share this code with students in the selected session.</p>
           </div>
           <div class="flex gap-2">
-            <button @click="fetchCheckinCode" :disabled="codeLoading" class="rounded-lg px-3 py-2 text-xs font-semibold border disabled:opacity-50" style="border-color: #E2E6ED; color: #1A1A2E; background: #FFFFFF;">
+            <button v-ripple v-squash v-origin v-instant @click="fetchCheckinCode" :disabled="codeLoading" class="rounded-lg px-3 py-2 text-xs font-semibold border disabled:opacity-50 ux-touch-target ux-secondary-action" style="border-color: #E2E8F0; color: #010A2A; background: #FFFFFF;">
               {{ codeLoading ? 'Refreshing…' : 'Refresh code' }}
             </button>
-            <button @click="endSession" :disabled="endingSession" class="rounded-lg px-3 py-2 text-xs font-semibold text-white disabled:opacity-50" style="background: #B91C1C;">
+            <button v-ripple v-squash v-origin v-instant @click="endSession" :disabled="endingSession" class="rounded-lg px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ux-touch-target ux-primary-action" style="background: #D94A4A;">
               {{ endingSession ? 'Ending…' : 'End session' }}
             </button>
           </div>
@@ -114,58 +121,59 @@
             <p>Rotates every 30 seconds</p>
           </div>
           <p v-if="codeExpiresAt" class="text-xs projector-expiry">Next code at {{ formatExpiry(codeExpiresAt) }}</p>
-          <p v-else-if="codeLoading" class="text-xs" style="color: #68758E;">Loading current code…</p>
+          <p v-else-if="codeLoading" class="text-xs" style="color: #64748B;">Loading current code…</p>
         </div>
-        <p v-if="codeError" class="mt-3 text-sm" role="alert" style="color: #B91C1C;">{{ codeError }}</p>
+        <p v-if="codeError" class="mt-3 text-sm" role="alert" style="color: #D94A4A;">{{ codeError }}</p>
       </section>
 
       <div v-if="activeSession && !isLecturer" class="mb-6 rounded-xl p-4 flex flex-col gap-2 sm:flex-row sm:items-center" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-        <label for="checkin-code" class="text-xs font-semibold whitespace-nowrap" style="color: #1A1A2E;">Six-digit check-in code</label>
-        <input id="checkin-code" v-model="checkinCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" class="w-36 text-lg font-mono tracking-widest rounded-lg px-3 py-2 border" style="border-color: #E2E6ED; color: #1A1A2E;" />
+        <label for="checkin-code" class="text-xs font-semibold whitespace-nowrap" style="color: #010A2A;">Six-digit check-in code</label>
+        <input id="checkin-code" v-model="checkinCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" class="w-36 text-lg font-mono tracking-widest rounded-lg px-3 py-2 border" style="border-color: #E2E8F0; color: #010A2A;" />
       </div>
 
-      <div v-if="loadError" class="mb-6 rounded-xl p-4 text-sm" role="alert" style="background: rgba(239,68,68,0.08); color: #B91C1C;">
+      <div v-if="loadError" class="mb-6 rounded-xl p-4 text-sm" role="alert" style="background: rgba(239,68,68,0.08); color: #D94A4A;">
         {{ loadError }}
       </div>
-      <div v-if="checkInError" class="mb-6 rounded-xl p-4 text-sm" role="alert" style="background: rgba(239,68,68,0.08); color: #B91C1C;">
+      <div v-if="checkInError" class="mb-6 rounded-xl p-4 text-sm" role="alert" style="background: rgba(239,68,68,0.08); color: #D94A4A;">
         {{ checkInError }}
       </div>
-      <div v-if="checkInSuccess" class="mb-6 rounded-xl p-4 text-sm" role="status" style="background: rgba(34,197,94,0.08); color: #15803D;">
-        {{ checkInSuccess }}
+      <div v-if="checkInSuccess" v-peak class="mb-6 rounded-xl p-4 flex items-center gap-4 text-sm" role="status" style="background: rgba(22,163,106,0.09); color: #15803D;">
+        <img :src="successIllustration" alt="" aria-hidden="true" class="w-20 h-14 object-contain shrink-0" />
+        <span>{{ checkInSuccess }}</span>
       </div>
 
       <!-- Stat Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" v-stagger="{ step: 70, variant: 'scale' }">
         <div class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-          <div class="text-3xl font-bold" style="color: #2F855A; font-family: 'Fraunces', Georgia, serif;">{{ overallRate == null ? '—' : `${overallRate}%` }}</div>
-          <div class="text-sm font-semibold mt-0.5" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">Overall Attendance</div>
-          <div class="text-[11px] font-medium mt-1" :style="{ color: examEligible == null ? '#68758E' : examEligible ? '#22C55E' : '#EF4444' }" style="font-family: 'Inter', system-ui, sans-serif;">{{ examEligible == null ? 'No attendance records' : examEligible ? 'Exam eligible' : 'Below eligibility threshold' }}</div>
+          <div class="text-3xl font-bold" style="color: #428BCA; font-family: 'Inter', Georgia, serif;">{{ overallRate == null ? '—' : `${overallRate}%` }}</div>
+          <div class="text-sm font-semibold mt-0.5" style="color: #010A2A; font-family: 'Inter', system-ui, sans-serif;">Overall Attendance</div>
+          <div class="text-[11px] font-medium mt-1" :style="{ color: examEligible == null ? '#64748B' : examEligible ? '#16A36A' : '#D94A4A' }" style="font-family: 'Inter', system-ui, sans-serif;">{{ examEligible == null ? 'No attendance records' : examEligible ? 'Exam eligible' : 'Below eligibility threshold' }}</div>
         </div>
         <div class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-          <div class="text-3xl font-bold" style="color: #22C55E; font-family: 'Fraunces', Georgia, serif;">{{ summary.present }}</div>
-          <div class="text-sm font-semibold mt-0.5" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">Present</div>
-          <div class="text-[11px] font-medium mt-1" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">classes attended</div>
+          <div class="text-3xl font-bold" style="color: #16A36A; font-family: 'Inter', Georgia, serif;">{{ summary.present }}</div>
+          <div class="text-sm font-semibold mt-0.5" style="color: #010A2A; font-family: 'Inter', system-ui, sans-serif;">Present</div>
+          <div class="text-[11px] font-medium mt-1" style="color: #64748B; font-family: 'Inter', system-ui, sans-serif;">classes attended</div>
         </div>
         <div class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-          <div class="text-3xl font-bold" style="color: #EAB308; font-family: 'Fraunces', Georgia, serif;">{{ summary.late }}</div>
-          <div class="text-sm font-semibold mt-0.5" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">Late</div>
-          <div class="text-[11px] font-medium mt-1" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">weighted &times;0.5</div>
+          <div class="text-3xl font-bold" style="color: #E9A23B; font-family: 'Inter', Georgia, serif;">{{ summary.late }}</div>
+          <div class="text-sm font-semibold mt-0.5" style="color: #010A2A; font-family: 'Inter', system-ui, sans-serif;">Late</div>
+          <div class="text-[11px] font-medium mt-1" style="color: #64748B; font-family: 'Inter', system-ui, sans-serif;">weighted &times;0.5</div>
         </div>
         <div class="rounded-xl p-5" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-          <div class="text-3xl font-bold" style="color: #EF4444; font-family: 'Fraunces', Georgia, serif;">{{ summary.absent }}</div>
-          <div class="text-sm font-semibold mt-0.5" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">Absent</div>
-          <div class="text-[11px] font-medium mt-1" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">classes missed</div>
+          <div class="text-3xl font-bold" style="color: #D94A4A; font-family: 'Inter', Georgia, serif;">{{ summary.absent }}</div>
+          <div class="text-sm font-semibold mt-0.5" style="color: #010A2A; font-family: 'Inter', system-ui, sans-serif;">Absent</div>
+          <div class="text-[11px] font-medium mt-1" style="color: #64748B; font-family: 'Inter', system-ui, sans-serif;">classes missed</div>
         </div>
       </div>
 
       <!-- Search + Filter -->
       <div class="rounded-xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4" style="background: #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
         <div class="relative w-full sm:w-72">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#96A0B5" stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input v-model="globalFilter" type="text" placeholder="Search course or date..." class="w-full text-sm rounded-xl py-2.5 pl-9 pr-4 border-0 outline-none" style="background: #F5F1EA; color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input v-model="globalFilter" type="text" placeholder="Search course or date..." class="w-full text-sm rounded-xl py-2.5 pl-9 pr-4 border-0 outline-none" style="background: #F6F8FC; color: #010A2A; font-family: 'Inter', system-ui, sans-serif;" />
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <button v-for="f in filters" :key="f" @click="filterStatus = f" class="px-4 py-1.5 rounded-full text-xs font-semibold border-0 cursor-pointer transition-all" :style="filterStatus === f ? { background: '#2F855A', color: '#FFFFFF' } : { background: 'transparent', color: '#68758E' }">{{ f }}</button>
+          <button v-for="f in filters" :key="f" @click="filterStatus = f" class="px-4 py-1.5 rounded-full text-xs font-semibold border-0 cursor-pointer transition-all" :style="filterStatus === f ? { background: '#428BCA', color: '#FFFFFF' } : { background: 'transparent', color: '#64748B' }">{{ f }}</button>
         </div>
         <button
           v-if="isLecturer"
@@ -173,7 +181,7 @@
           @click="exportAttendance"
           :disabled="!filteredRows.length"
           class="ml-auto rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-50"
-          style="background: #176B4D; color: #FFFFFF;"
+          style="background: #428BCA; color: #FFFFFF;"
         >Export CSV</button>
       </div>
 
@@ -182,13 +190,13 @@
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr style="border-bottom: 1px solid #E2E6ED;">
-                <th v-for="col in columns" :key="col.key" class="p-4 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">{{ col.label }}</th>
+              <tr style="border-bottom: 1px solid #E2E8F0;">
+                <th v-for="col in columns" :key="col.key" class="p-4 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap" style="color: #94A3B8; font-family: 'Inter', system-ui, sans-serif;">{{ col.label }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in filteredRows" :key="row.id" style="border-bottom: 1px solid #E2E6ED;">
-                <td v-for="col in columns" :key="col.key" class="p-4 text-sm whitespace-nowrap" style="color: #1A1A2E; font-family: 'Inter', system-ui, sans-serif;">
+              <tr v-for="row in filteredRows" :key="row.id" style="border-bottom: 1px solid #E2E8F0;">
+                <td v-for="col in columns" :key="col.key" class="p-4 text-sm whitespace-nowrap" style="color: #010A2A; font-family: 'Inter', system-ui, sans-serif;">
                   <span v-if="col.key === 'status' && row.status" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold" :style="statusStyle(row.status)">
                     <span class="w-1.5 h-1.5 rounded-full" :style="{ background: statusDot(row.status) }"></span>
                     {{ row.status }}
@@ -196,25 +204,28 @@
                   <span v-else-if="col.key === 'status'">—</span>
                   <span v-else-if="col.key === 'student'" class="font-mono text-xs">{{ row.studentId }}</span>
                   <span v-else-if="row.status === 'Absent' && ['timeIn','timeOut','method','location'].includes(col.key)">&mdash;</span>
-                  <span v-else-if="col.key === 'location'" style="color: #2F855A;">{{ row[col.key] }}</span>
+                  <span v-else-if="col.key === 'location'" style="color: #428BCA;">{{ row[col.key] }}</span>
                   <span v-else-if="['timeIn','timeOut'].includes(col.key)" style="font-family: 'JetBrains Mono', 'Fira Code', monospace;">{{ row[col.key] }}</span>
                   <span v-else>{{ row[col.key] || '—' }}</span>
                 </td>
               </tr>
               <tr v-if="filteredRows.length === 0">
-                <td :colspan="columns.length" class="p-12 text-center text-sm" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">No attendance records found.</td>
+                <td :colspan="columns.length" class="p-8 text-center text-sm" style="color: #94A3B8; font-family: 'Inter', system-ui, sans-serif;">
+                  <img :src="emptyHistoryIllustration" alt="" aria-hidden="true" class="mx-auto w-56 h-auto mb-3" />
+                  No attendance records found for this filter.
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div class="p-4 flex items-center justify-between" style="border-top: 1px solid #E2E6ED;">
-          <div class="text-xs" style="color: #96A0B5; font-family: 'Inter', system-ui, sans-serif;">{{ filteredRows.length }} records</div>
+        <div class="p-4 flex items-center justify-between" style="border-top: 1px solid #E2E8F0;">
+          <div class="text-xs" style="color: #94A3B8; font-family: 'Inter', system-ui, sans-serif;">{{ filteredRows.length }} records</div>
           <div class="flex items-center gap-2">
-            <button @click="page = Math.max(0, page - 1)" :disabled="page === 0" class="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all text-xs" style="background: #F5F1EA; color: #1A1A2E;" :style="page === 0 ? 'opacity:0.3;cursor:not-allowed' : ''">
+            <button @click="page = Math.max(0, page - 1)" :disabled="page === 0" class="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all text-xs" style="background: #F6F8FC; color: #010A2A;" :style="page === 0 ? 'opacity:0.3;cursor:not-allowed' : ''">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
             </button>
-            <span class="text-xs font-medium" style="color: #68758E; font-family: 'Inter', system-ui, sans-serif;">Page {{ page + 1 }} of {{ totalPages }}</span>
-            <button @click="page = Math.min(totalPages - 1, page + 1)" :disabled="page >= totalPages - 1" class="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all text-xs" style="background: #F5F1EA; color: #1A1A2E;" :style="page >= totalPages - 1 ? 'opacity:0.3;cursor:not-allowed' : ''">
+            <span class="text-xs font-medium" style="color: #64748B; font-family: 'Inter', system-ui, sans-serif;">Page {{ page + 1 }} of {{ totalPages }}</span>
+            <button @click="page = Math.min(totalPages - 1, page + 1)" :disabled="page >= totalPages - 1" class="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all text-xs" style="background: #F6F8FC; color: #010A2A;" :style="page >= totalPages - 1 ? 'opacity:0.3;cursor:not-allowed' : ''">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6 6-6"/></svg>
             </button>
           </div>
@@ -228,6 +239,9 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import api from '../lib/api'
 import { useAuthStore } from '../stores/auth'
+import successIllustration from '../assets/illustrations/attendance-success.svg'
+import emptyHistoryIllustration from '../assets/illustrations/empty-history.svg'
+import verificationIllustration from '../assets/illustrations/attendance-verification.svg'
 
 const authStore = useAuthStore()
 const isLecturer = computed(() => authStore.user?.role === 'lecturer')
@@ -660,19 +674,19 @@ const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.lengt
 
 function statusStyle(status) {
   switch (status) {
-    case 'Present': return { background: 'rgba(34,197,94,0.1)', color: '#22C55E' }
-    case 'Late': return { background: 'rgba(234,179,8,0.1)', color: '#EAB308' }
-    case 'Absent': return { background: 'rgba(239,68,68,0.1)', color: '#EF4444' }
-    default: return { background: '#EDEDED', color: '#68758E' }
+    case 'Present': return { background: 'rgba(34,197,94,0.1)', color: '#16A36A' }
+    case 'Late': return { background: 'rgba(234,179,8,0.1)', color: '#E9A23B' }
+    case 'Absent': return { background: 'rgba(239,68,68,0.1)', color: '#D94A4A' }
+    default: return { background: '#EDEDED', color: '#64748B' }
   }
 }
 
 function statusDot(status) {
   switch (status) {
-    case 'Present': return '#22C55E'
-    case 'Late': return '#EAB308'
-    case 'Absent': return '#EF4444'
-    default: return '#96A0B5'
+    case 'Present': return '#16A36A'
+    case 'Late': return '#E9A23B'
+    case 'Absent': return '#D94A4A'
+    default: return '#94A3B8'
   }
 }
 
@@ -737,7 +751,7 @@ onUnmounted(() => {
   padding: 18px 22px;
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 14px;
-  background: linear-gradient(110deg, #0f172a, #11543C);
+  background: linear-gradient(110deg, #0f172a, #2f6da3);
   color: #f8fafc;
 }
 
@@ -858,7 +872,7 @@ onUnmounted(() => {
   border-color: var(--color-border) !important;
 }
 
-.attendance-page svg[stroke="#96A0B5"] {
+.attendance-page svg[stroke="#94A3B8"] {
   stroke: var(--color-text-tertiary);
 }
 

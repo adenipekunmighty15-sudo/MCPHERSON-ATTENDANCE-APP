@@ -8,6 +8,7 @@
 // enables its provider in the Study Hub.
 
 export const PROVIDER_ENV_KEYS = Object.freeze({
+  anthropic: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
   openrouter: 'OPENROUTER_API_KEY',
   groq: 'GROQ_API_KEY',

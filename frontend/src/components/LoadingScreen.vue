@@ -36,7 +36,7 @@ defineProps({
   overflow: hidden;
   color: #f8fafc;
   background:
-    radial-gradient(ellipse at 50% 40%, rgba(23, 107, 77, 0.6), transparent 38rem),
+    radial-gradient(ellipse at 50% 40%, rgba(66, 139, 202, 0.6), transparent 38rem),
     #0f172a;
 }
 
@@ -116,7 +116,7 @@ defineProps({
   width: 45%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #176b4d, #f59e0b);
+  background: linear-gradient(90deg, #428bca, #f59e0b);
   animation: loading-progress 1.8s ease-in-out infinite;
 }
 

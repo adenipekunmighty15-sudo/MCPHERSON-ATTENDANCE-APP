@@ -24,11 +24,11 @@
 
     <!-- PROCESSING -->
     <div v-else-if="state === 'processing'" class="rounded-2xl border p-10 text-center" style="background: #FFFFFF; border-color: #E2E6ED;">
-      <div class="w-10 h-10 mx-auto mb-3 rounded-full border-3 border-t-transparent animate-spin" style="border-color: #E2E6ED; border-top-color: #49A078;"></div>
+      <div class="w-10 h-10 mx-auto mb-3 rounded-full border-3 border-t-transparent animate-spin" style="border-color: #E2E6ED; border-top-color: #5B9ED6;"></div>
       <p class="text-sm font-semibold" style="color: #163E2B;">{{ processingStep }}</p>
       <p class="text-xs font-mono mt-1" style="color: #96A0B5;">{{ fileName }}</p>
       <div class="flex justify-center gap-1 mt-3">
-        <span v-for="i in 3" :key="i" class="w-2 h-2 rounded-full" :style="{ background: i <= stepIndex ? '#49A078' : '#E2E6ED', opacity: i <= stepIndex ? 1 : 0.4 }"></span>
+        <span v-for="i in 3" :key="i" class="w-2 h-2 rounded-full" :style="{ background: i <= stepIndex ? '#5B9ED6' : '#E2E6ED', opacity: i <= stepIndex ? 1 : 0.4 }"></span>
       </div>
     </div>
 
@@ -263,13 +263,13 @@ function reset() {
   animation: spin 800ms linear infinite;
 }
 .upload-zone:hover {
-  border-color: #49A078 !important;
+  border-color: #5B9ED6 !important;
 }
 .upload-zone:hover svg {
-  stroke: #49A078;
+  stroke: #5B9ED6;
 }
 .upload-zone.dragging {
-  border-color: #49A078;
+  border-color: #5B9ED6;
   background: rgba(73, 160, 120, 0.05);
 }
 .save-btn:hover:not(:disabled) {
