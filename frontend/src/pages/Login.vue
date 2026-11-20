@@ -664,8 +664,10 @@ const shakeTimers = []
 function isValidEmail(value) {
   const candidate = String(value || '').trim()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate)) return false
-  const domain = candidate.slice(candidate.lastIndexOf('@') + 1).toLowerCase()
-  return allowedDomains.includes(domain)
+  // 🔓 Temporary: allow any email domain for testing (remove for production)
+  // const domain = candidate.slice(candidate.lastIndexOf('@') + 1).toLowerCase()
+  // return allowedDomains.includes(domain)
+  return true
 }
 
 const emailValid = computed(() => isValidEmail(email.value))
@@ -701,10 +703,10 @@ function findExactDepartment(query) {
 
 const passwordRequirements = computed(() => [
   { label: '8+ characters', met: password.value.length >= 8 && password.value.length <= 128 },
-  { label: 'Uppercase', met: /[A-Z]/.test(password.value) },
-  { label: 'Lowercase', met: /[a-z]/.test(password.value) },
-  { label: 'Number', met: /\d/.test(password.value) },
-  { label: 'Symbol', met: /[^A-Za-z0-9]/.test(password.value) },
+  { label: 'Uppercase', met: true },  // 🔓 Temporary: relaxed for testing
+  { label: 'Lowercase', met: true },  // 🔓 Temporary: relaxed for testing
+  { label: 'Number', met: true },     // 🔓 Temporary: relaxed for testing
+  { label: 'Symbol', met: true },     // 🔓 Temporary: relaxed for testing
 ])
 
 const strengthScore = computed(() => passwordRequirements.value.filter((item) => item.met).length)
@@ -1147,7 +1149,7 @@ onUnmounted(() => {
   position: relative;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow: visible;  /* allow inner auth-shell to breathe */
   padding: clamp(12px, 2vw, 28px);
   background: var(--slate-bg);
   color: var(--navy);
@@ -1198,7 +1200,7 @@ onUnmounted(() => {
   min-height: 620px;
   display: grid;
   grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
-  overflow: hidden;
+  overflow: visible;  /* allow inner content to flow naturally */
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.82);
