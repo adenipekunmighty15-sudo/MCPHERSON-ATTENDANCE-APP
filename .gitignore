@@ -61,3 +61,4 @@ Desktop.ini
 frontend/public/design/assets.zip
 frontend/public/design/mockups/
 .env*
+!next-app/.env.example
