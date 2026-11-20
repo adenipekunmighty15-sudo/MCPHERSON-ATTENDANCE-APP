@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import CursorSpotlight from '@/components/CursorSpotlight'
 import ScrollProgress from '@/components/ScrollProgress'
 import SmoothScroll from '@/components/SmoothScroll'
+import Providers from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -15,10 +16,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <CursorSpotlight />
-        <ScrollProgress />
-        <SmoothScroll />
-        {children}
+        <Providers>
+          <CursorSpotlight />
+          <ScrollProgress />
+          <SmoothScroll />
+          {children}
+        </Providers>
       </body>
     </html>
   )

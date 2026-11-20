@@ -16,7 +16,6 @@ Open `http://localhost:3000`. Set `NEXT_PUBLIC_PORTAL_URL` to the Vue portal ori
 
 ```powershell
 npm run typecheck
-npm run lint
 npm run build
 ```
 
