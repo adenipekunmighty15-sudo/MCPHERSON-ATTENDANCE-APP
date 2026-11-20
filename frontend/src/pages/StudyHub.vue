@@ -52,12 +52,19 @@
           <strong>{{ view === 'library' ? 'My Library' : view === 'pack' ? 'Study pack' : 'New pack' }}</strong>
         </div>
         <div class="topbar-actions">
-          <span class="status-pill"><span class="status-dot" /> AI ready</span>
+          <span class="status-pill" :class="{ offline: aiChecked && aiOnlineCount === 0 }"><span class="status-dot" /> {{ aiChecked ? `${aiOnlineCount} AI online` : 'Checking AI…' }}</span>
           <button class="icon-btn" title="Study dashboard" @click="router.push({ name: 'StudyDashboard' })">
             <BarChart3 :size="17" />
           </button>
         </div>
       </header>
+
+      <nav class="mobile-nav" aria-label="Study Hub navigation">
+        <button v-for="item in railItems" :key="item.id" :class="{ active: !item.external && (item.view ? view === item.view : item.id === 'new' && view === 'workspace') }" @click="item.action()">
+          <component :is="item.icon" :size="16" />
+          <span>{{ item.label }}</span>
+        </button>
+      </nav>
 
       <div class="scroll">
         <Transition name="fade" mode="out-in">
@@ -132,8 +139,8 @@
 
               <div class="composer-foot">
                 <span class="composer-meta">Turns your material into notes, cards, quiz & audio</span>
-                <button class="primary-btn" :disabled="generating || (!sourceText.trim() && !sourceUrl.trim() && !files.length)"
-                  @click="generatePack">
+                <button class="primary-btn" :disabled="generating || aiUnavailable || (!sourceText.trim() && !sourceUrl.trim() && !files.length)"
+                  :title="aiUnavailable ? 'No AI provider is online' : undefined" @click="generatePack">
                   <Loader2 v-if="generating" :size="16" class="spin" />
                   <Sparkles v-else :size="16" />
                   {{ generating ? 'Building your pack…' : 'Generate study pack' }}
@@ -295,7 +302,7 @@
                     <h3>Listen to your notes</h3>
                     <p>A short audio recap generated from this pack.</p>
                   </div>
-                  <button class="primary-btn small" :disabled="podcastBusy" @click="makePodcast">
+                  <button class="primary-btn small" :disabled="podcastBusy || aiUnavailable" :title="aiUnavailable ? 'No AI provider is online' : undefined" @click="makePodcast">
                     <Loader2 v-if="podcastBusy" :size="15" class="spin" />
                     <WandSparkles v-else :size="15" />
                     {{ activePack?.podcastUrl ? 'Regenerate' : 'Generate audio' }}
@@ -324,7 +331,7 @@
                 </div>
                 <form class="chat-input" @submit.prevent="sendChat">
                   <input v-model="chatInput" placeholder="Ask a question about your material…" :disabled="chatBusy" />
-                  <button type="submit" :disabled="chatBusy || !chatInput.trim()" title="Send"><Send :size="16" /></button>
+                  <button type="submit" :disabled="chatBusy || aiUnavailable || !chatInput.trim()" :title="aiUnavailable ? 'No AI provider is online' : 'Send'"><Send :size="16" /></button>
                 </form>
               </div>
             </Transition>
@@ -414,6 +421,9 @@ const files = ref([])
 const fileInput = ref(null)
 const isDragging = ref(false)
 const generating = ref(false)
+const aiOnlineCount = ref(0)
+const aiChecked = ref(false)
+const aiUnavailable = computed(() => aiChecked && aiOnlineCount === 0)
 const genStep = ref(0)
 const error = ref('')
 const genSteps = ['Reading your sources', 'Understanding the material', 'Writing notes & cards', 'Building quiz & audio recap']
@@ -437,8 +447,19 @@ const suggestions = [
   { label: 'Summarise a topic', icon: Sparkles, text: 'Cellular respiration is the process by which cells convert glucose and oxygen into ATP, carbon dioxide and water. It has four main stages: glycolysis, pyruvate oxidation, the Krebs cycle and the electron transport chain.' },
 ]
 
+async function checkAIProviders() {
+  try {
+    const { data } = await api.get('/ai/models')
+    aiOnlineCount.value = Number(data?.online ?? 0)
+  } catch {
+    aiOnlineCount.value = 0
+  } finally {
+    aiChecked.value = true
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([loadPacks(), loadGoals(), loadCourses()])
+  await Promise.all([loadPacks(), loadGoals(), loadCourses(), checkAIProviders()])
 })
 onUnmounted(() => {
   if (interval) { clearInterval(interval); interval = null }
@@ -802,6 +823,8 @@ watch(goals, saveGoals, { deep: true })
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
 .status-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; color: #3F8F6B; background: #EDF8F2; padding: 6px 10px; border-radius: 99px; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #4CB888; }
+.status-pill.offline { color: #b91c1c; background: #fef2f2; }
+.status-pill.offline .status-dot { background: #b91c1c; }
 .icon-btn { width: 32px; height: 32px; border: 1px solid var(--line); background: #fff; border-radius: 8px; color: #657186; display: grid; place-items: center; cursor: pointer; }
 .scroll { flex: 1; overflow-y: auto; padding: 34px 38px 60px; }
 
@@ -996,6 +1019,13 @@ watch(goals, saveGoals, { deep: true })
 .slide-enter-active, .slide-leave-active { transition: all .2s ease; }
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-6px); }
 
+.mobile-nav { display: none; }
 @media (max-width: 1180px) { .hub { grid-template-columns: 200px minmax(0, 1fr); } .side { display: none; } }
-@media (max-width: 780px) { .hub { grid-template-columns: 1fr; } .rail { display: none; } .scroll { padding: 22px 16px 50px; } .notes-layout { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+@media (max-width: 780px) {
+  .hub { grid-template-columns: 1fr; } .rail { display: none; }
+  .mobile-nav { display: flex; gap: 4px; overflow-x: auto; padding: 10px 16px; border-bottom: 1px solid var(--line); background: #fff; }
+  .mobile-nav button { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 8px 12px; border: 1px solid var(--line); border-radius: 99px; background: #fff; color: #5A657A; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .mobile-nav button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .scroll { padding: 22px 16px 50px; } .notes-layout { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; }
+}
 </style>

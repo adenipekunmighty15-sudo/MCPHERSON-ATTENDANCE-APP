@@ -2,7 +2,7 @@ import { Router } from 'express'
 import multer from 'multer'
 import { authenticate } from '../middleware/auth.js'
 import { aiChat } from '../services/aiService.js'
-import { nvidiaTTS, getNvidiaTTSStream } from '../services/externalService.js'
+import { nvidiaTTS, getNvidiaTTSStream, resolveTtsVoice } from '../services/externalService.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -52,11 +52,14 @@ router.post('/api/voice/chat', authenticate, upload.single('audio'), async (req,
     if (!text.trim()) return res.status(400).json({ error: 'Text or audio required' })
 
     const result = await aiChat([{ role: 'user', content: text.trim() }])
-    const responseText = result?.final || "I'm here to help with your academic questions."
+    if (!result?.final || !String(result.final).trim()) {
+      return res.status(503).json({ error: 'AI providers are unavailable. Configure a provider on the backend and try again.' })
+    }
+    const responseText = result.final
 
     let audioUrl = null
     try {
-      const ttsBuffer = await nvidiaTTS(responseText)
+      const ttsBuffer = await nvidiaTTS(responseText, resolveTtsVoice(req.body.voice))
       if (ttsBuffer) {
         const base64 = ttsBuffer.toString('base64')
         audioUrl = `data:audio/mpeg;base64,${base64}`
@@ -84,7 +87,7 @@ router.get('/api/voice/tts', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Text query parameter required' })
     }
 
-    const ttsResp = await getNvidiaTTSStream(text.trim().slice(0, 2000))
+    const ttsResp = await getNvidiaTTSStream(text.trim().slice(0, 2000), resolveTtsVoice(req.query.voice))
     if (!ttsResp) return res.status(502).json({ error: 'TTS service unavailable' })
 
     res.setHeader('Content-Type', 'audio/mpeg')

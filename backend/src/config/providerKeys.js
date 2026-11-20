@@ -39,6 +39,16 @@ export const PROVIDER_ENV_KEYS = Object.freeze({
   kimi: 'KIMI_KEY',
   inkling: 'INKLING_KEY',
   poolside: 'POOLSIDE_KEY',
+  opencode: 'OPENCODE_API_KEY',
+  'glm-flash': 'NVIDIA_GLM_FLASH_KEY',
+  'nvidia-backup': 'NVIDIA_BACKUP_KEY',
+  'nvidia-extra-1': 'NVIDIA_EXTRA1_API_KEY',
+  'nvidia-extra-2': 'NVIDIA_EXTRA2_API_KEY',
+  'nvidia-extra-3': 'NVIDIA_EXTRA3_API_KEY',
+  'nvidia-extra-4': 'NVIDIA_EXTRA4_API_KEY',
+  'nvidia-extra-5': 'NVIDIA_EXTRA5_API_KEY',
+  'nvidia-extra-6': 'NVIDIA_EXTRA6_API_KEY',
+  'nvidia-cosmos': 'NVIDIA_COSMOS_API_KEY',
 })
 
 export function envKeyForProvider(provider) {

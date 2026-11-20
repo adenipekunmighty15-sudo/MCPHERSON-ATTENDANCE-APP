@@ -158,7 +158,7 @@
               <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
             </button>
           </div>
-          <p class="composer-hint">Text messages are sent securely to this conversation.</p>
+          <p class="composer-hint">Messages are stored on the university server and visible to conversation participants.</p>
         </form>
       </template>
 
@@ -219,6 +219,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMessagingStore } from '../stores/messaging'
+import { supabase } from '../lib/supabase'
 
 const store = useMessagingStore()
 const messageText = ref('')
@@ -227,6 +228,10 @@ const newChatSearch = ref('')
 const openingContactId = ref(null)
 const threadRef = ref(null)
 let messagePollingTimer = null
+let messageStreamController = null
+let streamReconnectTimer = null
+let streamRetries = 0
+let streamDisposed = false
 
 const activePartner = computed(() => {
   const conversation = store.activeConversation
@@ -339,24 +344,91 @@ async function retry() {
   if (store.activeConversationId) await store.loadMessages(store.activeConversationId)
 }
 
+function refreshFromStream(payload) {
+  if (!payload) return
+  store.refreshConversations()
+  if (payload.conversationId && payload.conversationId === store.activeConversationId) {
+    store.loadMessages(store.activeConversationId)
+  }
+}
+
+async function connectMessageStream() {
+  if (streamDisposed) return
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) return
+    const baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/api\/?$/, '')
+    messageStreamController = new AbortController()
+    const response = await fetch(`${baseUrl}/api/messages/stream`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: messageStreamController.signal,
+    })
+    if (!response.ok || !response.body) throw new Error(`Stream HTTP ${response.status}`)
+    streamRetries = 0
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let eventType = ''
+    while (!streamDisposed) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        if (trimmed.startsWith('event:')) eventType = trimmed.slice(6).trim()
+        else if (trimmed.startsWith('data:')) {
+          try {
+            const payload = JSON.parse(trimmed.slice(5).trim())
+            if (eventType === 'message' || payload?.type === 'message' || payload?.type === 'read' || payload?.type === 'conversations') {
+              refreshFromStream(payload)
+            }
+          } catch { /* ignore malformed events */ }
+        }
+      }
+    }
+  } catch (err) {
+    if (streamDisposed || messageStreamController?.signal.aborted) return
+    console.warn('Message stream unavailable:', err?.message)
+  } finally {
+    messageStreamController = null
+  }
+  if (!streamDisposed) {
+    streamRetries += 1
+    // After repeated failures, polling remains active as the fallback.
+    const delay = Math.min(30000, 2000 * streamRetries)
+    streamReconnectTimer = window.setTimeout(connectMessageStream, delay)
+  }
+}
+
 watch(
   () => [store.activeConversationId, store.activeMessages.length],
   scrollToLatest
 )
 
 onMounted(async () => {
+  streamDisposed = false
   await store.init()
+  connectMessageStream()
+  // Polling stays active as a fallback for multi-instance deployments and
+  // dropped streams; the stream makes updates near-instant on a single instance.
   messagePollingTimer = window.setInterval(() => {
     if (store.activeConversationId) {
       store.loadMessages(store.activeConversationId)
     } else {
       store.refreshConversations()
     }
-  }, 5000)
+  }, 15000)
 })
 
 onUnmounted(() => {
+  streamDisposed = true
   if (messagePollingTimer) window.clearInterval(messagePollingTimer)
+  if (streamReconnectTimer) window.clearTimeout(streamReconnectTimer)
+  messageStreamController?.abort()
 })
 </script>
 

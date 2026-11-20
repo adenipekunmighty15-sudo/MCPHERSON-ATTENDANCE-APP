@@ -39,7 +39,10 @@ router.get('/api/rag/search', authenticate, async (req, res) => {
     if (!q || !q.trim()) {
       return res.status(400).json({ error: 'Query parameter "q" is required' })
     }
-    const results = await searchSimilar(req.user.id, q.trim(), parseInt(req.query.limit) || 5)
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 5, 1), 30)
+    const results = await searchSimilar(req.user.id, q.trim(), limit, {
+      rerank: req.query.rerank !== 'false',
+    })
     res.json({ results })
   } catch (err) {
     console.error('RAG search error:', err.message)

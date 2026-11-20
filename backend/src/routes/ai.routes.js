@@ -4,7 +4,7 @@ import { query } from '../../lib/db.js'
 import { webSearch, searchImages } from '../../lib/webSearch.js'
 import OpenAI from 'openai'
 import { randomUUID } from 'crypto'
-import { getAvailableProviders, getAI, streamAnthropicResponse } from '../config/ai.js'
+import { getAvailableProviders, getAI, streamAnthropicResponse, streamOpenAICompatResponse, VERIFIED_MODELS, NVIDIA_CAPABILITIES, resolveModelId, DEFAULT_NVIDIA_MODEL } from '../config/ai.js'
 import { aiChat, generateFollowUps, generateChatTitle } from '../services/aiService.js'
 import { resolve4, resolve6 } from 'node:dns/promises'
 import net from 'node:net'
@@ -122,7 +122,7 @@ async function fetchPageSafely(rawUrl) {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
       Accept: 'text/html,application/xhtml+xml',
     },
-    timeout: 13000,
+    timeout: 30000,
     maxRedirects: 3,
     maxContentLength: 2 * 1024 * 1024,
     maxBodyLength: 2 * 1024 * 1024,
@@ -217,12 +217,39 @@ router.get('/api/ai/models', authenticate, async (req, res) => {
           kimi: 'Kimi K2.6 (Supreme Judge)', 'gemma-4': 'Gemma 4', stepfun: 'StepFun',
           diffusiongemma: 'Diffusion Gemma', openrouter: 'OpenRouter GPT-4o',
           inkling: 'Inkling (Thinker)', poolside: 'Poolside Laguna (Coder)',
+          opencode: process.env.OPENCODE_MODEL ? `OpenCode (${process.env.OPENCODE_MODEL})` : 'OpenCode Console',
+          'glm-flash': 'GLM 5.3 Flash (NVIDIA)',
+          'nvidia-backup': 'NVIDIA Backup',
+          'nvidia-extra-1': 'NVIDIA Backup 2',
+          'nvidia-extra-2': 'NVIDIA Backup 3',
+          'nvidia-extra-3': 'NVIDIA Backup 4',
+          'nvidia-extra-4': 'NVIDIA Backup 5',
+          'nvidia-extra-5': 'NVIDIA Backup 6',
+          'nvidia-extra-6': 'NVIDIA Backup 7',
+          'nvidia-cosmos': 'NVIDIA Backup 8',
         }
         modelName = names[p] || p
       }
       return { id: p, name: modelName, status, role: p === 'nvidia-ultra' || p === 'deepseek' || p === 'kimi' ? 'Chief Justice' : 'Council Member' }
     })
-    res.json({ models, total: models.length, online: models.filter(m => m.status === 'online').length })
+    // Models that were verified with a real chat completion. They all run on
+    // the master NVIDIA key, so they are only "online" when that key exists.
+    const nvidiaOnline = Boolean(process.env.NVIDIA_API_KEY)
+    const verified = VERIFIED_MODELS.map(m => ({
+      id: m.id,
+      name: m.name,
+      status: nvidiaOnline ? 'online' : 'offline',
+      role: m.role,
+      provider: m.provider,
+      model: m.model,
+      verified: true,
+    }))
+    const allModels = [...verified, ...models.filter(m => !verified.some(v => v.id === m.id))]
+    const capabilities = NVIDIA_CAPABILITIES.map(item => ({
+      ...item,
+      status: item.kind === 'embedding' && !process.env.NVIDIA_API_KEY ? 'offline' : item.status,
+    }))
+    res.json({ models: allModels, verifiedModels: verified, capabilities, defaultModel: DEFAULT_NVIDIA_MODEL, total: allModels.length, online: allModels.filter(m => m.status === 'online').length })
   } catch (err) {
     console.error('AI models error:', err.message)
     res.status(500).json({ error: 'Failed to fetch models' })
@@ -330,6 +357,7 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
     const useCouncilMode = req.body.council === true || req.body.council === 'true'
     const verifyWithSearch = useCouncilMode || needsVerification(message.trim())
 
+    const selectedModel = resolveModelId(req.body.modelId)
     const result = await aiChat(messages, {
       turboMode: !useCouncil,
       fastMode: !useCouncil,
@@ -337,17 +365,15 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
       memoryContext,
       jsonMode: jsonMode === true,
       verifyWithSearch,
+      ...(selectedModel ? { model: selectedModel.model } : {}),
     })
     const elapsed = Date.now() - startTime
 
     if (!result) {
-      return res.json({
-        response: 'The AI Council is currently offline. Please try again later.',
-        council: [],
-        thinking: '',
-        followUps: [],
-        elapsed,
-      })
+      return res.status(503).json({ error: 'AI providers are unavailable. Configure a provider on the backend and try again.' })
+    }
+    if (!result.final || !String(result.final).trim()) {
+      return res.status(502).json({ error: 'The AI provider returned an empty response. Please try again.' })
     }
 
     // Save to database
@@ -371,7 +397,7 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
     await query(
       `INSERT INTO public.chat_messages (id, conversation_id, role, content, created_at)
        VALUES ($1,$2,$3,$4,NOW())`,
-      [msgId, convId, 'assistant', result.final || 'I was unable to generate a complete response. Please try rephrasing your question.']
+      [msgId, convId, 'assistant', result.final]
     )
     await query(
       `UPDATE public.chat_conversations SET updated_at = NOW() WHERE id = $1 AND user_id = $2`,
@@ -393,6 +419,7 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
       followUps: result.followUps || [],
       elapsed,
       conversationId: convId,
+      assistantMessageId: msgId,
     })
   } catch (err) {
     console.error('AI Council chat error:', err.message)
@@ -542,39 +569,78 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
           await saveAndDone(sendEvent, bodyConvId, req.user.id, message,
             result.final || 'I was unable to generate a complete response.', result.finalThinking || '', startTime, 'council', result.followUps)
         } catch {}
+      } else {
+        sendEvent('error', { message: 'AI providers are unavailable. Configure a provider on the backend and try again.' })
       }
-    } else if (getAI('anthropic')) {
+    } else if (getAI('anthropic') || getAI('nvidia') || getAI('openai') || getAI('glm-flash') || getAI('opencode')) {
+      const selectedModel = resolveModelId(req.body.modelId)
+      const streamProvider = getAI('anthropic') ? 'anthropic'
+        : getAI('nvidia') ? 'nvidia'
+          : getAI('openai') ? 'openai'
+            : getAI('glm-flash') ? 'glm-flash' : 'opencode'
+      const streamModel = selectedModel?.model
+        || (streamProvider === 'nvidia' ? (process.env.NVIDIA_MODEL || DEFAULT_NVIDIA_MODEL)
+          : streamProvider === 'openai' ? (process.env.OPENAI_MODEL || 'gpt-4o-mini')
+            : streamProvider === 'glm-flash' ? (process.env.NVIDIA_GLM_FLASH_MODEL || 'z-ai/glm-5.3-flash')
+              : streamProvider === 'anthropic' ? 'claude-sonnet-5-5'
+                : (process.env.OPENCODE_MODEL || 'big-pickle'))
       const controller = new AbortController()
       let answer = ''
-      let responseModel = 'claude-sonnet-5-5'
+      let responseModel = streamModel
+      const handleDelta = delta => {
+        answer += delta
+        if (!res.destroyed) sendEvent('delta', { content: delta })
+      }
       const abortIfClientLeaves = () => {
         if (!res.writableEnded) controller.abort()
       }
       res.once('close', abortIfClientLeaves)
-      sendEvent('status', { provider: 'anthropic', message: 'Claude is thinking...' })
+      sendEvent('status', {
+        provider: streamProvider,
+        message: streamProvider === 'anthropic' ? 'Claude is thinking...'
+          : streamProvider === 'nvidia' ? `${selectedModel?.name || 'AI'} is thinking...`
+            : streamProvider === 'openai' ? 'Backup AI is thinking...'
+              : streamProvider === 'glm-flash' ? 'GLM Flash is thinking...' : 'OpenCode is thinking...',
+      })
       try {
-        answer = await streamAnthropicResponse(messages, {
+        const streamer = streamProvider === 'anthropic'
+          ? streamAnthropicResponse
+          : (msgs, opts) => streamOpenAICompatResponse(streamProvider, msgs, { ...opts, model: streamModel })
+        answer = await streamer(messages, {
           signal: controller.signal,
-          onText: delta => {
-            answer += delta
-            if (!res.destroyed) sendEvent('delta', { content: delta })
-          },
+          onText: handleDelta,
         }) || answer
       } catch (err) {
-        if (!controller.signal.aborted) console.warn('Claude request failed; using available fallback:', err?.message || err)
+        if (!controller.signal.aborted) console.warn(`${streamProvider} stream failed; trying fallback:`, err?.message || err)
       } finally {
         res.off('close', abortIfClientLeaves)
       }
 
       if (controller.signal.aborted || res.destroyed) return
+      if (!answer && !res.destroyed && streamProvider !== 'openai' && getAI('openai')) {
+        // A reasoning model can return empty content. Use the OpenAI backup
+        // before the general council so the user still gets a real answer.
+        responseModel = 'openai'
+        sendEvent('status', { provider: 'openai', message: 'Using backup AI provider...' })
+        try {
+          answer = await streamOpenAICompatResponse('openai', messages, {
+            signal: controller.signal,
+            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+            onText: handleDelta,
+          }) || answer
+        } catch (err) {
+          if (!controller.signal.aborted) console.warn('OpenAI backup stream failed:', err?.message || err)
+        }
+      }
       if (!answer) {
         responseModel = 'ai-assistant'
-        sendEvent('status', { provider: 'fallback', message: 'Claude is unavailable. Trying another AI provider...' })
+        sendEvent('status', { provider: 'fallback', message: 'Primary provider unavailable. Trying another AI provider...' })
         const fallback = await aiChat(messages, {
           turboMode: true,
           fastMode: true,
           verifyWithSearch: false,
-          excludeProviders: ['anthropic'],
+          excludeProviders: [streamProvider],
+          ...(selectedModel ? { model: selectedModel.model } : {}),
         })
         answer = fallback?.final || ''
       }
@@ -584,14 +650,12 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
           await saveAndDone(sendEvent, bodyConvId, req.user.id, message, answer, '', startTime, responseModel, [])
         } catch {}
       } else {
-        const noProviders = 'I couldn’t reach an AI provider just now. Please try again in a moment.'
-        sendEvent('answer', { content: noProviders, done: true })
-        try { await saveAndDone(sendEvent, bodyConvId, req.user.id, message, noProviders, '', startTime, 'unavailable', []) } catch {}
+        sendEvent('error', { message: 'AI providers are unavailable. Configure a provider on the backend and try again.' })
       }
     } else {
       // ─── TURBO MODE: fast single response ───
-      const timeout = doWebSearch ? 15000 : 10000
-      sendEvent('status', { provider: 'turbo', message: 'Claude is not configured. Using the available assistant...' })
+      const timeout = doWebSearch ? 90000 : 60000
+      sendEvent('status', { provider: 'turbo', message: 'Using an available AI provider...' })
       const verifyWithSearch = needsVerification(message.trim())
       const result = await Promise.race([
         aiChat(messages, { turboMode: true, fastMode: true, verifyWithSearch }),
@@ -614,11 +678,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
             doWebSearch ? 'web-search' : 'turbo', result.followUps)
         } catch {}
       } else {
-        const fallback = `I was unable to generate a response in time. Please try rephrasing your question.`
-        sendEvent('answer', { content: fallback, done: true })
-        try {
-          await saveAndDone(sendEvent, bodyConvId, req.user.id, message, fallback, 'Timed out', startTime, 'turbo', [])
-        } catch {}
+        sendEvent('error', { message: 'The AI provider did not respond in time. Please try again.' })
       }
     }
     res.end()
@@ -655,10 +715,11 @@ async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, 
        VALUES ($1,$2,$3,$4,NOW())`,
       [randomUUID(), convId, 'user', message.trim()]
     )
+    const assistantMessageId = randomUUID()
     await query(
       `INSERT INTO public.chat_messages (id, conversation_id, role, content, created_at)
        VALUES ($1,$2,$3,$4,NOW())`,
-      [randomUUID(), convId, 'assistant', finalAnswer]
+      [assistantMessageId, convId, 'assistant', finalAnswer]
     )
     await query(
       `UPDATE public.chat_conversations SET updated_at = NOW() WHERE id = $1 AND user_id = $2`,
@@ -671,7 +732,7 @@ async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, 
     if (parseInt(msgCount[0].c) === 1) {
       generateChatTitle(convId, userId, message.trim(), finalAnswer)
     }
-    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime, conversationId: convId, model }
+    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime, conversationId: convId, model, assistantMessageId }
     if (followUps) doneData.followUps = followUps
     sendEvent('done', doneData)
   } catch (dbErr) {

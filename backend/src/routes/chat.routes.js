@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import { generateChatTitle } from '../services/aiService.js'
 
 const router = Router()
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 router.get('/api/chats', authenticate, async (req, res) => {
   try {
@@ -70,7 +71,7 @@ router.delete('/api/chats/:id', authenticate, async (req, res) => {
 router.get('/api/chats/:id/messages', authenticate, async (req, res) => {
   try {
     const { rows } = await query(
-      `SELECT cm.id, cm.role, cm.content, cm.created_at AS "createdAt"
+      `SELECT cm.id, cm.role, cm.content, cm.metadata->>'feedback' AS rating, cm.created_at AS "createdAt"
        FROM public.chat_messages cm
        JOIN public.chat_conversations cc ON cm.conversation_id = cc.id
        WHERE cm.conversation_id = $1 AND cc.user_id = $2
@@ -121,6 +122,35 @@ router.post('/api/chats/:id/messages', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Failed to send chat message:', err.message)
     res.status(500).json({ error: 'Failed to send chat message' })
+  }
+})
+
+router.patch('/api/chats/:id/messages/:messageId/feedback', authenticate, async (req, res) => {
+  const { rating } = req.body || {}
+  if (rating !== null && rating !== 'like' && rating !== 'dislike') {
+    return res.status(400).json({ error: 'Rating must be like, dislike, or null' })
+  }
+  if (!UUID_PATTERN.test(req.params.id) || !UUID_PATTERN.test(req.params.messageId)) {
+    return res.status(400).json({ error: 'Invalid conversation or message ID' })
+  }
+
+  try {
+    const { rows } = await query(
+      `UPDATE public.chat_messages cm
+       SET metadata = COALESCE(cm.metadata, '{}'::jsonb) || $3::jsonb
+       WHERE cm.id = $1 AND cm.conversation_id = $2 AND cm.role = 'assistant'
+         AND EXISTS (
+           SELECT 1 FROM public.chat_conversations cc
+           WHERE cc.id = $2 AND cc.user_id = $4
+         )
+       RETURNING cm.id`,
+      [req.params.messageId, req.params.id, JSON.stringify({ feedback: rating }), req.user.id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Message not found in this conversation' })
+    res.status(200).json({ success: true, rating })
+  } catch (err) {
+    console.error('Failed to save chat feedback:', err.message)
+    res.status(500).json({ error: 'Failed to save feedback' })
   }
 })
 

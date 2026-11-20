@@ -56,6 +56,23 @@ test('study diagnostic is not exposed without authentication from study routes',
   assert.doesNotMatch(studyRoutes, /router\.get\(['"]\/api\/study\/diagnostic['"]/)
 })
 
+test('study session stats come from saved sessions, not generated numbers', () => {
+  const studyRoutes = read('src/routes/study.routes.js')
+  assert.match(studyRoutes, /router\.get\(['"]\/api\/study-sessions\/stats['"], authenticate/)
+  assert.match(studyRoutes, /calculateStreak\(rows\)/)
+  assert.match(studyRoutes, /sessionMinutes\(row\)/)
+  assert.doesNotMatch(studyRoutes, /Math\.random/)
+})
+
+test('admin routes normalise UI field aliases before reaching the database', () => {
+  const universityRoutes = read('src/routes/university.routes.js')
+  assert.match(universityRoutes, /registration_start: 'registration_start_date'/)
+  assert.match(universityRoutes, /exam_end: 'exam_end_date'/)
+  assert.match(universityRoutes, /established_date/)
+  assert.match(universityRoutes, /'department', 'department_id'/)
+  assert.match(universityRoutes, /'department_id', 'level', 'is_elective'/)
+})
+
 test('attendance check-in requires a session and computes status on the server', () => {
   const attendance = read('src/routes/attendance.routes.js')
   assert.match(attendance, /valid active session ID is required/)

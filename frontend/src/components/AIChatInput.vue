@@ -62,7 +62,7 @@
           @input="onInput"
           placeholder="Ask anything..."
           class="main-textarea"
-          :disabled="streaming || processing"
+          :disabled="streaming || processing || disabled"
           rows="1"
           style="height: 24px;"
         ></textarea>
@@ -107,7 +107,7 @@
           @click="send"
           @mousemove="onSendMouseMove"
           @mouseleave="onSendMouseLeave"
-          :disabled="!input.trim() || streaming || processing"
+          :disabled="!input.trim() || streaming || processing || disabled"
           class="send-btn"
           :class="{ 'has-text': input.trim(), 'loading': streaming }"
           type="button"
@@ -145,7 +145,8 @@ const props = defineProps({
   attachedFile: Object,
   conversationId: String,
   selectedExpert: Object,
-  showHistory: Boolean
+  showHistory: Boolean,
+  disabled: Boolean
 })
 
 const emit = defineEmits([
@@ -192,12 +193,12 @@ function onInput() {
 }
 
 function send() {
-  if (!input.value.trim() || props.streaming || props.processing) return
+  if (!input.value.trim() || props.streaming || props.processing || props.disabled) return
   emit('send', input.value)
 }
 
 function sendPrompt(text) {
-  if (props.streaming || props.processing) return
+  if (props.streaming || props.processing || props.disabled) return
   input.value = text
   emit('send', text)
 }
@@ -248,6 +249,7 @@ function handleKeydown(e) {
 defineExpose({
   send,
   sendPrompt,
+  clearAttachedFile: () => { attachedFile.value = null },
   focus: () => nextTick(() => textareaRef.value?.focus())
 })
 </script>

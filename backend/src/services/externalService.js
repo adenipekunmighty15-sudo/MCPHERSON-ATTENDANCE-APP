@@ -1,8 +1,45 @@
 import axios from 'axios'
 
-const NVIDIA_TTS_KEY = process.env.NVIDIA_TTS_KEY || ''
-const MAGPIE_TTS_KEY = process.env.MAGPIE_TTS_KEY || ''
 const NVIDIA_BASE = 'https://integrate.api.nvidia.com/v1'
+
+// Voices requested for multi-speaker study podcasts. NVIDIA accepts lowercase ids.
+export const MAGPIE_TTS_VOICES = Object.freeze(['sofia', 'aria', 'john', 'jason', 'leo'])
+const FALLBACK_MASTER_MODELS = Object.freeze([
+  'nvidia/tts_en_fastpitch',
+  'nvidia/tts_hifigan',
+])
+
+export function resolveTtsVoice(voice) {
+  const value = String(voice || '').trim()
+  if (!value) return 'angelo'
+  const lower = value.toLowerCase()
+  if (MAGPIE_TTS_VOICES.includes(lower)) return lower
+  // Dedicated TTS providers use short voice ids; cap length to reject abuse.
+  return value.slice(0, 40)
+}
+
+function normaliseVoice(voice) {
+  return resolveTtsVoice(voice)
+}
+
+function ttsCandidates(voice) {
+  const masterKey = process.env.NVIDIA_API_KEY || ''
+  const nvidiaTtsKey = process.env.NVIDIA_TTS_KEY || ''
+  const magpieKey = process.env.MAGPIE_TTS_KEY || ''
+  const magpieModel = process.env.MAGPIE_TTS_MODEL || 'nvidia/magpie-tts-multilingual'
+  const playAiModel = process.env.NVIDIA_TTS_MODEL || 'playai/tts-play-3.0'
+  const candidates = []
+  if (masterKey) {
+    candidates.push(
+      { key: masterKey, model: magpieModel, voice },
+      { key: masterKey, model: 'nvidia/magpie-tts-multilingual-357m', voice },
+      ...FALLBACK_MASTER_MODELS.map(model => ({ key: masterKey, model, voice: 'English' }))
+    )
+  }
+  if (nvidiaTtsKey) candidates.push({ key: nvidiaTtsKey, model: playAiModel, voice })
+  if (magpieKey) candidates.push({ key: magpieKey, model: magpieModel, voice })
+  return candidates
+}
 
 async function ttsRequest(text, voice, key, model) {
   try {
@@ -19,7 +56,7 @@ async function ttsRequest(text, voice, key, model) {
         'Accept': 'audio/mpeg',
       },
       responseType: 'arraybuffer',
-      timeout: 30000,
+      timeout: 60000,
     })
     return Buffer.from(data)
   } catch (err) {
@@ -45,6 +82,7 @@ async function ttsStreamRequest(text, voice, key, model) {
         response_format: 'mp3',
         speed: 1.0,
       }),
+      signal: AbortSignal.timeout(60000),
     })
     if (!resp.ok) {
       const errText = await resp.text()
@@ -57,25 +95,25 @@ async function ttsStreamRequest(text, voice, key, model) {
   }
 }
 
-// Tries playai first, falls back to magpie-tts-multilingual
+/**
+ * Try the master key first so the requested NVIDIA TTS models work without a
+ * second secret. The dedicated keys remain as fallbacks for accounts where the
+ * master plan does not expose audio endpoints.
+ */
 export async function nvidiaTTS(text, voice = 'angelo') {
-  if (NVIDIA_TTS_KEY) {
-    const result = await ttsRequest(text, voice, NVIDIA_TTS_KEY, 'playai/tts-play-3.0')
+  const selectedVoice = normaliseVoice(voice)
+  for (const candidate of ttsCandidates(selectedVoice)) {
+    const result = await ttsRequest(text, candidate.voice, candidate.key, candidate.model)
     if (result) return result
-  }
-  if (MAGPIE_TTS_KEY) {
-    return ttsRequest(text, voice, MAGPIE_TTS_KEY, 'magpie/tts-multilingual')
   }
   return null
 }
 
 export async function getNvidiaTTSStream(text, voice = 'angelo') {
-  if (NVIDIA_TTS_KEY) {
-    const result = await ttsStreamRequest(text, voice, NVIDIA_TTS_KEY, 'playai/tts-play-3.0')
+  const selectedVoice = normaliseVoice(voice)
+  for (const candidate of ttsCandidates(selectedVoice)) {
+    const result = await ttsStreamRequest(text, candidate.voice, candidate.key, candidate.model)
     if (result) return result
-  }
-  if (MAGPIE_TTS_KEY) {
-    return ttsStreamRequest(text, voice, MAGPIE_TTS_KEY, 'magpie/tts-multilingual')
   }
   return null
 }

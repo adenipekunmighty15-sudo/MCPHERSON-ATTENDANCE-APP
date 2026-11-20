@@ -41,6 +41,31 @@ function serverError(res, message, err) {
   return res.status(500).json({ error: message })
 }
 
+// The admin UI uses shorter date field names than the database columns.
+// Normalise them here so the browser never needs to know the schema.
+const DATE_FIELD_ALIASES = Object.freeze({
+  registration_start: 'registration_start_date',
+  registration_end: 'registration_end_date',
+  exam_start: 'exam_start_date',
+  exam_end: 'exam_end_date',
+})
+
+function normaliseAdminBody(req, res, next) {
+  if (req.method === 'GET' || !req.body || typeof req.body !== 'object') return next()
+  for (const [alias, column] of Object.entries(DATE_FIELD_ALIASES)) {
+    if (!Object.prototype.hasOwnProperty.call(req.body, alias)) continue
+    const value = req.body[alias]
+    if (!Object.prototype.hasOwnProperty.call(req.body, column)) {
+      req.body[column] = value === '' ? null : value
+    }
+    delete req.body[alias]
+  }
+  if (req.body.established_date === '') req.body.established_date = null
+  next()
+}
+
+router.use('/api/admin', normaliseAdminBody)
+
 // Build a parameterized UPDATE from only the fields the caller actually sent.
 // Missing fields must never null out existing values.
 function buildUpdate(body, allowedFields) {
@@ -78,10 +103,10 @@ router.get('/api/admin/faculties', authenticate, requireRole(...ADMIN_ROLES), as
 
 router.post('/api/admin/faculties', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
-    const { name, code, description, dean_id } = req.body
+    const { name, code, description, dean_id, established_date } = req.body
     const { rows } = await query(
-      `INSERT INTO public.faculties (name, code, description, dean_id) VALUES ($1,$2,$3,$4) RETURNING *`,
-      [name, code, description || '', dean_id || null]
+      `INSERT INTO public.faculties (name, code, description, dean_id, established_date) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [name, code, description || '', dean_id || null, established_date || null]
     )
     res.status(201).json(rows[0])
   } catch (err) { serverError(res, 'Failed to create faculty', err) }
@@ -90,7 +115,7 @@ router.post('/api/admin/faculties', authenticate, requireRole(...ADMIN_ROLES), a
 router.put('/api/admin/faculties/:id', authenticate, requireRole(...ADMIN_ROLES), async (req, res) => {
   try {
     const row = await updateRecord('faculties', req.params.id, req.body,
-      ['name', 'code', 'description', 'dean_id', 'is_active'], { touch: true })
+      ['name', 'code', 'description', 'dean_id', 'established_date', 'is_active'], { touch: true })
     if (!row) return res.status(404).json({ error: 'Not found' })
     res.json(row)
   } catch (err) { serverError(res, 'Failed to update faculty', err) }
@@ -298,7 +323,7 @@ router.put('/api/admin/users/:id', authenticate, requireRole('super_admin'), asy
       return res.status(400).json({ error: 'Invalid role' })
     }
     const row = await updateRecord('users', req.params.id, req.body,
-      ['role', 'faculty_id', 'department_id', 'programme_id', 'level', 'is_active'],
+      ['role', 'faculty_id', 'department', 'department_id', 'programme_id', 'level', 'is_active'],
       { returning: 'id, email, name, role, department' })
     if (!row) return res.status(404).json({ error: 'Not found' })
     res.json(row)
@@ -327,7 +352,7 @@ router.get('/api/admin/courses', authenticate, requireRole(...STAFF_ROLES), asyn
 router.put('/api/admin/courses/:id', authenticate, requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const row = await updateRecord('courses', req.params.id, req.body,
-      ['faculty_id', 'programme_id', 'semester_id', 'academic_year_id', 'department_id', 'is_elective', 'status'],
+      ['faculty_id', 'programme_id', 'semester_id', 'academic_year_id', 'department_id', 'level', 'is_elective', 'status'],
       { touch: true })
     if (!row) return res.status(404).json({ error: 'Not found' })
     res.json(row)

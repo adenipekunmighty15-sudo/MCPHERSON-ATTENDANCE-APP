@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { pool, query } from '../../lib/db.js'
 import { authenticate } from '../middleware/auth.js'
+import { emitMessageEvent, subscribeToMessages } from '../services/messageEvents.js'
 
 const router = Router()
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -18,6 +19,30 @@ function requireChatRole(req, res, next) {
   }
   next()
 }
+
+router.get('/api/messages/stream', authenticate, requireChatRole, (req, res) => {
+  res.status(200)
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache, no-transform')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
+  res.flushHeaders?.()
+  res.write(': connected\n\n')
+
+  const unsubscribe = subscribeToMessages(req.user.id, (chunk) => {
+    try { res.write(chunk) } catch { /* closed connection */ }
+  })
+  const heartbeat = setInterval(() => {
+    try { res.write(': ping\n\n') } catch { /* closed connection */ }
+  }, 25000)
+
+  const cleanup = () => {
+    clearInterval(heartbeat)
+    unsubscribe()
+  }
+  req.on('close', cleanup)
+  req.on('error', cleanup)
+})
 
 function toMessage(row, currentUserId) {
   return {
@@ -193,11 +218,13 @@ router.get('/api/messages/conversations/:conversationId/messages', authenticate,
 
   try {
     const { rows: members } = await query(
-      `SELECT 1 FROM public.direct_conversation_members
-       WHERE conversation_id = $1 AND user_id = $2`,
-      [conversationId, req.user.id]
+      `SELECT user_id FROM public.direct_conversation_members
+       WHERE conversation_id = $1`,
+      [conversationId]
     )
-    if (!members.length) return res.status(404).json({ error: 'Conversation not found' })
+    if (!members.some(member => member.user_id === req.user.id)) {
+      return res.status(404).json({ error: 'Conversation not found' })
+    }
 
     await query(
       `UPDATE public.direct_conversation_members
@@ -205,6 +232,11 @@ router.get('/api/messages/conversations/:conversationId/messages', authenticate,
        WHERE conversation_id = $1 AND user_id = $2`,
       [conversationId, req.user.id]
     )
+
+    const partnerId = members.find(member => member.user_id !== req.user.id)?.user_id
+    if (partnerId) {
+      emitMessageEvent([partnerId], { type: 'read', conversationId, userId: req.user.id })
+    }
 
     const { rows } = await query(
       `SELECT
@@ -250,11 +282,13 @@ router.post('/api/messages/conversations/:conversationId/messages', authenticate
 
   try {
     const { rows: members } = await query(
-      `SELECT 1 FROM public.direct_conversation_members
-       WHERE conversation_id = $1 AND user_id = $2`,
-      [conversationId, req.user.id]
+      `SELECT user_id FROM public.direct_conversation_members
+       WHERE conversation_id = $1`,
+      [conversationId]
     )
-    if (!members.length) return res.status(404).json({ error: 'Conversation not found' })
+    if (!members.some(member => member.user_id === req.user.id)) {
+      return res.status(404).json({ error: 'Conversation not found' })
+    }
 
     if (replyToId) {
       const { rows: replied } = await query(
@@ -281,6 +315,13 @@ router.post('/api/messages/conversations/:conversationId/messages', authenticate
        WHERE conversation_id = $1 AND user_id = $2`,
       [conversationId, req.user.id]
     )
+
+    emitMessageEvent(members.map(member => member.user_id), {
+      type: 'message',
+      conversationId,
+      messageId: rows[0].id,
+      senderId: req.user.id,
+    })
 
     res.status(201).json({
       data: {
@@ -311,6 +352,7 @@ router.delete('/api/messages/conversations/:conversationId', authenticate, requi
       [conversationId, req.user.id]
     )
     if (!rowCount) return res.status(404).json({ error: 'Conversation not found' })
+    emitMessageEvent([req.user.id], { type: 'conversations', conversationId })
     res.json({ success: true })
   } catch (err) {
     console.error('Failed to archive conversation:', err.message)

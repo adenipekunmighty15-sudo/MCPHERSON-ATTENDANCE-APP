@@ -94,6 +94,43 @@ function appendText(base, next) {
   return current ? `${current}\n\n${text}` : text
 }
 
+function formatStudyTime(minutes) {
+  const total = Math.max(0, Math.round(minutes || 0))
+  const hours = Math.floor(total / 60)
+  const remainder = total % 60
+  if (!hours) return `${remainder}m`
+  return remainder ? `${hours}h ${remainder}m` : `${hours}h`
+}
+
+async function getStudyMinutes(userId) {
+  try {
+    const { rows } = await query(
+      `SELECT COALESCE(SUM(
+         COALESCE(duration_minutes, EXTRACT(EPOCH FROM (COALESCE(ended_at, started_at) - started_at)) / 60)
+       ), 0)::int AS minutes
+       FROM public.study_sessions WHERE user_id = $1`,
+      [userId]
+    )
+    return parseInt(rows[0]?.minutes) || 0
+  } catch (err) {
+    console.warn('Could not read study session durations:', err.message)
+    return 0
+  }
+}
+
+async function getPomodoroMinutes(userId) {
+  try {
+    const { rows } = await query(
+      'SELECT COALESCE(SUM(duration_minutes), 0)::int AS minutes FROM public.pomodoro_sessions WHERE user_id = $1',
+      [userId]
+    )
+    return parseInt(rows[0]?.minutes) || 0
+  } catch (err) {
+    console.warn('Could not read pomodoro durations:', err.message)
+    return 0
+  }
+}
+
 router.get('/api/study-materials/stats', authenticate, async (req, res) => {
   try {
     const { rows: cards } = await query(
@@ -112,14 +149,16 @@ router.get('/api/study-materials/stats', authenticate, async (req, res) => {
        GROUP BY s.title ORDER BY score DESC LIMIT 5`,
       [req.user.id]
     )
+    const studyMinutes = (await getStudyMinutes(req.user.id)) + (await getPomodoroMinutes(req.user.id))
     res.json({
       cardsMastered: parseInt(cards[0]?.count) || 0,
       quizzesTaken: parseInt(quizzes[0]?.count) || 0,
-      studyTime: '0',
+      studyMinutes,
+      studyTime: formatStudyTime(studyMinutes),
       weakAreas: weakAreas.map(w => ({ name: w.name, score: Math.round(w.score) })),
     })
   } catch {
-    res.json({ cardsMastered: 0, quizzesTaken: 0, studyTime: '0', weakAreas: [] })
+    res.json({ cardsMastered: 0, quizzesTaken: 0, studyMinutes: 0, studyTime: '0m', weakAreas: [] })
   }
 })
 
@@ -313,7 +352,7 @@ CRITICAL RULES:
     // --- Path A: AI Council (multi-provider) ---
     if (!pack && hasTimeForAI()) {
       try {
-        if (process.env.HERMES_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY) {
+        if (getAvailableProviders().length > 0) {
           log('AI', 'Path A: AI council')
           const truncated = combinedText.length > 28000 ? combinedText.slice(0, 28000) + '\n\n[CONTENT TRUNCATED - Text exceeds maximum length]' : combinedText
           const prompt = `${systemInstruction}\n\nMaterial:\n${truncated}`
@@ -337,7 +376,6 @@ CRITICAL RULES:
                 diffusiongemma: 'DiffusionGemma', stepfun: 'Step 3.7 Flash',
                 openrouter: 'OpenRouter GPT-4o', deepseek: 'DeepSeek V4',
                 'nvidia-ultra': 'Nemotron 550B',
-                'ollama-llama': 'Llama 3.2 (Local)', 'ollama-qwen': 'Qwen 2.5 (Local)',
               })[c.provider] || c.provider
             }))
           }
@@ -600,7 +638,7 @@ CRITICAL RULES:
   // UNBREAKABLE AI — try every available path
   try {
     // --- Path A: AI Council ---
-    if (!pack && Date.now() < deadline && (process.env.HERMES_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY)) {
+    if (!pack && Date.now() < deadline && (getAvailableProviders().length > 0)) {
       try {
         log('AI', 'Path A: AI council (' + combinedText.length + ' chars)')
         const aiContent = combinedText.length > 28000 ? combinedText.slice(0, 28000) + '\n\n[CONTENT TRUNCATED - Text exceeds maximum length]' : combinedText
@@ -1031,6 +1069,43 @@ router.post('/api/study-materials/:id/flashcards/review', authenticate, async (r
   }
 })
 
+const VALID_SESSION_TYPES = new Set(['review', 'quiz', 'flashcards', 'stream', 'reading'])
+
+function safeDate(value, fallback) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? fallback : date
+}
+
+function calculateStreak(rows) {
+  const days = new Set(
+    rows
+      .map(row => safeDate(row.started_at, null))
+      .filter(Boolean)
+      .map(date => date.toISOString().slice(0, 10))
+  )
+  if (!days.size) return 0
+  const cursor = new Date()
+  let streak = 0
+  // Allow today or yesterday as the anchor so an unfinished day does not
+  // immediately erase an active streak.
+  if (!days.has(cursor.toISOString().slice(0, 10))) cursor.setUTCDate(cursor.getUTCDate() - 1)
+  while (days.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1
+    cursor.setUTCDate(cursor.getUTCDate() - 1)
+  }
+  return streak
+}
+
+function sessionMinutes(row) {
+  if (Number.isFinite(Number(row.duration_minutes)) && Number(row.duration_minutes) > 0) {
+    return Number(row.duration_minutes)
+  }
+  const started = safeDate(row.started_at, null)
+  const ended = safeDate(row.ended_at, null)
+  if (!started || !ended || ended <= started) return 0
+  return Math.max(1, Math.round((ended - started) / 60000))
+}
+
 router.post('/api/study-sessions', authenticate, async (req, res) => {
   try {
   const { materialId, sessionType, score, totalQuestions, correctAnswers, stats } = req.body
@@ -1038,14 +1113,75 @@ router.post('/api/study-sessions', authenticate, async (req, res) => {
     return res.status(404).json({ error: 'Study pack not found' })
   }
   const id = randomUUID()
+  const startedAt = safeDate(req.body.startedAt, new Date())
+  const endedAt = safeDate(req.body.endedAt, new Date())
+  const durationMinutes = Math.max(1, Math.round((endedAt - startedAt) / 60000))
+  const type = VALID_SESSION_TYPES.has(sessionType) ? sessionType : 'review'
   await query(
-    'INSERT INTO public.study_sessions (id, material_id, user_id, session_type, score, total_questions, correct_answers, stats, started_at, ended_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
-    [id, materialId, req.user.id, sessionType || 'review', score || 0, totalQuestions || 0, correctAnswers || 0, JSON.stringify(stats || {}), new Date(req.body.startedAt || Date.now()).toISOString(), new Date().toISOString()]
+    `INSERT INTO public.study_sessions
+       (id, material_id, user_id, session_type, score, total_questions, correct_answers, stats, started_at, ended_at, duration_minutes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+    [id, materialId, req.user.id, type, score || 0, totalQuestions || 0, correctAnswers || 0,
+      JSON.stringify(stats || {}), startedAt.toISOString(), endedAt.toISOString(), durationMinutes]
   )
-  res.status(201).json({ id, success: true })
+  res.status(201).json({ id, success: true, durationMinutes })
   } catch (err) {
     console.error('Create study session failed:', err.message)
     res.status(500).json({ error: 'Failed to save study session' })
+  }
+})
+
+router.get('/api/study-sessions/stats', authenticate, async (req, res) => {
+  try {
+  const { rows } = await query(
+    `SELECT id, session_type, score, total_questions, correct_answers, stats, started_at, ended_at, duration_minutes
+     FROM public.study_sessions
+     WHERE user_id = $1
+     ORDER BY started_at DESC
+     LIMIT 500`,
+    [req.user.id]
+  )
+
+  let xp = 0
+  let level = 1
+  try {
+    const { rows: profiles } = await query(
+      'SELECT xp, level, current_streak, total_study_time_minutes FROM public.gamification_profiles WHERE user_id = $1',
+      [req.user.id]
+    )
+    if (profiles.length) {
+      xp = Number(profiles[0].xp) || 0
+      level = Number(profiles[0].level) || Math.floor(xp / 500) + 1
+    }
+  } catch (err) {
+    console.warn('Gamification profile unavailable for study stats:', err.message)
+  }
+
+  const quizSessions = rows.filter(row => row.session_type === 'quiz' && Number(row.score) > 0)
+  const avgQuizScore = quizSessions.length
+    ? Math.round(quizSessions.reduce((sum, row) => sum + Number(row.score), 0) / quizSessions.length)
+    : 0
+  const totalStudyMinutes = rows.reduce((sum, row) => sum + sessionMinutes(row), 0)
+  if (!xp) xp = rows.reduce((sum, row) => sum + 10 + Number(row.correct_answers || 0) * 2, 0)
+  if (level === 1) level = Math.floor(xp / 500) + 1
+
+  res.status(200).json({
+    streak: calculateStreak(rows),
+    totalSessions: rows.length,
+    totalStudyMinutes,
+    avgQuizScore,
+    totalXP: xp,
+    level,
+    recentActivity: rows.slice(0, 5).map(row => ({
+      id: row.id,
+      text: `${row.session_type || 'study'} session recorded`,
+      time: safeDate(row.started_at, new Date()).toISOString(),
+      score: Number(row.score) || 0,
+    })),
+  })
+  } catch (err) {
+    console.error('Study session stats failed:', err.message)
+    res.status(500).json({ error: 'Failed to load study statistics' })
   }
 })
 

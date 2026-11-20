@@ -105,6 +105,10 @@ async function callApi(method, url, data, config) {
       const { data: res } = await axiosApi.put(url, data, config)
       return { data: res }
     }
+    if (method === 'PATCH') {
+      const { data: res } = await axiosApi.patch(url, data, config)
+      return { data: res }
+    }
     const { data: res } = await axiosApi.post(url, data, config)
     return { data: res }
   } catch (err) {
@@ -122,6 +126,7 @@ const api = {
   get: (url, config) => callApi('GET', url, null, config),
   post: (url, data, config) => callApi('POST', url, data, config),
   put: (url, data, config) => callApi('PUT', url, data, config),
+  patch: (url, data, config) => callApi('PATCH', url, data, config),
   delete: (url, config) => callApi('DELETE', url, null, config),
 }
 

@@ -209,7 +209,10 @@ const PREMIUM_TURBO_INSTRUCTION = PREMIUM_SYSTEM_INSTRUCTION + '\n\n## TURBO MOD
 
 const PREMIUM_COUNCIL_INSTRUCTION = `You are a helpful academic assistant for McPherson University students. Give a direct, clear answer in a natural voice. Explain unfamiliar ideas with a useful example, use formatting only where it improves clarity, and acknowledge uncertainty. Do not reveal private step-by-step reasoning.`
 
-const FASTEST_PROVIDERS = ['anthropic', 'groq', 'openrouter', 'mistral-large', 'llama', 'llama-3.3', 'phi4', 'deepseek', 'deepseek-v4-flash', 'deepseek-v4-pro', 'mistral-nemotron', 'mistral-nemotron-2', 'nemotron-nano', 'nemotron-nano-8b', 'gemma-4', 'diffusiongemma', 'nemotron-ultra', 'nemotron-super-120b', 'nemotron-super-49b-v15', 'nemotron-super-49b-v1', 'z-ai', 'gpt-oss-20b', 'gpt-oss-120b', 'minimax', 'stepfun', 'kimi', 'inkling', 'poolside']
+// nvidia is first: the master NVIDIA key is the only key currently confirmed
+// to return real completions. OpenCode/GLM-flash/Kimi remain available as
+// fallbacks but are deprioritized because live probes showed 402/429/timeouts.
+const FASTEST_PROVIDERS = ['anthropic', 'nvidia', 'nvidia-backup', 'nvidia-extra-1', 'nvidia-extra-2', 'nvidia-extra-3', 'nvidia-extra-4', 'nvidia-extra-5', 'nvidia-extra-6', 'nvidia-cosmos', 'openai', 'groq', 'openrouter', 'mistral-large', 'llama', 'llama-3.3', 'phi4', 'deepseek', 'deepseek-v4-flash', 'deepseek-v4-pro', 'mistral-nemotron', 'mistral-nemotron-2', 'nemotron-nano', 'nemotron-nano-8b', 'gemma-4', 'diffusiongemma', 'nemotron-ultra', 'nemotron-super-120b', 'nemotron-super-49b-v15', 'nemotron-super-49b-v1', 'z-ai', 'gpt-oss-20b', 'gpt-oss-120b', 'minimax', 'stepfun', 'poolside', 'inkling', 'kimi', 'opencode', 'glm-flash']
 
 const providerHealth = new Map()
 
@@ -333,15 +336,35 @@ function escapeHtml(text) {
   })[c])
 }
 
-function fallbackResponse(messages) {
-  const lastUser = messages.filter(m => m.role === 'user').slice(-1)[0]
-  const q = escapeHtml(lastUser?.content || 'your question').slice(0, 100)
-  return {
-    final: `I appreciate your question about "${q}". I'm currently unable to generate a full response as my AI providers are temporarily unavailable. Please try again in a moment — I'll be happy to help once the connection is restored.`,
-    council: [{ provider: 'fallback', thinking: 'All providers unavailable', answer: 'Fallback response' }],
-    finalThinking: 'Primary and backup AI providers were unreachable. Sent fallback message.',
-    followUps: ['Can you try asking again?', 'Is there another topic I can help with?'],
-  }
+function fallbackResponse() {
+  // No provider means no answer. Callers surface a real error instead of
+  // persisting a made-up "AI" response as if a model had replied.
+  return null
+}
+
+const REASONING_ONLY_PATTERN = /^(?:<think\b|reasoning|analysis|thought process|thinking|let me think|i need to (?:think|reason))\b/i
+
+function usableAnswer(raw) {
+  if (typeof raw !== 'string') return null
+  const parsed = extractThinkingAndAnswer(raw)
+  const answer = parsed.answer
+    .replace(/^<think\b[^>]*>[\s\S]*?<\/think>\s*/i, '')
+    .trim()
+  if (!answer || REASONING_ONLY_PATTERN.test(answer)) return null
+  return answer
+}
+
+async function openAiBackup(messages, options = {}) {
+  // Used only after a reasoning model returns empty or reasoning-only text.
+  if (!getAvailableProviders().includes('openai')) return null
+  const system = options.jsonMode
+    ? 'You are a helpful assistant. Return ONLY valid JSON matching the requested schema. No explanatory text, no markdown, no code fences.'
+    : PREMIUM_SYSTEM_INSTRUCTION
+  const response = await getAiResponseWithTimeout('openai', [
+    { role: 'system', content: system },
+    ...messages.slice(-2),
+  ], { temperature: options.temperature ?? 0.3, json: options.jsonMode }, 20000)
+  return response ? String(response).trim() : null
 }
 
 async function aiChat(messages, options = {}) {
@@ -385,21 +408,35 @@ async function aiChat(messages, options = {}) {
       getAiResponseWithTimeout(p, [
         { role: 'system', content: sysContent },
         ...messages.slice(-2),
-      ], { temperature: jsonMode ? 0.1 : 0.3, json: jsonMode }, 6000)
+      ], { temperature: jsonMode ? 0.1 : 0.3, json: jsonMode, ...(options.model ? { model: options.model } : {}) }, 6000)
     ))
     for (const r of responses) {
       if (r.status === 'fulfilled' && r.value) {
         const parsed = extractThinkingAndAnswer(r.value)
-        const finalAnswer = (parsed.answer || r.value).trim()
+        const finalAnswer = usableAnswer(r.value)
+        if (!finalAnswer) continue
         const result = {
           final: finalAnswer,
-          council: [{ provider: 'turbo', thinking: parsed.thinking || 'Fast response', answer: parsed.answer || r.value }],
+          council: [{ provider: 'turbo', thinking: parsed.thinking || 'Fast response', answer: finalAnswer }],
           finalThinking: parsed.thinking || '',
           followUps: [],
         }
         setCachedAnswer(cacheKey, result)
         return result
       }
+    }
+    // The selected reasoning model may return only reasoning or an empty body.
+    // Retry with a real OpenAI response instead of saving a fabricated answer.
+    const backup = await openAiBackup(messages, { jsonMode, temperature: jsonMode ? 0.1 : 0.3 })
+    if (backup) {
+      const result = {
+        final: backup,
+        council: [{ provider: 'openai', thinking: 'Backup provider', answer: backup }],
+        finalThinking: '',
+        followUps: [],
+      }
+      setCachedAnswer(cacheKey, result)
+      return result
     }
     return fallbackResponse(messages)
   }
@@ -427,7 +464,7 @@ async function aiChat(messages, options = {}) {
       { role: 'system', content: PREMIUM_SYSTEM_INSTRUCTION },
       ...messages.slice(-2),
     ]
-    const resp = await getAiResponseWithTimeout(fastProvider, fastMessages, { temperature: 0.3 }, 8000, round1Controller.signal)
+    const resp = await getAiResponseWithTimeout(fastProvider, fastMessages, { temperature: 0.3, ...(options.model ? { model: options.model } : {}) }, 8000, round1Controller.signal)
     if (resp) {
       const parsed = extractThinkingAndAnswer(resp)
       answers.push({ provider: fastProvider, thinking: parsed.thinking || 'Fast response', answer: parsed.answer || resp })
@@ -443,7 +480,7 @@ async function aiChat(messages, options = {}) {
       ...(preSearchContext ? [{ role: 'system', content: preSearchContext }] : []),
     ]
 
-    const resp = await getAiResponseWithTimeout(p, cotMessages, { temperature: 0.35 }, round1Timeout, round1Controller.signal)
+    const resp = await getAiResponseWithTimeout(p, cotMessages, { temperature: 0.35, ...(options.model ? { model: options.model } : {}) }, round1Timeout, round1Controller.signal)
     if (resp) {
       const withSearch = await executeSearchTools(resp)
       const parsed = extractThinkingAndAnswer(withSearch)
@@ -469,6 +506,18 @@ async function aiChat(messages, options = {}) {
   // Cancel all still-running provider calls now that quorum is reached
   round1Controller.abort()
 
+  // Drop empty / reasoning-only outputs before judging or saving.
+  for (const answer of answers) {
+    const cleaned = usableAnswer(answer.answer)
+    if (cleaned) answer.answer = cleaned
+  }
+  const usableAnswers = answers.filter(answer => answer.answer)
+  answers.splice(0, answers.length, ...usableAnswers)
+
+  if (answers.length === 0) {
+    const backup = await openAiBackup(messages, { temperature: 0.3 })
+    if (backup) answers.push({ provider: 'openai', thinking: 'Backup provider', answer: backup })
+  }
   if (answers.length === 0) return fallbackResponse(messages)
   if (answers.length === 1) {
     const final = await executeSearchTools(answers[0].answer)

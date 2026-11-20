@@ -14,12 +14,14 @@
     <!-- Main area -->
     <main class="chat-main">
 
-      <div class="utility-bar"><button class="mobile-menu-button" @click="showHistory = true" aria-label="Open navigation"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><button class="model-label" @click="showExpertMenu = !showExpertMenu" ref="expertRef" aria-label="Choose study mode">{{ selectedExpert.label }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m7 10 5 5 5-5"/></svg></button><span class="provider-status">{{ activeProviderLabel }}</span><div v-if="showExpertMenu" class="expert-dropdown top-dropdown"><div class="dropdown-header">Choose a study mode</div><button v-for="ex in experts" :key="ex.id" @click="selectExpert(ex)" class="dropdown-item" :class="{ active: ex.id === selectedExpert.id }"><span class="ex-icon">{{ ex.icon }}</span><div><div class="ex-name">{{ ex.label }}</div><div class="ex-desc">{{ ex.description }}</div></div></button></div></div>
+      <div class="utility-bar"><button class="mobile-menu-button" @click="showHistory = true" aria-label="Open navigation"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><button class="model-label" @click="showExpertMenu = !showExpertMenu" ref="expertRef" aria-label="Choose study mode">{{ selectedExpert.label }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m7 10 5 5 5-5"/></svg></button><span class="provider-status">{{ activeProviderLabel }}</span><span v-if="aiChecked" class="provider-count" :class="{ offline: aiUnavailable }">{{ aiOnlineCount }} online</span><div v-if="showExpertMenu" class="expert-dropdown top-dropdown"><div class="dropdown-header">Choose a study mode</div><button v-for="ex in experts" :key="ex.id" @click="selectExpert(ex)" class="dropdown-item" :class="{ active: ex.id === selectedExpert.id }"><span class="ex-icon">{{ ex.icon }}</span><div><div class="ex-name">{{ ex.label }}</div><div class="ex-desc">{{ ex.description }}</div></div></button></div></div>
 
       <!-- Empty state -->
       <div v-if="!hasMessages" class="empty-state">
         <p class="empty-kicker">McPherson AI</p>
         <h1 class="empty-headline">What would you like to work on?</h1>
+        <div v-if="aiUnavailable" class="ai-status-banner" role="status">No AI provider is online. Ask an administrator to configure a backend key; chat is disabled for now.</div>
+        <div v-if="uploadError" class="ai-status-banner error" role="alert">{{ uploadError }}</div>
 
         <div class="empty-input-row">
           <AIChatInput
@@ -27,12 +29,14 @@
             v-model="input"
             :streaming="streaming"
             :processing="mindStore.processing"
+            :disabled="aiUnavailable"
             :selectedExpert="selectedExpert"
             :mindStore="mindStore"
             :webSearchEnabled="webSearchEnabled"
             @update:webSearchEnabled="webSearchEnabled = $event"
             @trigger-file-upload="onTriggerFileUpload"
             @file-selected="onFileSelected"
+            @remove-file="onRemoveFile"
             @send="onAiChatSend"
           />
           <button class="mic-btn-empty" :class="{ recording: isRecording }" @click="toggleRecording" :disabled="!recordingSupported" title="Voice input" aria-label="Voice input">
@@ -135,12 +139,14 @@
             v-model="input"
             :streaming="streaming"
             :processing="mindStore.processing"
+            :disabled="aiUnavailable"
             :selectedExpert="selectedExpert"
             :mindStore="mindStore"
             :webSearchEnabled="webSearchEnabled"
             @update:webSearchEnabled="webSearchEnabled = $event"
             @trigger-file-upload="onTriggerFileUpload"
             @file-selected="onFileSelected"
+            @remove-file="onRemoveFile"
             @send="onAiChatSend"
           />
           <button class="mic-btn-bottom" :class="{ recording: isRecording }" @click="toggleRecording" :disabled="!recordingSupported" title="Voice input" aria-label="Voice input">
@@ -148,6 +154,8 @@
             <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
           </button>
         </div>
+        <div v-if="aiUnavailable" class="ai-status-banner" role="status">No AI provider is online. Chat is disabled until a backend key is configured.</div>
+        <div v-if="uploadError" class="ai-status-banner error" role="alert">{{ uploadError }}</div>
         <p v-if="error" class="input-error">{{ error }}</p>
       </div>
 
@@ -160,6 +168,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useMindStore } from '../stores/mind'
+import { useToastStore } from '../stores/toast'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import api from '../lib/api'
 import 'katex/dist/katex.min.css'
@@ -174,6 +183,7 @@ import('highlight.js').then(m => { hljs = m.default || m }).catch(() => {})
 const router = useRouter()
 const authStore = useAuthStore()
 const mindStore = useMindStore()
+const toast = useToastStore()
 
 const hasMessages = computed(() => mindStore.messages.length > 0)
 
@@ -194,6 +204,9 @@ const showExpertMenu = ref(false)
 const showExpertMenuBottom = ref(false)
 const selectedExpert = ref({ id: 'general', label: 'General Assistant', icon: '\u{1F9E0}' })
 const anthropicAvailable = ref(false)
+const aiOnlineCount = ref(0)
+const aiChecked = ref(false)
+const uploadError = ref('')
 const activeModelId = ref('')
 const filteredConversations = computed(() => {
   const filter = conversationFilter.value.trim().toLowerCase()
@@ -205,6 +218,7 @@ const activeProviderLabel = computed(() => {
   if (activeModelId.value) return activeModelId.value === 'council' ? 'AI Council' : 'AI Assistant'
   return anthropicAvailable.value ? 'Claude Sonnet 5.5' : 'AI Assistant'
 })
+const aiUnavailable = computed(() => aiChecked.value && aiOnlineCount.value === 0)
 const streaming = ref(false)
 const streamThinking = ref('')
 const streamAnswer = ref('')
@@ -224,17 +238,30 @@ function onTriggerFileUpload(accept) {
   }
 }
 
-function onFileSelected(file) {
-  // File was selected via AIChatInput's hidden input, upload and prepend summary
+async function onFileSelected(file) {
+  // File selection is separate from study-pack creation: upload the file and
+  // show a real error if it fails. We never attach a fake summary.
+  uploadError.value = ''
   const formData = new FormData()
   formData.append('document', file)
-  api.post('/study-materials/upload', formData, {
-    timeout: 120000,
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }).then(res => {
+  try {
+    const res = await api.post('/study-materials/upload', formData, {
+      timeout: 120000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
     const body = res.data
-    if (body?.summary) input.value = `I've uploaded ${file.name}. Here's a summary:\n${body.summary.slice(0, 500)}...`
-  }).catch(() => {})
+    if (body?.summary) {
+      input.value = `I've uploaded ${file.name}. Here's a summary:\n${body.summary.slice(0, 500)}...`
+      aiChatInputRef.value?.clearAttachedFile?.()
+    } else {
+      uploadError.value = `Uploaded ${file.name}, but no summary was generated. You can still ask about it in Study Hub.`
+    }
+  } catch (err) {
+    uploadError.value = err?.response?.data?.error || `Could not upload ${file.name}. Please try a different file.`
+  }
+}
+function onRemoveFile() {
+  uploadError.value = ''
 }
 let mediaRecorder = null
 let audioChunks = []
@@ -392,6 +419,7 @@ async function sendStream(msg) {
   streamAnswer.value = ''
   error.value = ''
   let streamError = ''
+  let assistantMessageId = null
 
   const startTime = performance.now()
   if (abortController) abortController.abort()
@@ -451,6 +479,7 @@ async function sendStream(msg) {
               case 'done':
                 streamThinking.value = data.thinking || streamThinking.value
                 streamAnswer.value = data.answer || streamAnswer.value
+                assistantMessageId = data.assistantMessageId || null
                 activeModelId.value = data.model || activeModelId.value
                 if (data.conversationId) conversationId.value = data.conversationId
                 if (data.followUps) followUps.value = data.followUps
@@ -466,12 +495,11 @@ async function sendStream(msg) {
     }
 
     if (streamAnswer.value) {
-      mindStore.messages.push({ role: 'assistant', content: streamAnswer.value, council: [{ provider: 'stream', thinking: streamThinking.value, answer: streamAnswer.value }], thinking: streamThinking.value, elapsed: Math.round(performance.now() - startTime), rating: null, showThinking: false })
+      mindStore.messages.push({ id: assistantMessageId, role: 'assistant', content: streamAnswer.value, council: [{ provider: 'stream', thinking: streamThinking.value, answer: streamAnswer.value }], thinking: streamThinking.value, elapsed: Math.round(performance.now() - startTime), rating: null, showThinking: false })
       streamAnswer.value = ''
-    } else if (streamError) {
-      mindStore.messages.push({ role: 'assistant', content: `I'm sorry, I couldn't process your request. The AI service is currently unavailable. Please try again later.`, elapsed: Math.round(performance.now() - startTime), rating: null })
     } else {
-      mindStore.messages.push({ role: 'assistant', content: `I wasn't able to generate a response. Please try rephrasing your question.`, elapsed: Math.round(performance.now() - startTime), rating: null })
+      // Never save a made-up "AI" answer. Show the real provider error.
+      error.value = streamError || 'The AI provider returned no answer. Please try again.'
     }
   } catch (err) {
     console.error('Stream error:', err)
@@ -496,10 +524,18 @@ async function regenerateMessage(index) {
   await sendStream(prevUserMsg.content)
 }
 
-function rateMessage(index, rating) {
+async function rateMessage(index, rating) {
   const msg = mindStore.messages[index]
-  if (!msg) return
-  msg.rating = msg.rating === rating ? null : rating
+  if (!msg || msg.role !== 'assistant' || !msg.id) return
+  const next = msg.rating === rating ? null : rating
+  const previous = msg.rating
+  msg.rating = next
+  try {
+    await api.patch(`/chats/${conversationId.value}/messages/${msg.id}/feedback`, { rating: next })
+  } catch (err) {
+    msg.rating = previous
+    error.value = err?.response?.data?.error || 'Could not save your feedback.'
+  }
 }
 
 async function fetchConversations() {
@@ -510,14 +546,20 @@ async function checkAIProviders() {
   try {
     const { data } = await api.get('/ai/models')
     anthropicAvailable.value = Boolean(data?.models?.some(model => model.id === 'anthropic' && model.status === 'online'))
-  } catch { anthropicAvailable.value = false }
+    aiOnlineCount.value = Number(data?.online ?? 0)
+  } catch {
+    anthropicAvailable.value = false
+    aiOnlineCount.value = 0
+  } finally {
+    aiChecked.value = true
+  }
 }
 
 async function loadConversation(conv) {
   try {
     const { data } = await api.get(`/chats/${conv.id}/messages`)
     const msgs = Array.isArray(data) ? data : []
-    mindStore.setMessages(msgs.map(m => ({ role: m.role, content: m.content, council: [], thinking: '', elapsed: null, rating: null, showThinking: false })))
+    mindStore.setMessages(msgs.map(m => ({ id: m.id, role: m.role, content: m.content, council: [], thinking: '', elapsed: null, rating: m.rating || null, showThinking: false })))
     conversationId.value = conv.id
     activeModelId.value = conv.model || ''
     showHistory.value = false
@@ -1063,6 +1105,10 @@ onUnmounted(() => {
 .model-label { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border: 0; border-radius: 9px; background: transparent; color: #56534d; font: inherit; font-size: 13px; font-weight: 550; cursor: pointer; }
 .model-label:hover { background: #efeee9; }
 .provider-status { padding: 0 8px; color: #8c877d; font-size: 11px; }
+.provider-count { padding: 2px 8px; border-radius: 999px; background: rgba(34,197,94,.12); color: #15803d; font-size: 10px; font-weight: 600; }
+.provider-count.offline { background: rgba(239,68,68,.12); color: #b91c1c; }
+.ai-status-banner { margin: 10px 0; padding: 10px 14px; border-radius: 8px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); color: #b91c1c; font-size: 12px; line-height: 1.5; }
+.ai-status-banner.error { background: rgba(239,68,68,.08); }
 .top-dropdown { top: calc(100% + 6px); left: auto; right: 0; width: 260px; }
 .empty-state { max-width: 820px; gap: 16px; padding: 80px 32px 56px; }
 .empty-kicker { margin: 0; color: #9a624b; font-size: 12px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
