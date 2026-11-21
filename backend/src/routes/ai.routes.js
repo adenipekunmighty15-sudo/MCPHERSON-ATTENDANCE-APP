@@ -627,6 +627,9 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
         answer = await streamer(messages, {
           signal: controller.signal,
           onText: handleDelta,
+          // Reasoning models otherwise return empty content or stream private
+          // thinking; disable it for clean, fast answers on NVIDIA models.
+          ...(streamProvider === 'nvidia' ? { chat_template_kwargs: { enable_thinking: false } } : {}),
         }) || answer
       } catch (err) {
         if (!controller.signal.aborted) console.warn(`${streamProvider} stream failed; trying fallback:`, err?.message || err)

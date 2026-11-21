@@ -28,7 +28,10 @@ const VERIFIED_MODELS = [
   { id: 'muse-glimmer', provider: 'nvidia', model: 'meta/muse-glimmer-30b', name: 'Muse Glimmer (30B)', role: 'Council Member' },
 ]
 
-const DEFAULT_NVIDIA_MODEL = 'mistralai/mistral-large-4-1t-a52b'
+// Fastest model that returned a real answer in the live latency probe.
+// Mistral Large took 25-125s and frequently returned empty content, so it is
+// kept as a selectable model but is no longer the default.
+const DEFAULT_NVIDIA_MODEL = 'nvidia/nemotron-3.5-bolt-e4b'
 
 // Embedding model that matches the existing vector(2048) column. Verified with
 // the master NVIDIA key (HTTP 200, 2048 dimensions). nvidia/nemotron-3.5-embed-1b
@@ -67,6 +70,9 @@ function nvidiaRequestOptions(options = {}, model) {
   if (options.top_p !== undefined || preset.top_p !== undefined) extra.top_p = options.top_p ?? preset.top_p
   if (options.reasoning_budget !== undefined || preset.reasoning_budget !== undefined) {
     extra.reasoning_budget = options.reasoning_budget ?? preset.reasoning_budget
+  }
+  if (options.chat_template_kwargs !== undefined || preset.chat_template_kwargs !== undefined) {
+    extra.chat_template_kwargs = options.chat_template_kwargs ?? preset.chat_template_kwargs
   }
   return {
     temperature: options.temperature ?? preset.temperature ?? 0.3,
@@ -585,7 +591,7 @@ async function streamAnthropicResponse(messages, { signal, onText, max_tokens = 
  * OpenCode Console, ...). Returns the assembled answer and emits deltas so the
  * chat UI can render progressively.
  */
-async function streamOpenAICompatResponse(provider, messages, { signal, onText, model, max_tokens, temperature, top_p, reasoning_budget } = {}) {
+async function streamOpenAICompatResponse(provider, messages, { signal, onText, model, max_tokens, temperature, top_p, reasoning_budget, chat_template_kwargs } = {}) {
   const client = getAI(provider)
   if (!client) return null
   const preset = modelOptionsFor(model)
@@ -593,6 +599,9 @@ async function streamOpenAICompatResponse(provider, messages, { signal, onText, 
   if (top_p !== undefined || preset.top_p !== undefined) extra.top_p = top_p ?? preset.top_p
   if (reasoning_budget !== undefined || preset.reasoning_budget !== undefined) {
     extra.reasoning_budget = reasoning_budget ?? preset.reasoning_budget
+  }
+  if (chat_template_kwargs !== undefined || preset.chat_template_kwargs !== undefined) {
+    extra.chat_template_kwargs = chat_template_kwargs ?? preset.chat_template_kwargs
   }
   const stream = await client.chat.completions.create({
     model: model || process.env.OPENCODE_MODEL || 'big-pickle',

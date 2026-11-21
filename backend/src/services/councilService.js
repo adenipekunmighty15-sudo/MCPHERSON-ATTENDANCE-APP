@@ -6,15 +6,22 @@ import { getAI, streamOpenAICompatResponse, VERIFIED_MODELS } from '../config/ai
  * streams the final verdict. Every message shown to the user comes from a real
  * provider completion. No reasoning_content is read or returned.
  */
+// Selected from a live latency probe on the configured NVIDIA key. Each of
+// these returned a real answer quickly (< 4s) with thinking disabled. The
+// previously used seats (mistral-large 25s, kimi 60s+, step-5 empty) caused the
+// court to time out and fall back to a single model.
 const COURT_SEATS = [
-  { modelId: 'mistral-large-4-1t', role: 'Counsel for Accuracy' },
-  { modelId: 'nemotron-3.5-bolt', role: 'Counsel for Clarity' },
-  { modelId: 'step-5-preview', role: 'Counsel for Evidence' },
+  { modelId: 'nemotron-3.5-bolt', role: 'Counsel for Accuracy' },
+  { modelId: 'poolside-laguna', role: 'Counsel for Clarity' },
+  { modelId: 'nemotron-3.5-lightning', role: 'Counsel for Evidence' },
   { modelId: 'nemotron-3.5-super-vl', role: 'Counsel for Context' },
-  { modelId: 'kimi-k3.1-pro', role: 'Counsel for Edge Cases' },
+  { modelId: 'step-5-preview', role: 'Counsel for Edge Cases' },
 ]
 
 const JUDGE_MODEL_ID = 'nemotron-3-ultra'
+// Disable reasoning for every court seat: reasoning models otherwise return
+// empty content or stream private thinking that must never reach the student.
+const COURT_REQUEST_OPTIONS = { chat_template_kwargs: { enable_thinking: false } }
 const ADVOCATE_TIMEOUT_MS = Number(process.env.COUNCIL_ADVOCATE_TIMEOUT_MS || 9000)
 const JUDGE_TIMEOUT_MS = Number(process.env.COUNCIL_JUDGE_TIMEOUT_MS || 20000)
 
@@ -75,6 +82,7 @@ async function askCounsel(seat, messages, parentSignal) {
         messages: counselMessages,
         temperature: 0.35,
         max_tokens: 450,
+        ...COURT_REQUEST_OPTIONS,
       },
       { signal: controller.signal },
     )
@@ -183,6 +191,7 @@ export async function runCourtCouncil({ messages, sendEvent, signal }) {
       model: judge.model,
       temperature: 0.2,
       max_tokens: 1800,
+      ...COURT_REQUEST_OPTIONS,
       onText: (delta) => {
         if (!delta) return
 
