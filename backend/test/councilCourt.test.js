@@ -34,18 +34,20 @@ test('AI court never reads or returns private reasoning content', () => {
 test('AI court strips the judge bench header before persisting the answer', () => {
   const source = read('src/services/councilService.js')
 
-  // The streamed answer is accumulated in onText, not taken from the
-  // streamOpenAICompatResponse return value (which includes the JSON header).
-  assert.match(source, /We accumulate the answer ourselves in onText/)
-  assert.match(source, /never persisted/)
+  // The first lines are scanned for the header, including fenced JSON, before
+  // any answer text is emitted.
+  assert.match(source, /extractBenchHeader/)
   assert.match(source, /parseBenchHeader/)
-  assert.match(source, /const remaining = lines\.slice\(1\)\.join/)
+  assert.match(source, /const text = String\(raw \|\| ''\)/)
 })
 
-test('AI court streams the verdict live through delta events', () => {
+test('AI court streams only safety-checked answer text through delta events', () => {
   const source = read('src/services/councilService.js')
-  assert.match(source, /sendEvent\('delta', \{ content: delta \}\)/)
-  assert.match(source, /phase: 'verdict'/)
+  assert.match(source, /const HOLDBACK = 128/)
+  assert.match(source, /Stream only text that has passed the safety check/)
+  assert.match(source, /isUnsafeDraft\(judgeAnswer\)/)
+  assert.match(source, /sendEvent\('delta', \{ content: safe \}\)/)
+  assert.match(source, /phase: 'sanitized'/)
 
   const route = read('src/routes/ai.routes.js')
   assert.match(route, /runCourtCouncil\(\{ messages, sendEvent/)

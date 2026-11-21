@@ -880,8 +880,11 @@ router.post('/api/study-materials/chat', authenticate, async (req, res) => {
     { role: 'user', content: message },
   ]
   const result = await aiChat(msgs)
-  if (!result) return res.status(500).json({ error: 'AI Assistant unavailable' })
-  res.status(200).json({ response: result.final, council: result.council, finalThinking: result.finalThinking, history: [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: result.final }] })
+  if (!result || !result.final || !String(result.final).trim()) return res.status(502).json({ error: 'The AI provider returned an empty response. Please try again.' })
+  const publicCouncil = Array.isArray(result.council)
+    ? result.council.map((item) => ({ provider: item?.provider, name: item?.name, role: item?.role, answer: item?.answer }))
+    : []
+  res.status(200).json({ response: result.final, council: publicCouncil, history: [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: result.final }] })
   } catch (err) {
     console.error('Study chat failed:', err.message)
     if (!res.headersSent) res.status(500).json({ error: 'Failed to process chat' })

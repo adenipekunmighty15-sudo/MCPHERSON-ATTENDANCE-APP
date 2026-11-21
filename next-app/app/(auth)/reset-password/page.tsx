@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import AuthFrame from '@/components/auth/AuthFrame'
-import { errorTextClass, fieldLabelClass, inputClass, noticeClass, primaryButtonClass } from '@/components/auth/formStyles'
+import PasswordInput from '@/components/auth/PasswordInput'
+import { errorTextClass, fieldLabelClass, noticeClass, primaryButtonClass } from '@/components/auth/formStyles'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { getSupabaseClient } from '@/lib/supabase'
 
@@ -128,33 +129,31 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
             <label htmlFor="new-password" className={fieldLabelClass}>New password</label>
-            <input
+            <PasswordInput
               id="new-password"
               name="new-password"
-              type="password"
+              fieldName="new password"
               autoComplete="new-password"
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value)
                 setError(null)
               }}
-              className={inputClass}
               disabled={saving}
             />
           </div>
           <div>
             <label htmlFor="confirm-password" className={fieldLabelClass}>Confirm password</label>
-            <input
+            <PasswordInput
               id="confirm-password"
               name="new-password-confirm"
-              type="password"
+              fieldName="confirm password"
               autoComplete="new-password"
               value={confirmation}
               onChange={(event) => {
                 setConfirmation(event.target.value)
                 setError(null)
               }}
-              className={inputClass}
               disabled={saving}
             />
           </div>

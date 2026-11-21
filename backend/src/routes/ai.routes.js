@@ -1,12 +1,16 @@
 import { Router } from 'express'
+import multer from 'multer'
 import { authenticate } from '../middleware/auth.js'
 import { query } from '../../lib/db.js'
 import { webSearch, searchImages } from '../../lib/webSearch.js'
+import { extractTextFromDoc } from '../services/studyPack.js'
 import OpenAI from 'openai'
 import { randomUUID } from 'crypto'
+import { extname } from 'node:path'
 import { getAvailableProviders, getAI, streamAnthropicResponse, streamOpenAICompatResponse, VERIFIED_MODELS, NVIDIA_CAPABILITIES, resolveModelId, DEFAULT_NVIDIA_MODEL } from '../config/ai.js'
 import { aiChat, generateFollowUps, generateChatTitle } from '../services/aiService.js'
 import { runCourtCouncil } from '../services/councilService.js'
+import { isTrivialMessage } from '../services/intentService.js'
 import { resolve4, resolve6 } from 'node:dns/promises'
 import net from 'node:net'
 import { URL } from 'node:url'
@@ -17,9 +21,31 @@ import * as cheerio from 'cheerio'
 
 const router = Router()
 
+const chatAttachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    const ext = extname(file.originalname).toLowerCase()
+    if (['.pdf', '.doc', '.docx', '.txt', '.csv', '.rtf'].includes(ext)) callback(null, true)
+    else callback(new Error('Unsupported file type'))
+  },
+})
+
 function needsVerification(query) {
   const triggers = /\b(latest|current|recent|202\d|best|top|how many|what is|who is|compare|vs\.?|statistics|data|report|price|stock|weather|score|result)\b/i
   return triggers.test(query) || query.length > 150
+}
+
+// Only real answer metadata leaves the server. Internal thinking/critique
+// fields are never serialized to the browser.
+function publicCouncil(council) {
+  if (!Array.isArray(council)) return []
+  return council.map((item) => ({
+    provider: item?.provider,
+    name: item?.name,
+    role: item?.role,
+    answer: item?.answer,
+  }))
 }
 
 function isPrivateAddress(address) {
@@ -414,9 +440,8 @@ router.post('/api/ai/chat', authenticate, async (req, res) => {
     }
 
     res.json({
-      response: result.final || 'I was unable to generate a complete response. Please try rephrasing your question.',
-      council: result.council || [],
-      thinking: result.finalThinking || '',
+      response: result.final,
+      council: publicCouncil(result.council),
       followUps: result.followUps || [],
       elapsed,
       conversationId: convId,
@@ -498,6 +523,26 @@ const PROV_MODELS = {
   poolside: 'poolside/laguna-xs-2.1',
 }
 
+// Chat attachments are read for the current conversation only. They never
+// create a study pack or appear in StudyHub.
+router.post('/api/ai/chat/attachment', authenticate, chatAttachmentUpload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
+    const text = await extractTextFromDoc(req.file.buffer, req.file.originalname)
+    const cleanText = String(text || '').trim()
+    if (!cleanText) {
+      return res.status(400).json({ error: `I could not extract text from ${req.file.originalname}. Try a text-based PDF, DOCX or TXT file.` })
+    }
+    res.json({ name: req.file.originalname, text: cleanText.slice(0, 12000) })
+  } catch (err) {
+    if (err instanceof multer.MulterError || err.message === 'Unsupported file type') {
+      return res.status(400).json({ error: 'Use a PDF, DOCX, TXT, CSV or RTF file under 10 MB.' })
+    }
+    console.error('Chat attachment error:', err.message)
+    res.status(500).json({ error: 'Could not read that attachment. Please try again.' })
+  }
+})
+
 router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
   try {
     const { message, history, conversationId: bodyConvId, expert, council, webSearch: doWebSearch } = req.body
@@ -557,7 +602,14 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
       { role: 'user', content: message.trim() },
     ]
 
-    const useCouncilMode = req.body.council === true
+    // Greetings/short acknowledgements never run the court. A single real
+    // model answers them with a plain prompt, so roleplay cannot leak.
+    const trivialMessage = isTrivialMessage(message)
+    const useCouncilMode = req.body.council === true && !trivialMessage
+
+    if (req.body.council === true && trivialMessage) {
+      sendEvent('council', { phase: 'skipped', message: 'Answering directly.' })
+    }
 
     if (useCouncilMode) {
       // ─── FULL COURT: distinct verified models, one presiding judge ───
@@ -570,21 +622,16 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
       try {
         const court = await runCourtCouncil({ messages, sendEvent, signal: courtController.signal })
         if (!court || !court.answer) {
-          sendEvent('error', { message: 'The AI court could not return a verdict. Please try again.' })
+          const hasProvider = getAI('nvidia') || getAI('anthropic') || getAI('openai') || getAI('glm-flash') || getAI('opencode')
+          sendEvent('error', {
+            message: hasProvider
+              ? 'The AI providers are configured but none returned an answer. Please try again.'
+              : 'No AI provider is configured on the backend. Please contact the administrator.',
+          })
         } else {
           sendEvent('answer', { content: court.answer, done: true })
           try {
-            await saveAndDone(
-              sendEvent,
-              bodyConvId,
-              req.user.id,
-              message,
-              court.answer,
-              court.rationale ? `Judge ${court.judge.name}: ${court.rationale}` : '',
-              startTime,
-              'court-council',
-              [],
-            )
+            await saveAndDone(sendEvent, bodyConvId, req.user.id, message, court.answer, startTime, 'court-council', [])
           } catch {}
         }
       } finally {
@@ -668,7 +715,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
       if (answer) {
         sendEvent('answer', { content: answer, done: true })
         try {
-          await saveAndDone(sendEvent, bodyConvId, req.user.id, message, answer, '', startTime, responseModel, [])
+          await saveAndDone(sendEvent, bodyConvId, req.user.id, message, answer, startTime, responseModel, [])
         } catch {}
       } else {
         sendEvent('error', { message: 'AI providers are unavailable. Configure a provider on the backend and try again.' })
@@ -691,13 +738,15 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
           await new Promise(r => setTimeout(r, 500))
           sendEvent('verified', { totalClaims: claims, message: 'Verification complete' })
         }
-        sendEvent('thinking', { content: result.finalThinking || '', done: true })
-        sendEvent('answer', { content: result.final, done: true })
-        try {
-          await saveAndDone(sendEvent, bodyConvId, req.user.id, message,
-            result.final || 'I was unable to generate a complete response. Please try rephrasing your question.', result.finalThinking || '', startTime,
-            doWebSearch ? 'web-search' : 'turbo', result.followUps)
-        } catch {}
+        if (!result.final || !String(result.final).trim()) {
+          sendEvent('error', { message: 'The AI provider returned an empty response. Please try again.' })
+        } else {
+          sendEvent('answer', { content: result.final, done: true })
+          try {
+            await saveAndDone(sendEvent, bodyConvId, req.user.id, message, result.final, startTime,
+              doWebSearch ? 'web-search' : 'turbo', result.followUps)
+          } catch {}
+        }
       } else {
         sendEvent('error', { message: 'The AI provider did not respond in time. Please try again.' })
       }
@@ -714,7 +763,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
   }
 })
 
-async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, finalThinking, startTime, model, followUps) {
+async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, startTime, model, followUps) {
   try {
     let convId = bodyConvId
     if (!convId) {
@@ -753,12 +802,12 @@ async function saveAndDone(sendEvent, bodyConvId, userId, message, finalAnswer, 
     if (parseInt(msgCount[0].c) === 1) {
       generateChatTitle(convId, userId, message.trim(), finalAnswer)
     }
-    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime, conversationId: convId, model, assistantMessageId }
+    const doneData = { answer: finalAnswer, elapsed: Date.now() - startTime, conversationId: convId, model, assistantMessageId }
     if (followUps) doneData.followUps = followUps
     sendEvent('done', doneData)
   } catch (dbErr) {
     console.error('Failed to save chat:', dbErr.message)
-    const doneData = { thinking: finalThinking, answer: finalAnswer, elapsed: Date.now() - startTime, model }
+    const doneData = { answer: finalAnswer, elapsed: Date.now() - startTime, model }
     if (followUps) doneData.followUps = followUps
     sendEvent('done', doneData)
   }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState, type FormEvent } from 'react'
 import AuthFrame from '@/components/auth/AuthFrame'
+import PasswordInput from '@/components/auth/PasswordInput'
 import { errorTextClass, fieldLabelClass, inputClass, noticeClass, primaryButtonClass } from '@/components/auth/formStyles'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { isAdminRole, sanitizeRedirect } from '@/lib/config'
@@ -89,10 +90,10 @@ function AdminLoginForm() {
         </div>
         <div>
           <label htmlFor="admin-password" className={fieldLabelClass}>Password</label>
-          <input
+          <PasswordInput
             id="admin-password"
             name="password"
-            type="password"
+            fieldName="password"
             autoComplete="current-password"
             placeholder="Enter password"
             value={password}
@@ -100,7 +101,6 @@ function AdminLoginForm() {
               setPassword(event.target.value)
               setError(null)
             }}
-            className={inputClass}
             disabled={busy}
           />
         </div>

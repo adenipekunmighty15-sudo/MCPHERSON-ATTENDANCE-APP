@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import AuthFrame from '@/components/auth/AuthFrame'
+import PasswordInput from '@/components/auth/PasswordInput'
 import { errorTextClass, fieldLabelClass, inputClass, noticeClass, primaryButtonClass } from '@/components/auth/formStyles'
 import { useAuth } from '@/components/providers/AuthProvider'
 import {
@@ -172,11 +173,11 @@ export default function SignupPage() {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="signup-password" className={fieldLabelClass}>Password</label>
-            <input id="signup-password" name="new-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className={inputClass} disabled={busy} />
+            <PasswordInput id="signup-password" name="new-password" fieldName="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
           </div>
           <div>
             <label htmlFor="signup-confirm" className={fieldLabelClass}>Confirm password</label>
-            <input id="signup-confirm" name="new-password-confirm" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className={inputClass} disabled={busy} />
+            <PasswordInput id="signup-confirm" name="new-password-confirm" fieldName="confirm password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={busy} />
           </div>
         </div>
         <p className="-mt-2 text-[11px] text-navy/45">8–128 characters with uppercase, lowercase, number and symbol.</p>

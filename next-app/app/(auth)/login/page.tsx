@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState, type FormEvent } from 'react'
 import AuthFrame from '@/components/auth/AuthFrame'
+import PasswordInput from '@/components/auth/PasswordInput'
 import { errorTextClass, fieldLabelClass, inputClass, noticeClass, primaryButtonClass } from '@/components/auth/formStyles'
 import { useAuth } from '@/components/providers/AuthProvider'
 import {
@@ -140,17 +141,16 @@ function LoginForm() {
 
         <div>
           <label htmlFor="signin-password" className={fieldLabelClass}>Password</label>
-          <input
+          <PasswordInput
             id="signin-password"
             name="password"
-            type="password"
+            fieldName="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => {
               setPassword(event.target.value)
               setError(null)
             }}
-            className={inputClass}
             disabled={busy}
           />
         </div>

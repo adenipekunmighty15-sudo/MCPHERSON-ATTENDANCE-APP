@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {
   useCallback,
   useEffect,
@@ -12,7 +11,6 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import PortalNav from '@/components/portal/PortalNav'
 import { api } from '@/lib/api'
 import ChatMarkdown from './ChatMarkdown'
 import styles from './chat.module.css'
@@ -108,7 +106,7 @@ function toCourtMember(value: unknown): CourtMember | null {
   return id || name ? { id, name: name || id, role: role || 'Counsel' } : null
 }
 
-export default function AIChatWorkspace() {
+export default function AIChatWorkspace({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth()
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -139,6 +137,7 @@ export default function AIChatWorkspace() {
   const [uploadError, setUploadError] = useState('')
   const [followUps, setFollowUps] = useState<string[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [directAnswer, setDirectAnswer] = useState(false)
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [expertMenuOpen, setExpertMenuOpen] = useState(false)
   const [recording, setRecording] = useState(false)
@@ -164,7 +163,7 @@ export default function AIChatWorkspace() {
   const activeExpert = EXPERTS.find((expert) => expert.id === expertId) || EXPERTS[0]
   const onlineCount = models?.online ?? 0
   const aiUnavailable = modelsLoaded && onlineCount === 0
-  const activeLabel = council ? 'AI Council' : selectedModel?.name || 'AI Assistant'
+  const activeLabel = council && !directAnswer ? 'AI Council' : selectedModel?.name || 'AI Assistant'
   const userInitial = (user?.name || user?.email || 'U').charAt(0).toUpperCase()
 
   useEffect(() => {
@@ -226,11 +225,11 @@ export default function AIChatWorkspace() {
 
     const contextBlock = attachments.length
       ? attachments
-          .map((attachment) => `Study material: ${attachment.title}${attachment.context ? `\n${attachment.context}` : ''}`)
+          .map((attachment) => `Attachment: ${attachment.name}${attachment.context ? `\n${attachment.context}` : ''}`)
           .join('\n\n')
       : ''
     const requestMessage = contextBlock
-      ? `${text}\n\n--- STUDY CONTEXT ---\n${contextBlock}\n--- END STUDY CONTEXT ---`
+      ? `${text}\n\n--- CHAT ATTACHMENTS ---\n${contextBlock}\n--- END CHAT ATTACHMENTS ---`
       : text
 
     setError('')
@@ -248,6 +247,7 @@ export default function AIChatWorkspace() {
     setMessages(optimisticMessages)
     setStreaming(true)
     setCourt({ phase: 'idle', message: '', members: [], testimonies: [], winner: null, rationale: '' })
+    setDirectAnswer(false)
     abortedByUserRef.current = false
     stoppedRef.current = false
 
@@ -298,6 +298,10 @@ export default function AIChatWorkspace() {
                 break
               case 'council': {
                 const phase = String(data.phase || '')
+                if (phase === 'skipped') {
+                  setDirectAnswer(true)
+                  break
+                }
                 const member = toCourtMember(data.member || data.judge)
                 const winner = toCourtMember(data.winner)
                 const testimonyValue = data.testimony
@@ -459,15 +463,15 @@ export default function AIChatWorkspace() {
     const form = new FormData()
     form.append('document', file)
     try {
-      const result = await api.upload<Record<string, unknown>>('/study-materials/upload', form, { timeout: 120000 })
-      const title = typeof result.title === 'string' && result.title.trim() ? result.title : file.name
-      const context = typeof result.summary === 'string' ? result.summary : ''
+      const result = await api.upload<{ name?: string; text?: string }>('/ai/chat/attachment', form, { timeout: 120000 })
+      const name = typeof result.name === 'string' && result.name.trim() ? result.name : file.name
+      const context = typeof result.text === 'string' ? result.text : ''
       setAttachments((current) => [
         ...current,
         {
           id: `${Date.now()}-${file.name}`,
-          name: file.name,
-          title,
+          name,
+          title: name,
           context: context.slice(0, 1600),
         },
       ])
@@ -554,7 +558,8 @@ export default function AIChatWorkspace() {
   )
 
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${embedded ? styles.shellEmbedded : ''}`.trim()}>
+      {embedded ? null : (
       <aside className={`${styles.sidebar} ${historyOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHead}>
           <div className={styles.brand}>
@@ -608,17 +613,16 @@ export default function AIChatWorkspace() {
         </div>
 
         <div className={styles.sidebarFoot}>
-          <Link href="/dashboard" className={styles.sidebarLink}>Overview ↗</Link>
-          <Link href="/university" className={styles.sidebarLink}>University ↗</Link>
           <span className={styles.sidebarUser}>{user?.name || 'Student account'}</span>
         </div>
       </aside>
+      )}
 
       {historyOpen ? <button className={styles.scrim} onClick={() => setHistoryOpen(false)} aria-label="Close chat history" /> : null}
 
       <main className={styles.main}>
         <header className={styles.topbar}>
-          <button className={styles.mobileMenu} onClick={() => setHistoryOpen(true)} aria-label="Open chat history">☰</button>
+          {embedded ? null : <button className={styles.mobileMenu} onClick={() => setHistoryOpen(true)} aria-label="Open chat history">☰</button>}
 
           <div className={styles.menuWrap}>
             <button className={styles.topPill} onClick={() => setModelMenuOpen((open) => !open)} aria-expanded={modelMenuOpen}>
@@ -687,7 +691,7 @@ export default function AIChatWorkspace() {
             {modelsLoaded ? `${onlineCount} online` : 'Checking AI…'}
           </span>
 
-          <PortalNav active="chat" compact />
+
         </header>
 
         <div className={styles.stream} ref={scrollRef}>
@@ -848,7 +852,7 @@ export default function AIChatWorkspace() {
               aria-label="Message McPherson AI"
             />
             <div className={styles.composerActions}>
-              <button type="button" className={styles.toolButton} onClick={() => fileRef.current?.click()} disabled={aiUnavailable} title="Attach study material">
+              <button type="button" className={styles.toolButton} onClick={() => fileRef.current?.click()} disabled={aiUnavailable} title="Attach a document to this chat">
                 ⌎ <span>Attach</span>
               </button>
               <button type="button" className={`${styles.toolButton} ${recording ? styles.recording : ''}`} onClick={() => void toggleRecording()} disabled={aiUnavailable} title="Voice input">
@@ -900,6 +904,7 @@ export default function AIChatWorkspace() {
         </form>
       </main>
 
+      {embedded ? null : (
       <aside className={styles.insights}>
         <div className={styles.insightCard}>
           <p className={styles.kicker}>Session</p>
@@ -916,8 +921,7 @@ export default function AIChatWorkspace() {
         <div className={styles.insightCard}>
           <p className={styles.kicker}>Privacy</p>
           <h2>Your workspace</h2>
-          <p>Conversations are scoped to your account. Attachments are uploaded to the Study Hub and never embedded as fake AI context.</p>
-          <Link href="/dashboard" className={styles.insightLink}>Open dashboard →</Link>
+          <p>Conversations are scoped to your account. Attachments are read for this chat only; they are never saved as study packs or used as fake AI context.</p>
         </div>
 
         <div className={styles.tipCard}>
@@ -925,6 +929,7 @@ export default function AIChatWorkspace() {
           <p><strong>Tip:</strong> Choose Math Tutor or Programming Mentor for step-by-step explanations tailored to coursework.</p>
         </div>
       </aside>
+      )}
     </div>
   )
 }

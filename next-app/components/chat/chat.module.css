@@ -13,6 +13,20 @@
   color: var(--chat-ink);
 }
 
+/* Embedded inside the single dashboard: no page-level chrome or fixed height. */
+.shellEmbedded {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+  grid-template-columns: none;
+  background: transparent;
+}
+
+.shellEmbedded .main {
+  min-height: 0;
+}
+
 /* Sidebar -------------------------------------------------------------- */
 .sidebar {
   display: flex;

@@ -21,9 +21,12 @@ export default function Home() {
               <small className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-blue">Citadel of Champions</small>
             </span>
           </a>
-          <nav className="flex items-center gap-2 sm:gap-3" aria-label="Primary">
+          <nav className="flex items-center gap-2 sm:gap-4" aria-label="Primary">
             <a href="#story" className="hidden text-sm font-medium text-navy/65 transition-colors hover:text-navy sm:inline">
-              The story
+              How it works
+            </a>
+            <a href="/signup" className="hidden text-sm font-medium text-navy/65 transition-colors hover:text-navy sm:inline">
+              Create account
             </a>
             <MagneticLink href={signInUrl} className="mcu-action mcu-action--secondary !min-h-[40px] !px-4" strength={0.14}>
               Sign in
