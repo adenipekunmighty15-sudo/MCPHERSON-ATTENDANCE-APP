@@ -1,7 +1,16 @@
 <template>
-  <figure class="spatial-image" v-tilt="{ max: 10 }" v-spotlight>
+  <figure class="spatial-image" :class="{ 'is-loaded': loaded }" v-tilt="{ max: 10 }" v-spotlight>
     <div class="spatial-image-frame">
-      <img :src="src" :alt="alt" loading="lazy" decoding="async" />
+      <img
+        :src="src"
+        :alt="alt"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+        @load="loaded = true"
+        @error="loaded = true"
+      />
+      <span class="spatial-image-skeleton" aria-hidden="true" />
       <span class="spatial-image-grid" aria-hidden="true" />
       <span class="spatial-image-sheen" aria-hidden="true" />
       <span class="spatial-image-vignette" aria-hidden="true" />
@@ -29,7 +38,10 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { ArrowUpRight, MapPin, ShieldCheck } from 'lucide-vue-next'
+
+const loaded = ref(false)
 
 defineProps({
   src: { type: String, required: true },
@@ -71,13 +83,48 @@ defineProps({
   height: 100%;
   object-fit: cover;
   filter: saturate(0.9) contrast(1.03);
+  opacity: 0;
   transform: scale(1.07) translateZ(-24px);
-  transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1), filter 600ms ease;
+  transition:
+    transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 600ms ease,
+    opacity 480ms ease;
+}
+
+.spatial-image.is-loaded .spatial-image-frame img {
+  opacity: 1;
 }
 
 .spatial-image:hover .spatial-image-frame img {
   transform: scale(1.13) translateZ(-12px);
   filter: saturate(1.02) contrast(1.05);
+}
+
+.spatial-image-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background-image: linear-gradient(100deg, #07133a 18%, #173566 40%, #0d2050 58%, #07133a 82%);
+  background-size: 220% 100%;
+  animation: spatialImageShimmer 1.35s linear infinite;
+  transform: translateZ(90px);
+  transition: opacity 480ms ease, visibility 480ms ease;
+  pointer-events: none;
+}
+
+.spatial-image.is-loaded .spatial-image-skeleton {
+  opacity: 0;
+  visibility: hidden;
+  animation: none;
+}
+
+@keyframes spatialImageShimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spatial-image-skeleton { animation: none; }
 }
 
 .spatial-image-grid {

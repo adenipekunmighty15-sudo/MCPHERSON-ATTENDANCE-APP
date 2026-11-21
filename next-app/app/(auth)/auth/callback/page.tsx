@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { PORTAL_HOME_PATH } from '@/lib/config'
 import { getSupabaseClient } from '@/lib/supabase'
 import type { Session } from '@/lib/types'
 
@@ -57,7 +58,7 @@ export default function AuthCallbackPage() {
         if (!active) return
         if (session?.user) {
           adoptSession(session)
-          router.replace('/')
+          router.replace(PORTAL_HOME_PATH)
         } else {
           router.replace('/login')
         }

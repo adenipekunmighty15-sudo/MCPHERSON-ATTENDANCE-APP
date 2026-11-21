@@ -13,6 +13,7 @@ import {
   UNIVERSITY,
   isValidUniversityEmail,
   normalizeUniversityEmail,
+  PORTAL_HOME_PATH,
 } from '@/lib/config'
 
 const PASSWORD_OK = /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/
@@ -34,7 +35,7 @@ export default function SignupPage() {
   useEffect(() => {
     let active = true
     void ready.then(() => {
-      if (active && isAuthenticated) router.replace('/')
+      if (active && isAuthenticated) router.replace(PORTAL_HOME_PATH)
     })
     return () => {
       active = false
@@ -90,7 +91,7 @@ export default function SignupPage() {
         setInfo(result.message || 'Check your email for a confirmation link, then sign in.')
         return
       }
-      router.push('/')
+      router.push(PORTAL_HOME_PATH)
     } catch (signupError) {
       setError(signupError instanceof Error ? signupError.message : 'Unable to create your account. Please try again.')
     } finally {

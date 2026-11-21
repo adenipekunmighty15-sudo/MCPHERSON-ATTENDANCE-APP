@@ -1,4 +1,5 @@
-import Image from 'next/image'
+import ShimmerImage from '@/components/ShimmerImage'
+import CampusShowcase from '@/components/CampusShowcase'
 import InteractiveHero from '@/components/InteractiveHero'
 import MagneticLink from '@/components/MagneticLink'
 import Reveal from '@/components/Reveal'
@@ -13,7 +14,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <a href="/" className="flex items-center gap-3" aria-label="McPherson University home">
             <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-[#F6F8FC]">
-              <Image src="/mcu-logo.png" alt="" width={40} height={40} priority />
+              <ShimmerImage src="/mcu-logo.png" alt="" width={40} height={40} priority />
             </span>
             <span className="leading-tight">
               <strong className="block text-sm sm:text-base">McPherson University</strong>
@@ -32,6 +33,7 @@ export default function Home() {
       </header>
 
       <InteractiveHero />
+      <CampusShowcase />
       <ScrollSequence />
 
       <section className="bg-navy text-white">

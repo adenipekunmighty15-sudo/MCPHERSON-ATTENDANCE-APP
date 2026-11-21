@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import ShimmerImage from './ShimmerImage'
 
 export default function FlipBookCard() {
   const stageRef = useRef<HTMLDivElement>(null)
@@ -58,7 +58,7 @@ export default function FlipBookCard() {
             <span>01 / 03</span>
           </div>
           <div className="book-seal">
-            <Image src="/mcu-logo.png" alt="" width={48} height={48} />
+            <ShimmerImage src="/mcu-logo.png" alt="" width={48} height={48} />
           </div>
           <div className="book-title">
             <span>Campus</span>

@@ -23,6 +23,9 @@ export const DEFAULT_STUDENT_DOMAIN = UNIVERSITY.defaultStudentDomain
 export const STUDENT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9/_-]{2,23}$/
 export const ADMIN_ROLES: readonly string[] = ['admin', 'super_admin']
 
+/** The signed-in destination. The root path is the public landing page. */
+export const PORTAL_HOME_PATH = '/dashboard'
+
 export const NETWORK_ERROR_MESSAGE = 'Network error — check your internet connection and try again.'
 export const TIMEOUT_ERROR_MESSAGE = 'The request timed out. Check your connection and try again.'
 export const SERVICE_UNAVAILABLE_MESSAGE = 'The portal service is temporarily unavailable. Please try again shortly.'
@@ -113,7 +116,7 @@ export function isValidUniversityEmail(value: string): boolean {
  * Protocol-relative, scheme-like, control-character and auth-page targets are
  * rejected so a crafted query string cannot bounce users off-site.
  */
-export function sanitizeRedirect(raw: string | null | undefined, fallback = '/'): string {
+export function sanitizeRedirect(raw: string | null | undefined, fallback = PORTAL_HOME_PATH): string {
   if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) {
     return fallback
   }
@@ -124,7 +127,8 @@ export function sanitizeRedirect(raw: string | null | undefined, fallback = '/')
     const origin = getSiteOrigin() || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
     const parsed = new URL(raw, origin)
     if (parsed.origin !== origin) return fallback
-    if (/^\/(login|signup|welcome)(\/|$)/i.test(parsed.pathname)) return fallback
+    // Landing and auth pages are never valid post-login destinations.
+    if (parsed.pathname === '/' || /^\/(login|signup|welcome)(\/|$)/i.test(parsed.pathname)) return fallback
     return `${parsed.pathname}${parsed.search}${parsed.hash}`
   } catch {
     return fallback

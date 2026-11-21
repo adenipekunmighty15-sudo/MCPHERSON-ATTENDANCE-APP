@@ -12,7 +12,10 @@ export default function DashboardPage() {
             You are signed in. The full attendance workspace is being migrated into this app; the legacy portal remains available meanwhile.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/" className="mcu-action mcu-action--primary">
+            <Link href="/chat" className="mcu-action mcu-action--primary">
+              Open AI chat
+            </Link>
+            <Link href="/" className="mcu-action border border-navy/15 bg-white text-navy">
               Go to the portal home
             </Link>
             <Link href="/welcome" className="mcu-action border border-navy/15 bg-white text-navy">

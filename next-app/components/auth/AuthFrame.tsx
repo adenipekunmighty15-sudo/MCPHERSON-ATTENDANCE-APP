@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import Link from 'next/link'
+import ShimmerImage from '@/components/ShimmerImage'
 import type { ReactNode } from 'react'
 import { UNIVERSITY } from '@/lib/config'
 
@@ -17,19 +17,20 @@ export default function AuthFrame({ eyebrow, title, description, badge, children
     <main className="min-h-screen bg-paper text-navy">
       <div className="grid min-h-screen lg:grid-cols-[45fr_55fr]">
         <section className="relative hidden min-h-screen overflow-hidden bg-navy text-white lg:block" aria-label="McPherson University portal">
-          <Image
+          <ShimmerImage
             src="/mcu-campus.jpg"
             alt=""
             fill
             priority
             sizes="45vw"
             className="object-cover opacity-40"
+            tone="dark"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-navy/80 via-navy/40 to-navy/95" />
           <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
             <Link href="/welcome" className="flex items-center gap-3" aria-label="McPherson University home">
               <span className="grid h-12 w-12 place-items-center rounded-xl bg-white/10">
-                <Image src="/mcu-logo.png" alt="" width={38} height={38} />
+                <ShimmerImage src="/mcu-logo.png" alt="" width={38} height={38} />
               </span>
               <span className="leading-tight">
                 <strong className="block text-base">{UNIVERSITY.name}</strong>
@@ -74,7 +75,7 @@ export default function AuthFrame({ eyebrow, title, description, badge, children
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center gap-3 lg:hidden">
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#F6F8FC]">
-                <Image src="/mcu-logo.png" alt="" width={36} height={36} />
+                <ShimmerImage src="/mcu-logo.png" alt="" width={36} height={36} />
               </span>
               <span className="leading-tight">
                 <strong className="block text-sm">{UNIVERSITY.name}</strong>

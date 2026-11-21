@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import { useRef, type PointerEvent } from 'react'
+import ShimmerImage from './ShimmerImage'
 import FlipBookCard from './FlipBookCard'
 import MagneticLink from './MagneticLink'
 import Reveal from './Reveal'
@@ -35,13 +35,14 @@ export default function InteractiveHero() {
       onPointerMove={handleMove}
       onPointerLeave={handleLeave}
     >
-      <Image
+      <ShimmerImage
         src="/mcu-campus.jpg"
         alt="McPherson University campus"
         fill
         priority
         sizes="100vw"
         className="hero-campus"
+        tone="dark"
       />
       <div className="hero-wash" aria-hidden="true" />
       <div className="hero-halo" aria-hidden="true" />

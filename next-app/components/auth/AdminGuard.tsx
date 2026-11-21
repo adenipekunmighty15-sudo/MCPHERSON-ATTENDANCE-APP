@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, type ReactNode } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { isAdminRole } from '@/lib/config'
+import { isAdminRole, PORTAL_HOME_PATH } from '@/lib/config'
 
 export default function AdminGuard({ children }: { children: ReactNode }) {
   const { initialized, isAuthenticated, user } = useAuth()
@@ -17,7 +17,7 @@ export default function AdminGuard({ children }: { children: ReactNode }) {
     if (!isAuthenticated) {
       router.replace(`/admin/portal/login?redirect=${encodeURIComponent(pathname || '/admin/portal/dashboard')}`)
     } else if (!isAdminRole(user?.role)) {
-      router.replace('/')
+      router.replace(PORTAL_HOME_PATH)
     }
   }, [initialized, isAuthenticated, user?.role, pathname, router])
 
@@ -37,7 +37,7 @@ export default function AdminGuard({ children }: { children: ReactNode }) {
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-bold">Admin access only</h1>
           <p className="mt-3 text-sm text-navy/60">This area requires an administrator account. Taking you back to your dashboard…</p>
-          <Link href="/" className="mcu-action mcu-action--primary mt-6">
+          <Link href={PORTAL_HOME_PATH} className="mcu-action mcu-action--primary mt-6">
             Return to dashboard
           </Link>
         </div>
