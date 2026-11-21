@@ -608,7 +608,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
     const useCouncilMode = req.body.council === true && !trivialMessage
 
     if (req.body.council === true && trivialMessage) {
-      sendEvent('council', { phase: 'skipped', message: 'Answering directly.' })
+      sendEvent('direct', { message: 'Answering directly.' })
     }
 
     if (useCouncilMode) {

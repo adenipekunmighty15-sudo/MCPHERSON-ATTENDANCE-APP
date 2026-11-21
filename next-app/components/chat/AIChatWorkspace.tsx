@@ -163,7 +163,7 @@ export default function AIChatWorkspace({ embedded = false }: { embedded?: boole
   const activeExpert = EXPERTS.find((expert) => expert.id === expertId) || EXPERTS[0]
   const onlineCount = models?.online ?? 0
   const aiUnavailable = modelsLoaded && onlineCount === 0
-  const activeLabel = council && !directAnswer ? 'AI Council' : selectedModel?.name || 'AI Assistant'
+  const activeLabel = council && !directAnswer ? 'AI Council' : directAnswer ? 'Assistant' : selectedModel?.name || 'AI Assistant'
   const userInitial = (user?.name || user?.email || 'U').charAt(0).toUpperCase()
 
   useEffect(() => {
@@ -296,12 +296,11 @@ export default function AIChatWorkspace({ embedded = false }: { embedded?: boole
                 accumulated = String(data.content || '')
                 setStreamText(accumulated)
                 break
+              case 'direct':
+                setDirectAnswer(true)
+                break
               case 'council': {
                 const phase = String(data.phase || '')
-                if (phase === 'skipped') {
-                  setDirectAnswer(true)
-                  break
-                }
                 const member = toCourtMember(data.member || data.judge)
                 const winner = toCourtMember(data.winner)
                 const testimonyValue = data.testimony

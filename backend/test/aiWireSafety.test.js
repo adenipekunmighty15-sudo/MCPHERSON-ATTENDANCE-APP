@@ -12,6 +12,8 @@ test('AI stream never sends thinking or a fabricated fallback answer', () => {
   assert.doesNotMatch(source, /sendEvent\('thinking'/)
   assert.doesNotMatch(source, /I was unable to generate a complete response/)
   assert.doesNotMatch(source, /thinking:\s*finalThinking/)
+  assert.doesNotMatch(source, /phase:\s*'skipped'/)
+  assert.match(source, /sendEvent\('direct', \{ message: 'Answering directly\.' \}\)/)
   assert.match(source, /publicCouncil\(result\.council\)/)
 })
 
