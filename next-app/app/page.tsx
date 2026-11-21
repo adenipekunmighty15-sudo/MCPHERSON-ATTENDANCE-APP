@@ -4,7 +4,7 @@ import MagneticLink from '@/components/MagneticLink'
 import Reveal from '@/components/Reveal'
 import ScrollSequence from '@/components/ScrollSequence'
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL ?? 'http://localhost:5173'
+const signInUrl = '/login'
 
 export default function Home() {
   return (
@@ -24,14 +24,14 @@ export default function Home() {
             <a href="#story" className="hidden text-sm font-medium text-navy/65 transition-colors hover:text-navy sm:inline">
               The story
             </a>
-            <MagneticLink href={`${portalUrl}/login`} className="mcu-action mcu-action--secondary !min-h-[40px] !px-4" strength={0.14}>
+            <MagneticLink href={signInUrl} className="mcu-action mcu-action--secondary !min-h-[40px] !px-4" strength={0.14}>
               Sign in
             </MagneticLink>
           </nav>
         </div>
       </header>
 
-      <InteractiveHero portalUrl={portalUrl} />
+      <InteractiveHero />
       <ScrollSequence />
 
       <section className="bg-navy text-white">
@@ -41,7 +41,7 @@ export default function Home() {
             <h2 className="mt-4 max-w-xl text-3xl font-bold leading-tight sm:text-4xl">Step into the McPherson portal.</h2>
           </Reveal>
           <Reveal delay={100}>
-            <MagneticLink href={`${portalUrl}/login`} className="mcu-action mcu-action--primary" strength={0.2}>
+            <MagneticLink href={signInUrl} className="mcu-action mcu-action--primary" strength={0.2}>
               Sign in securely
               <span aria-hidden="true">→</span>
             </MagneticLink>

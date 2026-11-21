@@ -7,7 +7,7 @@ import MagneticLink from './MagneticLink'
 import Reveal from './Reveal'
 import ScrambleText from './ScrambleText'
 
-export default function InteractiveHero({ portalUrl }: { portalUrl: string }) {
+export default function InteractiveHero() {
   const heroRef = useRef<HTMLElement>(null)
 
   const handleMove = (event: PointerEvent<HTMLElement>) => {
@@ -61,7 +61,7 @@ export default function InteractiveHero({ portalUrl }: { portalUrl: string }) {
             Attendance, courses and daily direction for one university — designed to feel precise, calm and unmistakably McPherson.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
-            <MagneticLink href={`${portalUrl}/login`} className="mcu-action mcu-action--primary" strength={0.2}>
+            <MagneticLink href="/login" className="mcu-action mcu-action--primary" strength={0.2}>
               Enter your portal
               <span aria-hidden="true">→</span>
             </MagneticLink>
