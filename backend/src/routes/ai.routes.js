@@ -6,6 +6,7 @@ import OpenAI from 'openai'
 import { randomUUID } from 'crypto'
 import { getAvailableProviders, getAI, streamAnthropicResponse, streamOpenAICompatResponse, VERIFIED_MODELS, NVIDIA_CAPABILITIES, resolveModelId, DEFAULT_NVIDIA_MODEL } from '../config/ai.js'
 import { aiChat, generateFollowUps, generateChatTitle } from '../services/aiService.js'
+import { runCourtCouncil } from '../services/councilService.js'
 import { resolve4, resolve6 } from 'node:dns/promises'
 import net from 'node:net'
 import { URL } from 'node:url'
@@ -559,18 +560,35 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
     const useCouncilMode = req.body.council === true
 
     if (useCouncilMode) {
-      // ─── COUNCIL MODE (disabled by default) ───
-      sendEvent('status', { provider: 'council', message: 'Council deliberating...' })
-      const result = await aiChat(messages, { turboMode: false, fastMode: false })
-      if (result) {
-        sendEvent('thinking', { content: result.finalThinking || 'Council deliberation complete', done: true })
-        sendEvent('answer', { content: result.final, done: true })
-        try {
-          await saveAndDone(sendEvent, bodyConvId, req.user.id, message,
-            result.final || 'I was unable to generate a complete response.', result.finalThinking || '', startTime, 'council', result.followUps)
-        } catch {}
-      } else {
-        sendEvent('error', { message: 'AI providers are unavailable. Configure a provider on the backend and try again.' })
+      // ─── FULL COURT: distinct verified models, one presiding judge ───
+      const courtController = new AbortController()
+      const abortCourt = () => {
+        if (!res.writableEnded) courtController.abort()
+      }
+      res.once('close', abortCourt)
+      sendEvent('status', { provider: 'council', message: 'Convening the AI court…' })
+      try {
+        const court = await runCourtCouncil({ messages, sendEvent, signal: courtController.signal })
+        if (!court || !court.answer) {
+          sendEvent('error', { message: 'The AI court could not return a verdict. Please try again.' })
+        } else {
+          sendEvent('answer', { content: court.answer, done: true })
+          try {
+            await saveAndDone(
+              sendEvent,
+              bodyConvId,
+              req.user.id,
+              message,
+              court.answer,
+              court.rationale ? `Judge ${court.judge.name}: ${court.rationale}` : '',
+              startTime,
+              'court-council',
+              [],
+            )
+          } catch {}
+        }
+      } finally {
+        res.off('close', abortCourt)
       }
     } else if (getAI('anthropic') || getAI('nvidia') || getAI('openai') || getAI('glm-flash') || getAI('opencode')) {
       const selectedModel = resolveModelId(req.body.modelId)

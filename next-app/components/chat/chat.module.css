@@ -578,16 +578,16 @@
 
 .messageList {
   display: flex;
-  max-width: 900px;
+  max-width: 860px;
   flex-direction: column;
-  gap: 26px;
+  gap: 32px;
   margin: 0 auto;
 }
 
 .messageRow {
   display: flex;
   align-items: flex-start;
-  gap: 13px;
+  gap: 14px;
 }
 
 .assistantRow {
@@ -636,7 +636,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  margin: 0 3px 7px;
+  margin: 0 0 8px;
   color: var(--chat-muted);
   font-size: 10px;
 }
@@ -644,25 +644,28 @@
 .messageMeta strong {
   color: var(--chat-ink);
   font-size: 11px;
+  font-weight: 700;
 }
 
+/* Messages sit directly on the canvas like modern assistant UIs — no bubbles. */
 .bubble {
-  max-width: min(100%, 720px);
-  padding: 15px 18px;
-  border: 1px solid var(--chat-line);
-  border-radius: 18px 18px 18px 6px;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(1, 10, 42, 0.05);
-  font-size: 13px;
-  line-height: 1.72;
+  max-width: min(100%, 760px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 14px;
+  line-height: 1.75;
 }
 
 .userRow .bubble {
-  border-color: transparent;
-  border-radius: 18px 18px 6px 18px;
-  background: var(--chat-navy);
-  box-shadow: 0 14px 34px rgba(1, 10, 42, 0.18);
-  color: #fff;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--chat-ink);
+  font-weight: 500;
 }
 
 .bubble p {
@@ -686,8 +689,8 @@
 }
 
 .userRow .messageAttachments span {
-  background: rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.8);
+  background: rgba(66, 139, 202, 0.1);
+  color: #2f6fae;
 }
 
 .messageActions {
@@ -739,6 +742,98 @@
 @keyframes chatPulse {
   0%, 100% { opacity: 0.35; transform: scale(0.85); }
   50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* AI Court status ------------------------------------------------------ */
+.courtPanel {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 16px 18px;
+  border: 1px solid rgba(66, 139, 202, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(66, 139, 202, 0.07), rgba(249, 172, 138, 0.06));
+}
+
+.courtHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.courtGavel {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--chat-navy);
+  color: var(--chat-coral);
+  font-size: 18px;
+}
+
+.courtHead strong {
+  display: block;
+  color: var(--chat-ink);
+  font-size: 13px;
+}
+
+.courtHead small {
+  display: block;
+  margin-top: 3px;
+  color: var(--chat-muted);
+  font-size: 11px;
+}
+
+.courtSeats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.courtSeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--chat-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--chat-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.courtSeatDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c4ccdd;
+}
+
+.courtSeatDone {
+  border-color: rgba(66, 139, 202, 0.3);
+  color: #2f6fae;
+}
+
+.courtSeatDone .courtSeatDot {
+  background: var(--chat-blue);
+}
+
+.courtVerdict {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(66, 139, 202, 0.16);
+  color: var(--chat-ink);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.courtVerdict p {
+  margin: 6px 0 0;
+  color: var(--chat-muted);
+  font-size: 11px;
 }
 
 .followUps {
@@ -1122,6 +1217,6 @@
   }
 
   .bubble {
-    padding: 13px 14px;
+    padding: 0;
   }
 }

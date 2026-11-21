@@ -12,6 +12,7 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
+import PortalNav from '@/components/portal/PortalNav'
 import { api } from '@/lib/api'
 import ChatMarkdown from './ChatMarkdown'
 import styles from './chat.module.css'
@@ -52,6 +53,21 @@ type ModelsResponse = {
   online: number
 }
 
+type CourtMember = {
+  id: string
+  name: string
+  role: string
+}
+
+type CourtState = {
+  phase: string
+  message: string
+  members: CourtMember[]
+  testimonies: { id: string; name: string; role: string; answer: string }[]
+  winner: CourtMember | null
+  rationale: string
+}
+
 type Attachment = {
   id: string
   name: string
@@ -83,6 +99,15 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message : fallback
 }
 
+function toCourtMember(value: unknown): CourtMember | null {
+  if (!value || typeof value !== 'object') return null
+  const item = value as Record<string, unknown>
+  const id = typeof item.id === 'string' ? item.id : ''
+  const name = typeof item.name === 'string' ? item.name : ''
+  const role = typeof item.role === 'string' ? item.role : ''
+  return id || name ? { id, name: name || id, role: role || 'Counsel' } : null
+}
+
 export default function AIChatWorkspace() {
   const { user } = useAuth()
 
@@ -94,7 +119,16 @@ export default function AIChatWorkspace() {
   const [selectedModelId, setSelectedModelId] = useState('')
   const [expertId, setExpertId] = useState<string>('general')
   const [webSearch, setWebSearch] = useState(false)
-  const [council, setCouncil] = useState(false)
+  // The full AI court is the default answering path for every question.
+  const [council, setCouncil] = useState(true)
+  const [court, setCourt] = useState<CourtState>({
+    phase: 'idle',
+    message: '',
+    members: [],
+    testimonies: [],
+    winner: null,
+    rationale: '',
+  })
   const [input, setInput] = useState('')
   const [historySearch, setHistorySearch] = useState('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -213,6 +247,7 @@ export default function AIChatWorkspace() {
     messagesRef.current = optimisticMessages
     setMessages(optimisticMessages)
     setStreaming(true)
+    setCourt({ phase: 'idle', message: '', members: [], testimonies: [], winner: null, rationale: '' })
     abortedByUserRef.current = false
     stoppedRef.current = false
 
@@ -261,6 +296,39 @@ export default function AIChatWorkspace() {
                 accumulated = String(data.content || '')
                 setStreamText(accumulated)
                 break
+              case 'council': {
+                const phase = String(data.phase || '')
+                const member = toCourtMember(data.member || data.judge)
+                const winner = toCourtMember(data.winner)
+                const testimonyValue = data.testimony
+                const testimony = testimonyValue && typeof testimonyValue === 'object'
+                  ? (testimonyValue as Record<string, unknown>)
+                  : null
+                setCourt((current) => ({
+                  phase: phase || current.phase,
+                  message: String(data.message || ''),
+                  members: Array.isArray(data.members)
+                    ? data.members.map(toCourtMember).filter((item): item is CourtMember => !!item)
+                    : current.members,
+                  testimonies: testimony && member
+                    ? [
+                        ...current.testimonies.filter((item) => item.id !== member.id),
+                        {
+                          id: member.id,
+                          name: member.name,
+                          role: member.role,
+                          answer: String(testimony.answer || ''),
+                        },
+                      ]
+                    : current.testimonies,
+                  winner: winner || current.winner,
+                  rationale: typeof data.rationale === 'string' ? data.rationale : current.rationale,
+                }))
+                if (phase === 'opened' || phase === 'verdict') {
+                  setStatusText(String(data.message || 'AI court is working…'))
+                }
+                break
+              }
               case 'verifying':
                 setStatusText(String(data.message || `Verifying ${String(data.count || 0)} claims…`))
                 break
@@ -540,7 +608,8 @@ export default function AIChatWorkspace() {
         </div>
 
         <div className={styles.sidebarFoot}>
-          <Link href="/" className={styles.sidebarLink}>← University home</Link>
+          <Link href="/dashboard" className={styles.sidebarLink}>Overview ↗</Link>
+          <Link href="/university" className={styles.sidebarLink}>University ↗</Link>
           <span className={styles.sidebarUser}>{user?.name || 'Student account'}</span>
         </div>
       </aside>
@@ -618,7 +687,7 @@ export default function AIChatWorkspace() {
             {modelsLoaded ? `${onlineCount} online` : 'Checking AI…'}
           </span>
 
-          <Link href="/dashboard" className={styles.dashboardLink}>Dashboard ↗</Link>
+          <PortalNav active="chat" compact />
         </header>
 
         <div className={styles.stream} ref={scrollRef}>
@@ -692,6 +761,35 @@ export default function AIChatWorkspace() {
                   </div>
                 </article>
               ))}
+
+              {streaming && court.members.length ? (
+                <div className={styles.courtPanel} role="status">
+                  <div className={styles.courtHead}>
+                    <span className={styles.courtGavel} aria-hidden="true">⚖</span>
+                    <div>
+                      <strong>AI Court in session</strong>
+                      <small>{court.message || 'Counsel are reviewing your question…'}</small>
+                    </div>
+                  </div>
+                  <div className={styles.courtSeats}>
+                    {court.members.map((member) => {
+                      const spoke = court.testimonies.some((item) => item.id === member.id)
+                      return (
+                        <span key={member.id} className={`${styles.courtSeat} ${spoke ? styles.courtSeatDone : ''}`}>
+                          <span className={styles.courtSeatDot} />
+                          {member.role}
+                        </span>
+                      )
+                    })}
+                  </div>
+                  {court.winner ? (
+                    <div className={styles.courtVerdict}>
+                      <strong>Verdict:</strong> {court.winner.role} ({court.winner.name}) delivered the strongest answer.
+                      {court.rationale ? <p>{court.rationale}</p> : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {streaming ? (
                 <article className={`${styles.messageRow} ${styles.assistantRow}`}>
@@ -770,9 +868,9 @@ export default function AIChatWorkspace() {
                 className={`${styles.toolButton} ${council ? styles.actionActive : ''}`}
                 onClick={() => setCouncil((enabled) => !enabled)}
                 disabled={aiUnavailable}
-                title="Ask multiple AI providers to deliberate"
+                title="Full AI court: distinct verified models compare answers and a judge streams the verdict live"
               >
-                ◇ <span>Council</span>
+                ◇ <span>AI Court</span>
               </button>
               <span className={styles.composerSpacer} />
               {streaming ? (
