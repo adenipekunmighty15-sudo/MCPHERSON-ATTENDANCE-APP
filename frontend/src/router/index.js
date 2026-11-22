@@ -14,7 +14,7 @@ const routes = [
   {
     path: '/welcome',
     name: 'Landing',
-    component: () => import('../pages/Landing.vue'),
+    component: () => import('../pages/LandingPage.vue'),
     meta: { guest: true, title: 'McPherson University' },
   },
   {
