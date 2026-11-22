@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import CursorSpotlight from '@/components/CursorSpotlight'
 import ScrollProgress from '@/components/ScrollProgress'
 import SmoothScroll from '@/components/SmoothScroll'
+import StaleServiceWorkerCleanup from '@/components/StaleServiceWorkerCleanup'
 import Providers from './providers'
 import './globals.css'
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <Providers>
+          <StaleServiceWorkerCleanup />
           <CursorSpotlight />
           <ScrollProgress />
           <SmoothScroll />

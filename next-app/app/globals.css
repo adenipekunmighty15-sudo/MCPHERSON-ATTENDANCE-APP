@@ -90,18 +90,26 @@ h3 {
   transition-duration: 120ms;
 }
 
+/* Visible by default: no JS, stalled bundles or blocked observers can hide it. */
 .reveal {
-  opacity: 0;
-  transform: translate3d(0, 28px, 0);
+  opacity: 1;
+  transform: none;
   transition:
     opacity 720ms var(--ease-slow-out),
     transform 720ms var(--ease-slow-out),
     filter 720ms var(--ease-slow-out);
   transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* Arming happens only in the browser, alongside a guaranteed reveal failsafe. */
+.reveal[data-armed='true']:not([data-revealed='true']) {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition: none;
   will-change: opacity, transform;
 }
 
-.reveal[data-visible='true'] {
+.reveal[data-revealed='true'] {
   opacity: 1;
   transform: none;
   filter: none;
@@ -926,7 +934,10 @@ h3 {
   z-index: 2;
   border-radius: inherit;
   background-size: 220% 100%;
-  animation: imageShimmer 1.35s linear infinite;
+  /* The second animation clears the skeleton even if hydration never runs. */
+  animation:
+    imageShimmer 1.35s linear infinite,
+    shimmerFailsafe 3s step-end forwards;
   transition: opacity 480ms ease, visibility 480ms ease;
   pointer-events: none;
 }
@@ -950,9 +961,15 @@ h3 {
   to { background-position: -120% 0; }
 }
 
+@keyframes shimmerFailsafe {
+  to { opacity: 0; visibility: hidden; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shimmer-skeleton {
     animation: none;
+    opacity: 0;
+    visibility: hidden;
   }
 }
 

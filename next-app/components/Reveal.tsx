@@ -1,7 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 
+/**
+ * Progressive-enhancement reveal.
+ *
+ * The server renders fully visible content. Only after hydration does the
+ * component arm the entrance animation, and even then a failsafe timer plus
+ * scroll/resize/page-show listeners guarantee the content is revealed. A
+ * stalled bundle, blocked observer or frozen scroll can no longer leave the
+ * page blank.
+ */
 export default function Reveal({
   children,
   delay = 0,
@@ -12,36 +21,61 @@ export default function Reveal({
   className?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     const node = ref.current
     if (!node) return
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof IntersectionObserver === 'undefined') {
-      setVisible(true)
+    let observer: IntersectionObserver | null = null
+    let failsafe = 0
+
+    const reveal = () => {
+      if (node.dataset.revealed === 'true') return
+      node.dataset.revealed = 'true'
+      observer?.disconnect()
+      window.clearTimeout(failsafe)
+      window.removeEventListener('pageshow', reveal)
+      window.removeEventListener('resize', reveal)
+      window.removeEventListener('scroll', reveal)
+    }
+
+    if (
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      typeof IntersectionObserver === 'undefined'
+    ) {
+      reveal()
       return
     }
 
-    const observer = new IntersectionObserver(
+    // Arm only when we can observe AND a timer is ready to force the reveal.
+    node.dataset.armed = 'true'
+
+    observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true)
-          observer.disconnect()
-        }
+        if (entries.some((entry) => entry.isIntersecting)) reveal()
       },
       { threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
     )
-
     observer.observe(node)
-    return () => observer.disconnect()
+
+    failsafe = window.setTimeout(reveal, 1200)
+    window.addEventListener('pageshow', reveal)
+    window.addEventListener('resize', reveal, { passive: true })
+    window.addEventListener('scroll', reveal, { passive: true })
+
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(failsafe)
+      window.removeEventListener('pageshow', reveal)
+      window.removeEventListener('resize', reveal)
+      window.removeEventListener('scroll', reveal)
+    }
   }, [])
 
   return (
     <div
       ref={ref}
       className={`reveal ${className}`}
-      data-visible={visible}
       style={{ '--reveal-delay': `${delay}ms` } as CSSProperties}
     >
       {children}
