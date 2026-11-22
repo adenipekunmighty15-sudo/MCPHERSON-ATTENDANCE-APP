@@ -7,11 +7,11 @@ const config: Config = {
       colors: {
         ink: '#24352A',
         forest: '#3D684B',
-        clay: '#C87958',
+        clay: '#B96445',
         parchment: '#F5F1E7',
         navy: '#24352A',
         blue: '#3D684B',
-        coral: '#C87958',
+        coral: '#B96445',
         paper: '#F5F1E7',
       },
       fontFamily: {

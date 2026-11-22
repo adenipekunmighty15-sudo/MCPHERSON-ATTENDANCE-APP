@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-labelledby="title desc">
+  <title id="title">Attendance verification</title>
+  <desc id="desc">Original illustration of a phone scanning a QR code with a device authentication symbol. No personal information is shown.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#faf7ef"/>
+      <stop offset="1" stop-color="#e8efe4"/>
+    </linearGradient>
+    <linearGradient id="phone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#31543b"/>
+      <stop offset="1" stop-color="#24352a"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#24352a" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <rect width="480" height="360" rx="28" fill="url(#bg)"/>
+  <circle cx="400" cy="64" r="78" fill="#3d684b" opacity="0.10"/>
+  <circle cx="66" cy="306" r="96" fill="#c87958" opacity="0.16"/>
+
+  <g filter="url(#soft)">
+    <rect x="158" y="34" width="164" height="292" rx="28" fill="url(#phone)"/>
+    <rect x="168" y="48" width="144" height="264" rx="20" fill="#ffffff" opacity="0.97"/>
+    <rect x="216" y="55" width="48" height="7" rx="3.5" fill="#24352a" opacity="0.16"/>
+  </g>
+
+  <g stroke="#3d684b" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M207 108h-22a12 12 0 0 0-12 12v22"/>
+    <path d="M273 108h22a12 12 0 0 1 12 12v22"/>
+    <path d="M207 242h-22a12 12 0 0 1-12-12v-22"/>
+    <path d="M273 242h22a12 12 0 0 0 12-12v-22"/>
+  </g>
+  <g fill="#24352a">
+    <rect x="200" y="132" width="26" height="26" rx="3"/>
+    <rect x="204" y="136" width="18" height="18" rx="1" fill="#ffffff"/>
+    <rect x="208" y="140" width="10" height="10" rx="1"/>
+    <rect x="254" y="132" width="26" height="26" rx="3"/>
+    <rect x="258" y="136" width="18" height="18" rx="1" fill="#ffffff"/>
+    <rect x="262" y="140" width="10" height="10" rx="1"/>
+    <rect x="200" y="186" width="26" height="26" rx="3"/>
+    <rect x="204" y="190" width="18" height="18" rx="1" fill="#ffffff"/>
+    <rect x="208" y="194" width="10" height="10" rx="1"/>
+    <rect x="228" y="132" width="6" height="6"/>
+    <rect x="246" y="158" width="6" height="6"/>
+    <rect x="222" y="164" width="6" height="6"/>
+    <rect x="238" y="182" width="6" height="6"/>
+    <rect x="254" y="200" width="6" height="6"/>
+    <rect x="228" y="210" width="6" height="6"/>
+    <rect x="246" y="214" width="6" height="6"/>
+    <rect x="254" y="186" width="26" height="26" rx="3"/>
+    <rect x="258" y="190" width="18" height="18" rx="1" fill="#ffffff"/>
+    <rect x="262" y="194" width="10" height="10" rx="1"/>
+  </g>
+  <rect x="196" y="272" width="88" height="14" rx="7" fill="#3d684b" opacity="0.22"/>
+  <rect x="196" y="272" width="62" height="14" rx="7" fill="#3d684b"/>
+
+  <g transform="translate(340 118)">
+    <circle cx="0" cy="0" r="42" fill="#ffffff" opacity="0.9"/>
+    <circle cx="0" cy="0" r="32" fill="none" stroke="#c87958" stroke-width="4" stroke-dasharray="56 144" transform="rotate(-90)"/>
+    <path d="M-12 0a12 12 0 0 1 24 0" fill="none" stroke="#24352a" stroke-width="4" stroke-linecap="round"/>
+    <path d="M-8 10h16" stroke="#24352a" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="4" fill="#3d684b"/>
+  </g>
+  <text x="340" y="188" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" fill="#24352a">Device check</text>
+
+  <g transform="translate(84 116)">
+    <circle cx="0" cy="0" r="38" fill="#ffffff" opacity="0.9"/>
+    <path d="M0-22v10M0 12v10M-22 0h10M12 0h10" stroke="#c87958" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="11" fill="#3d684b" opacity="0.9"/>
+  </g>
+  <text x="84" y="186" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" fill="#24352a">Secure</text>
+</svg>
