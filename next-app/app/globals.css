@@ -5,8 +5,15 @@
 :root {
   --mcu-navy: #24352a;
   --mcu-blue: #3d684b;
-  --mcu-coral: #c87958;
+  --mcu-coral: #b96445;
   --mcu-paper: #f5f1e7;
+  --mcu-surface: #fffdf8;
+  --mcu-surface-raised: #faf7ef;
+  --mcu-border: #e5dece;
+  --mcu-muted: #607064;
+  --mcu-forest: #3d684b;
+  --mcu-sage: #eaf0e5;
+  --mcu-clay: #b96445;
   --ease-slow-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -57,8 +64,8 @@ h3 {
 .next-scroll-progress span {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #24352a 0%, #3d684b 58%, #c87958 100%);
-  box-shadow: 0 0 16px rgba(249, 172, 138, 0.55);
+  background: linear-gradient(90deg, var(--mcu-navy) 0%, var(--mcu-forest) 58%, var(--mcu-clay) 100%);
+  box-shadow: 0 0 16px rgba(185, 100, 69, 0.35);
   transform: scaleX(0);
   transform-origin: 0 50%;
   transition: transform 90ms linear;
@@ -70,7 +77,7 @@ h3 {
   z-index: 1;
   background: radial-gradient(
     360px circle at var(--cursor-x) var(--cursor-y),
-    rgba(249, 172, 138, 0.1),
+    rgba(185, 100, 69, 0.1),
     transparent 68%
   );
   mix-blend-mode: screen;
