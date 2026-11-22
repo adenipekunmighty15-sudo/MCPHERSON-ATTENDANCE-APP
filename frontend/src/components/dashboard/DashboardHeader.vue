@@ -141,8 +141,8 @@ function onCheckinMove(e) {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-4);
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.12), rgba(30, 64, 175, 0.08));
-  border: 1px solid rgba(217, 119, 6, 0.2);
+  background: linear-gradient(135deg, rgba(185, 100, 69, 0.12), rgba(61, 104, 75, 0.08));
+  border: 1px solid rgba(185, 100, 69, 0.2);
   border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 600;
@@ -151,8 +151,8 @@ function onCheckinMove(e) {
   animation: streakPulse 2s ease-in-out infinite;
 }
 @keyframes streakPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.2); }
-  50% { box-shadow: 0 0 0 4px rgba(217, 119, 6, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(185, 100, 69, 0.2); }
+  50% { box-shadow: 0 0 0 4px rgba(185, 100, 69, 0); }
 }
 
 .dash-checkin-btn {

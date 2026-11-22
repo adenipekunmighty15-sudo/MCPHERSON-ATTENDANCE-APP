@@ -73,15 +73,15 @@ async function handleLogin() {
 .admin-login-page { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: var(--color-bg); position: relative; overflow: hidden; padding: 20px; font-family: 'Inter', system-ui, sans-serif; }
 .admin-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
 .bg-orb { position: absolute; border-radius: 50%; filter: blur(120px); }
-.orb-1 { top: -20%; left: -10%; width: 50%; height: 50%; background: radial-gradient(circle, rgba(30,64,175,0.15), transparent 70%); animation: float1 20s ease-in-out infinite; }
-.orb-2 { bottom: -15%; right: -10%; width: 40%; height: 40%; background: radial-gradient(circle, rgba(217,119,6,0.1), transparent 70%); animation: float2 25s ease-in-out infinite reverse; }
+.orb-1 { top: -20%; left: -10%; width: 50%; height: 50%; background: radial-gradient(circle, rgba(61, 104, 75,0.15), transparent 70%); animation: float1 20s ease-in-out infinite; }
+.orb-2 { bottom: -15%; right: -10%; width: 40%; height: 40%; background: radial-gradient(circle, rgba(185, 100, 69,0.1), transparent 70%); animation: float2 25s ease-in-out infinite reverse; }
 .orb-3 { top: 50%; left: 50%; width: 30%; height: 30%; background: radial-gradient(circle, rgba(37,99,235,0.08), transparent 70%); animation: float1 22s ease-in-out infinite 5s; }
 @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,-50px) scale(1.1); } 66% { transform: translate(-30px,30px) scale(0.9); } }
 @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-40px,50px) scale(1.05); } 66% { transform: translate(30px,-30px) scale(0.95); } }
 .login-container { width: 100%; max-width: 420px; position: relative; z-index: 1; }
 .login-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 24px; padding: 40px 36px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
 .card-header { text-align: center; margin-bottom: 32px; }
-.header-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(135deg, var(--color-primary), #2f6da3); color: #fff; border-radius: 16px; margin-bottom: 16px; }
+.header-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(135deg, var(--color-primary), #2d523b); color: #fff; border-radius: 16px; margin-bottom: 16px; }
 .header-title { font-size: 24px; font-weight: 800; color: var(--color-text-primary); margin: 0 0 4px; font-family: 'Fraunces', Georgia, serif; }
 .header-subtitle { font-size: 14px; color: var(--color-text-tertiary); margin: 0; }
 .login-form { display: flex; flex-direction: column; gap: 20px; }

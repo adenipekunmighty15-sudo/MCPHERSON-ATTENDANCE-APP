@@ -25,6 +25,7 @@ type ChatMessage = {
   elapsed?: number
   model?: string
   attachments?: string[]
+  createdAt?: string
 }
 
 type Conversation = {
@@ -95,6 +96,13 @@ const SUGGESTIONS = [
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message : fallback
+}
+
+function formatChatTime(value?: string): string {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
 function toCourtMember(value: unknown): CourtMember | null {
@@ -241,6 +249,7 @@ export default function AIChatWorkspace({ embedded = false }: { embedded?: boole
       role: 'user',
       content: text,
       attachments: attachments.map((attachment) => attachment.title),
+      createdAt: new Date().toISOString(),
     }
     const optimisticMessages = [...messagesRef.current, userMessage]
     messagesRef.current = optimisticMessages
@@ -378,6 +387,7 @@ export default function AIChatWorkspace({ embedded = false }: { embedded?: boole
         rating: null,
         elapsed,
         model: doneModel,
+        createdAt: new Date().toISOString(),
       }
       messagesRef.current = [...messagesRef.current, assistantMessage]
       setMessages(messagesRef.current)
@@ -740,6 +750,10 @@ export default function AIChatWorkspace({ embedded = false }: { embedded?: boole
                           ))}
                         </div>
                       ) : null}
+                      <span className={styles.bubbleMeta}>
+                        {formatChatTime(message.createdAt)}
+                        {message.role === 'user' ? <span className={styles.ticks} aria-label="Sent">✓✓</span> : null}
+                      </span>
                     </div>
                     {message.role === 'assistant' ? (
                       <div className={styles.messageActions}>

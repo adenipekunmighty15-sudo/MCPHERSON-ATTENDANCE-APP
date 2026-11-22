@@ -141,7 +141,7 @@ defineProps({
 
 .btn-warning {
   background: var(--color-warning);
-  color: #0f172a;
+  color: #24352a;
 }
 
 .btn-warning:hover:not(:disabled) {

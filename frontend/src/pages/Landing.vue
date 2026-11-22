@@ -139,11 +139,11 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   min-height: 100dvh;
   overflow: hidden;
   padding: 0 clamp(20px, 6vw, 88px);
-  color: #0f172a;
+  color: #24352a;
   background:
     radial-gradient(ellipse at 86% 22%, rgba(245, 158, 11, 0.1), transparent 28rem),
-    radial-gradient(ellipse at 4% 88%, rgba(66, 139, 202, 0.06), transparent 32rem),
-    #f8fafc;
+    radial-gradient(ellipse at 4% 88%, rgba(61, 104, 75, 0.06), transparent 32rem),
+    #faf7ef;
 }
 
 .landing-header {
@@ -172,7 +172,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   height: 44px;
   display: grid;
   place-items: center;
-  color: #428bca;
+  color: #3d684b;
 }
 
 .brand-wordmark {
@@ -188,7 +188,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .brand-wordmark small {
-  color: #64748b;
+  color: #718074;
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.08em;
@@ -204,7 +204,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 
 .landing-explore {
   position: relative;
-  color: #334155;
+  color: #4c5b50;
   font-size: 13px;
   font-weight: 650;
   text-decoration: none;
@@ -216,7 +216,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   bottom: -5px;
   left: 0;
   height: 1px;
-  background: var(--color-accent, #d97706);
+  background: var(--color-accent, #b96445);
   content: '';
   transform: scaleX(0);
   transform-origin: left;
@@ -229,7 +229,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 
 .landing-signin,
 .landing-secondary {
-  color: #334155;
+  color: #4c5b50;
   font-size: 13px;
   font-weight: 650;
   text-decoration: none;
@@ -237,7 +237,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 
 .landing-signin:hover,
 .landing-secondary:hover {
-  color: #428bca;
+  color: #3d684b;
 }
 
 .landing-create,
@@ -250,8 +250,8 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   padding: 0 17px;
   border-radius: 12px;
   color: #fff;
-  background: #428bca;
-  box-shadow: 0 8px 18px rgba(66, 139, 202, 0.16);
+  background: #3d684b;
+  box-shadow: 0 8px 18px rgba(61, 104, 75, 0.16);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -261,7 +261,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 .landing-create:hover,
 .landing-primary:hover {
   transform: translateY(-2px);
-  background: #2f6da3;
+  background: #2d523b;
 }
 
 .landing-hero {
@@ -286,7 +286,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: #64748b;
+  color: #718074;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.17em;
@@ -297,8 +297,8 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #d97706;
-  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.13);
+  background: #b96445;
+  box-shadow: 0 0 0 4px rgba(185, 100, 69, 0.13);
 }
 
 .landing-copy h1 {
@@ -311,7 +311,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .landing-copy h1 em {
-  color: #428bca;
+  color: #3d684b;
   font-weight: 500;
 }
 
@@ -350,7 +350,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   place-items: center;
   border: 1px solid #dbe5f1;
   border-radius: 11px;
-  color: #428bca;
+  color: #3d684b;
   background: #fff;
 }
 
@@ -360,12 +360,12 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .landing-trust strong {
-  color: #334155;
+  color: #4c5b50;
   font-size: 11px;
 }
 
 .landing-trust small {
-  color: #64748b;
+  color: #718074;
   font-size: 10px;
 }
 
@@ -392,21 +392,21 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   width: min(78%, 430px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(66, 139, 202, 0.13), rgba(66, 139, 202, 0.04) 48%, transparent 72%);
+  background: radial-gradient(circle, rgba(61, 104, 75, 0.13), rgba(61, 104, 75, 0.04) 48%, transparent 72%);
 }
 
 .art-orbit {
   position: absolute;
   width: min(88%, 500px);
   aspect-ratio: 1;
-  border: 1px solid rgba(66, 139, 202, 0.14);
+  border: 1px solid rgba(61, 104, 75, 0.14);
   border-radius: 50%;
   transform: rotate(-24deg) scaleY(0.74);
 }
 
 .orbit-two {
   width: min(70%, 400px);
-  border-color: rgba(217, 119, 6, 0.3);
+  border-color: rgba(185, 100, 69, 0.3);
   transform: rotate(38deg) scaleY(0.72);
 }
 
@@ -419,9 +419,9 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.15);
   border-radius: 48% 48% 44% 44% / 25% 25% 58% 58%;
-  background: linear-gradient(145deg, #428bca, #0f172a 76%);
+  background: linear-gradient(145deg, #3d684b, #24352a 76%);
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2), inset 0 0 0 9px rgba(248, 250, 252, 0.035);
-  color: #f8fafc;
+  color: #faf7ef;
 }
 
 .art-crest::before {
@@ -443,7 +443,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: #64748b;
+  color: #718074;
   font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.15em;
@@ -466,13 +466,13 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   border-radius: 13px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.09);
-  color: #334155;
+  color: #4c5b50;
   font-size: 11px;
   font-weight: 700;
 }
 
 .art-pill svg {
-  color: #d97706;
+  color: #b96445;
 }
 
 .pill-top {
@@ -499,13 +499,13 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5dece;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.58);
 }
 
 .pulse-item > strong {
-  color: #428bca;
+  color: #3d684b;
   font-family: var(--font-display);
   font-size: 20px;
   font-variant-numeric: tabular-nums;
@@ -517,13 +517,13 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 }
 
 .pulse-item b {
-  color: #334155;
+  color: #4c5b50;
   font-size: 11px;
   font-weight: 700;
 }
 
 .pulse-item small {
-  color: #64748b;
+  color: #718074;
   font-size: 10px;
 }
 
@@ -538,7 +538,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 
 .feature-card {
   padding: 21px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5dece;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.78);
 }
@@ -551,8 +551,8 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   border-radius: 11px;
 }
 
-.feature-blue { color: #428bca; background: rgba(66, 139, 202, 0.08); }
-.feature-gold { color: #b45309; background: rgba(245, 158, 11, 0.13); }
+.feature-blue { color: #3d684b; background: rgba(61, 104, 75, 0.08); }
+.feature-gold { color: #9f5037; background: rgba(245, 158, 11, 0.13); }
 .feature-green { color: #047857; background: rgba(16, 185, 129, 0.1); }
 
 .feature-card h2 {
@@ -564,7 +564,7 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
 
 .feature-card p {
   margin: 0;
-  color: #64748b;
+  color: #718074;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -584,12 +584,12 @@ const signupLink = computed(() => ({ path: '/signup', query: redirectQuery.value
   justify-content: space-between;
   gap: 16px;
   border-top: 1px solid rgba(148, 163, 184, 0.24);
-  color: #64748b;
+  color: #718074;
   font-size: 10px;
 }
 
 .landing-footer a {
-  color: #428bca;
+  color: #3d684b;
   font-weight: 700;
   text-decoration: none;
 }

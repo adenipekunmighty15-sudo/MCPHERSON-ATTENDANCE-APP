@@ -11,7 +11,7 @@
 
         <div class="streak-bar card card-hover">
           <div class="streak-flame">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#F59E0B"><path d="M12 2c1.5 3.5 4 6 4 10a4 4 0 0 1-8 0c0-4 2.5-6.5 4-10z"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#b96445"><path d="M12 2c1.5 3.5 4 6 4 10a4 4 0 0 1-8 0c0-4 2.5-6.5 4-10z"/></svg>
           </div>
           <div class="streak-info">
             <span class="streak-count">{{ studyStreak }} day streak</span>
@@ -98,8 +98,8 @@ const summaryStats = computed(() => [
 ])
 
 const badges = computed(() => [
-  { id: 1, name: 'First Note', color: '#5B9ED6', earned: totalNotes.value > 0, icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>' },
-  { id: 2, name: 'Card Master', color: '#F59E0B', earned: totalFlashcards.value >= 50, icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>' },
+  { id: 1, name: 'First Note', color: '#6f9270', earned: totalNotes.value > 0, icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>' },
+  { id: 2, name: 'Card Master', color: '#b96445', earned: totalFlashcards.value >= 50, icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>' },
   { id: 3, name: 'Quiz Whiz', color: '#8B5CF6', earned: avgQuizScore.value >= 90, icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>' },
   { id: 4, name: '7-Day Streak', color: '#EF4444', earned: studyStreak.value >= 7, icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c1.5 3.5 4 6 4 10a4 4 0 0 1-8 0c0-4 2.5-6.5 4-10z"/></svg>' },
   { id: 5, name: '10 Notes', color: '#10B981', earned: totalNotes.value >= 10, icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>' },
@@ -170,7 +170,7 @@ onMounted(async () => {
 .streak-dot {
   width: 8px; height: 8px; border-radius: 50%; background: var(--color-border);
 }
-.streak-dot.active { background: #F59E0B; }
+.streak-dot.active { background: #b96445; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
 .stat-block {
@@ -186,7 +186,7 @@ onMounted(async () => {
 .xp-label { font-size: 12px; font-weight: 600; color: var(--color-text-tertiary); }
 .xp-value { font-size: 14px; font-weight: 800; color: var(--color-primary); }
 .xp-track { height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden; }
-.xp-fill { height: 100%; background: linear-gradient(90deg, #5B9ED6, #8B5CF6); border-radius: 4px; transition: width 0.6s ease; }
+.xp-fill { height: 100%; background: linear-gradient(90deg, #6f9270, #8B5CF6); border-radius: 4px; transition: width 0.6s ease; }
 .xp-next { font-size: 10px; color: var(--color-text-tertiary); display: block; margin-top: 4px; }
 
 .section-heading { font-size: 12px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 10px; }

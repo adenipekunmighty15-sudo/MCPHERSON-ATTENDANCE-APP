@@ -89,7 +89,7 @@ function getIcon(type) {
 .alert-warning {
   background: rgba(245, 158, 11, 0.08);
   border-color: rgba(245, 158, 11, 0.3);
-  color: #b45309;
+  color: #9f5037;
 }
 
 .alert-info {

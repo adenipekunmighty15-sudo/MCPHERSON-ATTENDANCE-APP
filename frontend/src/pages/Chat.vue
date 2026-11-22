@@ -168,7 +168,6 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useMindStore } from '../stores/mind'
-import { useToastStore } from '../stores/toast'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import api from '../lib/api'
 import 'katex/dist/katex.min.css'
@@ -183,7 +182,6 @@ import('highlight.js').then(m => { hljs = m.default || m }).catch(() => {})
 const router = useRouter()
 const authStore = useAuthStore()
 const mindStore = useMindStore()
-const toast = useToastStore()
 
 const hasMessages = computed(() => mindStore.messages.length > 0)
 

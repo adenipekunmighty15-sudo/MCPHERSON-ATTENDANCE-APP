@@ -34,10 +34,10 @@ defineProps({
   display: grid;
   place-items: center;
   overflow: hidden;
-  color: #f8fafc;
+  color: #faf7ef;
   background:
-    radial-gradient(ellipse at 50% 40%, rgba(66, 139, 202, 0.6), transparent 38rem),
-    #0f172a;
+    radial-gradient(ellipse at 50% 40%, rgba(61, 104, 75, 0.6), transparent 38rem),
+    #24352a;
 }
 
 .splash-screen::before,
@@ -82,7 +82,7 @@ defineProps({
 
 .splash-kicker {
   margin: 0 0 10px;
-  color: #fbbf24;
+  color: #f2b28f;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.22em;
@@ -98,7 +98,7 @@ defineProps({
 
 .splash-message {
   margin: 12px 0 0;
-  color: #cbd5e1;
+  color: #cfc5b2;
   font-size: 13px;
 }
 
@@ -116,14 +116,14 @@ defineProps({
   width: 45%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #428bca, #f59e0b);
+  background: linear-gradient(90deg, #3d684b, #b96445);
   animation: loading-progress 1.8s ease-in-out infinite;
 }
 
 .splash-campus {
   position: absolute;
   bottom: max(24px, env(safe-area-inset-bottom));
-  color: #94a3b8;
+  color: #929b8e;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -135,7 +135,7 @@ defineProps({
   height: 4px;
   margin: 0 7px 2px;
   border-radius: 50%;
-  background: #f59e0b;
+  background: #b96445;
 }
 
 .splash-enter-active,

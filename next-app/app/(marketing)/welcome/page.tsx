@@ -13,7 +13,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 border-b border-navy/5 bg-white/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <a href="/" className="flex items-center gap-3" aria-label="McPherson University home">
-            <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-[#F6F8FC]">
+            <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-[#faf7ef]">
               <ShimmerImage src="/mcu-logo.png" alt="" width={40} height={40} priority />
             </span>
             <span className="leading-tight">

@@ -5,17 +5,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        navy: '#010A2A',
-        blue: '#428BCA',
-        coral: '#F9AC8A',
-        paper: '#FFFFFF',
+        ink: '#24352A',
+        forest: '#3D684B',
+        clay: '#C87958',
+        parchment: '#F5F1E7',
+        navy: '#24352A',
+        blue: '#3D684B',
+        coral: '#C87958',
+        paper: '#F5F1E7',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'Times New Roman', 'serif'],
       },
       boxShadow: {
-        soft: '0 24px 70px rgba(1, 10, 42, 0.12)',
-        lift: '0 34px 90px rgba(1, 10, 42, 0.18)',
+        soft: '0 24px 70px rgba(36, 53, 42, 0.12)',
+        lift: '0 34px 90px rgba(36, 53, 42, 0.18)',
       },
       transitionTimingFunction: {
         'slow-out': 'cubic-bezier(0.16, 1, 0.3, 1)',

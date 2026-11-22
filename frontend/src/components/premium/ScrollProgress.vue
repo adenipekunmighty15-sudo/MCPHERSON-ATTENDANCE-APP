@@ -12,7 +12,7 @@ let frame = 0
 let lastTarget = null
 
 function updateFrom(target) {
-  const el = target instanceof Element && target !== document.documentElement ? target : null
+  const el = target && typeof target === 'object' && 'scrollHeight' in target && target !== document.documentElement ? target : null
   let progress = 0
 
   if (el && el.scrollHeight > el.clientHeight) {

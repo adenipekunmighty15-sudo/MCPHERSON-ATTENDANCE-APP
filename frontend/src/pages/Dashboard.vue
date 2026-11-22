@@ -510,7 +510,7 @@ onBeforeUnmount(() => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #d97757;
+  background: #b96445;
   box-shadow: 0 0 0 4px rgba(217, 119, 87, 0.14);
 }
 
@@ -577,9 +577,9 @@ onBeforeUnmount(() => {
   border-radius: 26px;
   background:
     radial-gradient(ellipse at 82% 40%, rgba(249, 172, 138, 0.24), transparent 34%),
-    linear-gradient(115deg, #010a2a 5%, #123b66 58%, #428bca 100%);
-  box-shadow: 0 24px 54px rgba(1, 10, 42, 0.22);
-  color: #f8fafc;
+    linear-gradient(115deg, #24352a 5%, #31543b 58%, #3d684b 100%);
+  box-shadow: 0 24px 54px rgba(36, 53, 42, 0.22);
+  color: #faf7ef;
 }
 
 .hero-copy {
@@ -602,7 +602,7 @@ onBeforeUnmount(() => {
 }
 
 .hero-copy h2 em {
-  color: #f9ac8a;
+  color: #c87958;
   font-weight: 500;
 }
 
@@ -622,8 +622,8 @@ onBeforeUnmount(() => {
   margin-top: 20px;
   padding: 0 15px;
   border-radius: 12px;
-  background: #f9ac8a;
-  color: #010a2a;
+  background: #c87958;
+  color: #24352a;
   font-size: 12px;
   font-weight: 750;
   text-decoration: none;
@@ -633,7 +633,7 @@ onBeforeUnmount(() => {
 .hero-action:hover {
   transform: translateY(-2px);
   background: #ffc4ad;
-  color: #010a2a;
+  color: #24352a;
 }
 
 .hero-action svg:last-child {
@@ -685,7 +685,7 @@ onBeforeUnmount(() => {
 
 .hero-spark {
   position: absolute;
-  color: #f9ac8a;
+  color: #c87958;
   font-size: 20px;
 }
 
@@ -726,7 +726,7 @@ onBeforeUnmount(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #f9ac8a;
+  background: #c87958;
   box-shadow: 0 0 0 4px rgba(249, 172, 138, 0.2);
 }
 
@@ -1290,7 +1290,7 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   border-radius: 13px;
   background: var(--color-accent);
-  color: #0f172a;
+  color: #24352a;
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 650;

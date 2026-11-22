@@ -208,7 +208,7 @@ onUnmounted(() => {
   position: absolute;
   inset: -4px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(30,64,175,0.15), rgba(217,119,6,0.1), rgba(30,64,175,0.05));
+  background: linear-gradient(135deg, rgba(61, 104, 75,0.15), rgba(185, 100, 69,0.1), rgba(61, 104, 75,0.05));
   z-index: -1;
   opacity: 0;
   transition: opacity 0.4s ease;
@@ -250,7 +250,7 @@ onUnmounted(() => {
   width: 120%;
   height: 140%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(59,130,246,0.2), rgba(217,119,6,0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(59,130,246,0.2), rgba(185, 100, 69,0.08), transparent 70%);
   filter: blur(40px);
   z-index: -1;
   animation: auraPulse 3.5s ease-in-out infinite;
@@ -264,7 +264,7 @@ onUnmounted(() => {
 .id-front {
   background: linear-gradient(160deg, #1a2744, #14203d 50%, #0e1a35);
   border: 1px solid rgba(73, 160, 120, 0.15);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 30px rgba(30, 64, 175, 0.1) inset;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 30px rgba(61, 104, 75, 0.1) inset;
   display: flex;
   flex-direction: column;
   backface-visibility: hidden;

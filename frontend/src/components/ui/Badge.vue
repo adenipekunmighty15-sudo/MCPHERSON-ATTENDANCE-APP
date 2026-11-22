@@ -77,7 +77,7 @@ defineProps({
 
 .badge-warning {
   background: var(--color-warning-soft);
-  color: #b45309;
+  color: #9f5037;
 }
 
 .badge-info {

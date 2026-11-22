@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
 
 .spatial-rail-head h2 {
   margin: 0;
-  color: #010a2a;
+  color: #24352a;
   font-family: var(--font-display, Georgia, serif);
   font-size: clamp(24px, 3vw, 38px);
   font-weight: 600;
@@ -204,18 +204,18 @@ onBeforeUnmount(() => {
   height: 40px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(1, 10, 42, 0.14);
+  border: 1px solid rgba(36, 53, 42, 0.14);
   border-radius: 50%;
   background: #fff;
-  color: #010a2a;
+  color: #24352a;
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease, transform 180ms ease, border-color 180ms ease;
 }
 
 .spatial-rail-controls button:hover {
   border-color: rgba(249, 172, 138, 0.5);
-  background: #010a2a;
-  color: #f9ac8a;
+  background: #24352a;
+  color: #c87958;
   transform: translateY(-2px);
 }
 
@@ -244,8 +244,8 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: rgba(1, 10, 42, 0.07);
-  color: #010a2a;
+  background: rgba(36, 53, 42, 0.07);
+  color: #24352a;
 }
 
 .rail-icon.tone-gold {
@@ -254,7 +254,7 @@ onBeforeUnmount(() => {
 }
 
 .rail-icon.tone-blue {
-  background: rgba(66, 139, 202, 0.14);
+  background: rgba(61, 104, 75, 0.14);
   color: #2b5f8f;
 }
 
@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
 }
 
 .rail-index {
-  color: rgba(1, 10, 42, 0.2);
+  color: rgba(36, 53, 42, 0.2);
   font-family: var(--font-display, Georgia, serif);
   font-size: 26px;
   font-weight: 600;
@@ -281,7 +281,7 @@ onBeforeUnmount(() => {
 
 .rail-card h3 {
   margin: 0;
-  color: #010a2a;
+  color: #24352a;
   font-family: var(--font-display, Georgia, serif);
   font-size: 19px;
   font-weight: 600;
@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
 
 .rail-card p {
   margin: 9px 0 20px;
-  color: #64748b;
+  color: #718074;
   font-size: 11px;
   line-height: 1.6;
 }
@@ -301,7 +301,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 7px;
   margin-top: auto;
-  color: #010a2a;
+  color: #24352a;
   font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.05em;
@@ -310,7 +310,7 @@ onBeforeUnmount(() => {
 .rail-line {
   width: 18px;
   height: 1px;
-  background: #f9ac8a;
+  background: #c87958;
   transition: width 220ms ease;
 }
 
@@ -329,14 +329,14 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(1, 10, 42, 0.16);
+  background: rgba(36, 53, 42, 0.16);
   cursor: pointer;
   transition: width 220ms ease, background 220ms ease;
 }
 
 .spatial-rail-dots button.active {
   width: 34px;
-  background: #010a2a;
+  background: #24352a;
 }
 
 @media (max-width: 640px) {

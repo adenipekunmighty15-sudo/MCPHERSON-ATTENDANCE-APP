@@ -163,7 +163,7 @@ onUnmounted(() => {
 .bar {
   width: 6px;
   height: 4px;
-  background: #334155;
+  background: #4c5b50;
   border-radius: 2px;
   transition: all 0.3s;
 }
@@ -216,8 +216,8 @@ onUnmounted(() => {
 }
 
 .sim-badge {
-  background: #F59E0B;
-  color: #0F172A;
+  background: #b96445;
+  color: #24352a;
   font-size: 9px;
   padding: 1px 4px;
   border-radius: 3px;
@@ -269,7 +269,7 @@ onUnmounted(() => {
 }
 
 .rssi.good { color: #22C55E; }
-.rssi.mid { color: #F59E0B; }
+.rssi.mid { color: #b96445; }
 .rssi.poor { color: #EF4444; }
 
 .proximity-card {
@@ -300,7 +300,7 @@ onUnmounted(() => {
 
 .proximity-meter {
   height: 4px;
-  background: #1E293B;
+  background: #24352a;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -312,7 +312,7 @@ onUnmounted(() => {
 }
 
 .meter-fill.high { background: #22C55E; }
-.meter-fill.mid { background: #F59E0B; }
+.meter-fill.mid { background: #b96445; }
 .meter-fill.low { background: #EF4444; }
 
 .proximity-details {

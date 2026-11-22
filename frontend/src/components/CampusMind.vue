@@ -85,7 +85,7 @@ onUnmounted(() => {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2f6da3, #428bca);
+  background: linear-gradient(135deg, #2d523b, #3d684b);
   display: flex;
   align-items: center;
   justify-content: center;

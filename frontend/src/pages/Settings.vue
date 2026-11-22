@@ -247,7 +247,7 @@ async function deleteAccount() {
 .theme-card span { display: block; font-size: 13px; font-weight: 600; color: var(--color-text-primary); margin-top: 8px; }
 .theme-preview { width: 100%; height: 50px; border-radius: 8px; border: 1px solid var(--color-border); }
 .theme-preview-light { background: linear-gradient(135deg, var(--color-surface), var(--color-surface-elevated)); }
-.theme-preview-dark { background: linear-gradient(135deg, #1E293B, #0F172A); }
+.theme-preview-dark { background: linear-gradient(135deg, #24352a, #24352a); }
 
 .font-size-control { display: flex; align-items: center; gap: 12px; }
 .size-btn { width: 40px; height: 40px; padding: 0 !important; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }

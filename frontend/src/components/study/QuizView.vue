@@ -10,7 +10,7 @@
           @mouseenter="$el.style.boxShadow='0 4px 16px rgba(0,0,0,0.06)'" @mouseleave="$el.style.boxShadow='none'"
         >
           <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background: #FEF3C7; color: #F59E0B;">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background: #FEF3C7; color: #b96445;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
             </div>
             <div class="flex-1 min-w-0">
@@ -21,7 +21,7 @@
                 <span v-if="m.lastTaken" class="text-[11px]" style="color: #96A0B5;">Last: {{ m.lastTaken }}</span>
               </div>
             </div>
-            <span class="text-xs font-semibold shrink-0" style="color: #F59E0B;">Start &rarr;</span>
+            <span class="text-xs font-semibold shrink-0" style="color: #b96445;">Start &rarr;</span>
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@
           <!-- progress dots -->
           <div class="flex gap-1">
             <span v-for="(q, i) in activeQuiz" :key="i" class="w-2 h-2 rounded-full transition-all"
-              :style="{ background: q.selectedIndex !== undefined ? '#10B981' : (i === currentIndex ? '#F59E0B' : '#E2E6ED') }"
+              :style="{ background: q.selectedIndex !== undefined ? '#10B981' : (i === currentIndex ? '#b96445' : '#E2E6ED') }"
             ></span>
           </div>
         </div>
@@ -105,7 +105,7 @@
     <div v-else-if="screen === 'results'">
       <div class="rounded-2xl border p-8 text-center" style="background: #FFFFFF; border-color: #E2E6ED;">
         <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" :style="{ background: scorePercent >= 70 ? '#F0FDF4' : scorePercent >= 40 ? '#FEF3C7' : '#FEF2F2' }">
-          <span class="text-2xl font-bold" :style="{ color: scorePercent >= 70 ? '#10B981' : scorePercent >= 40 ? '#F59E0B' : '#EF4444' }">{{ scorePercent }}%</span>
+          <span class="text-2xl font-bold" :style="{ color: scorePercent >= 70 ? '#10B981' : scorePercent >= 40 ? '#b96445' : '#EF4444' }">{{ scorePercent }}%</span>
         </div>
         <p class="text-sm font-bold" style="color: #163E2B;">{{ scoreLabel }}</p>
         <p class="text-xs mt-1" style="color: #96A0B5;">{{ correctCount }} of {{ activeQuiz.length }} correct</p>

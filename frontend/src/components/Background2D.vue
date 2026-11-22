@@ -66,7 +66,7 @@
 
 .orb-4 {
   width: 250px; height: 250px;
-  background: #1E293B; /* Slate dark contrast */
+  background: #24352a; /* Slate dark contrast */
   bottom: 20%; left: 10%;
   animation-delay: -15s;
   animation-duration: 30s;

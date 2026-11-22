@@ -435,7 +435,7 @@ onBeforeUnmount(() => {
   left: 9%;
   height: 16px;
   border-radius: 50%;
-  background: rgba(1, 10, 42, 0.24);
+  background: rgba(36, 53, 42, 0.24);
   filter: blur(12px);
   content: '';
   transform: translateZ(-40px) scale(0.94);
@@ -461,7 +461,7 @@ onBeforeUnmount(() => {
 }
 
 .card-inner:focus-visible {
-  outline: 2px solid #f9ac8a;
+  outline: 2px solid #c87958;
   outline-offset: 4px;
 }
 
@@ -474,18 +474,18 @@ onBeforeUnmount(() => {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   box-shadow:
-    0 24px 48px rgba(1, 10, 42, 0.28),
-    0 6px 14px rgba(1, 10, 42, 0.18),
+    0 24px 48px rgba(36, 53, 42, 0.28),
+    0 6px 14px rgba(36, 53, 42, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -2px 0 rgba(1, 10, 42, 0.5),
+    inset 0 -2px 0 rgba(36, 53, 42, 0.5),
     0 0 0 1px rgba(249, 172, 138, 0.22);
   transform: translateZ(0);
 }
 
 .card-front,
 .card-back {
-  background: linear-gradient(155deg, #0e2a4a 0%, #010a2a 48%, #020617 100%);
-  color: #f8fafc;
+  background: linear-gradient(155deg, #31543b 0%, #24352a 48%, #1d2c23 100%);
+  color: #faf7ef;
 }
 
 .card-back {
@@ -498,7 +498,7 @@ onBeforeUnmount(() => {
   z-index: 1;
   background-image:
     repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px 5px),
-    radial-gradient(circle at 20% 80%, rgba(66, 139, 202, 0.12), transparent 46%);
+    radial-gradient(circle at 20% 80%, rgba(61, 104, 75, 0.12), transparent 46%);
   opacity: 0.8;
   pointer-events: none;
 }
@@ -518,13 +518,13 @@ onBeforeUnmount(() => {
   inset: 0;
   background:
     radial-gradient(circle at 88% 8%, rgba(249, 172, 138, 0.24), transparent 32%),
-    linear-gradient(120deg, rgba(1, 10, 42, 0.78), rgba(1, 10, 42, 0.92));
+    linear-gradient(120deg, rgba(36, 53, 42, 0.78), rgba(36, 53, 42, 0.92));
 }
 
 .card-wash-back {
   background:
     radial-gradient(circle at 12% 86%, rgba(249, 172, 138, 0.2), transparent 34%),
-    linear-gradient(120deg, rgba(1, 10, 42, 0.94), rgba(1, 10, 42, 0.88));
+    linear-gradient(120deg, rgba(36, 53, 42, 0.94), rgba(36, 53, 42, 0.88));
 }
 
 .card-shine {
@@ -635,7 +635,7 @@ onBeforeUnmount(() => {
   border: 2px solid rgba(249, 172, 138, 0.55);
   border-radius: 12px;
   background: linear-gradient(150deg, rgba(248, 250, 252, 0.94), rgba(203, 213, 225, 0.86));
-  color: #010a2a;
+  color: #24352a;
   font-family: var(--font-display, Georgia, serif);
   font-size: 25px;
   font-weight: 700;
@@ -654,8 +654,8 @@ onBeforeUnmount(() => {
   bottom: 0;
   left: 0;
   padding: 2px 0;
-  background: rgba(1, 10, 42, 0.86);
-  color: #f9ac8a;
+  background: rgba(36, 53, 42, 0.86);
+  color: #c87958;
   font-family: inherit;
   font-size: 7px;
   font-weight: 800;
@@ -689,7 +689,7 @@ onBeforeUnmount(() => {
 
 .identity-id {
   margin-bottom: 8px;
-  color: #f9ac8a;
+  color: #c87958;
   font-family: var(--font-mono, monospace);
   font-size: 9px;
   font-weight: 700;
@@ -752,15 +752,15 @@ onBeforeUnmount(() => {
   height: 17px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
-  background: linear-gradient(135deg, #f9ac8a, #b45f3e 52%, #f9ac8a);
-  box-shadow: inset 0 0 0 1px rgba(1, 10, 42, 0.22);
+  background: linear-gradient(135deg, #c87958, #b45f3e 52%, #c87958);
+  box-shadow: inset 0 0 0 1px rgba(36, 53, 42, 0.22);
 }
 
 .card-chip::before,
 .card-chip::after {
   position: absolute;
   content: '';
-  background: rgba(1, 10, 42, 0.34);
+  background: rgba(36, 53, 42, 0.34);
 }
 
 .card-chip::before {
@@ -782,8 +782,8 @@ onBeforeUnmount(() => {
   height: 17px;
   border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 50%;
-  background: conic-gradient(from 40deg, #f9ac8a, #428bca, #ffffff, #f9ac8a);
-  box-shadow: 0 0 10px rgba(66, 139, 202, 0.3);
+  background: conic-gradient(from 40deg, #c87958, #3d684b, #ffffff, #c87958);
+  box-shadow: 0 0 10px rgba(61, 104, 75, 0.3);
 }
 
 .card-nfc {
@@ -819,7 +819,7 @@ onBeforeUnmount(() => {
   padding: 9px 14px;
   border: 1px solid rgba(52, 211, 153, 0.45);
   border-radius: 999px;
-  background: rgba(1, 10, 42, 0.84);
+  background: rgba(36, 53, 42, 0.84);
   color: #6ee7b7;
   font-size: 9px;
   font-weight: 850;
@@ -883,7 +883,7 @@ onBeforeUnmount(() => {
   height: 76px;
   padding: 5px;
   border-radius: 8px;
-  background: #f8fafc;
+  background: #faf7ef;
 }
 
 .qr-grid span {
@@ -891,7 +891,7 @@ onBeforeUnmount(() => {
 }
 
 .qr-grid span.filled {
-  background: #010a2a;
+  background: #24352a;
 }
 
 .qr-tile small {
@@ -914,7 +914,7 @@ onBeforeUnmount(() => {
 }
 
 .back-copy a {
-  color: #f9ac8a;
+  color: #c87958;
   font-size: 9px;
   font-weight: 650;
   text-decoration: none;
@@ -960,8 +960,8 @@ onBeforeUnmount(() => {
   padding: 7px 12px;
   border: 1px solid rgba(249, 172, 138, 0.34);
   border-radius: 999px;
-  background: rgba(1, 10, 42, 0.72);
-  color: #f9ac8a;
+  background: rgba(36, 53, 42, 0.72);
+  color: #c87958;
   font-family: inherit;
   font-size: 9px;
   font-weight: 750;
@@ -977,14 +977,14 @@ onBeforeUnmount(() => {
 }
 
 .flip-button:hover {
-  background: rgba(1, 10, 42, 0.92);
+  background: rgba(36, 53, 42, 0.92);
   transform: translateY(-1px);
 }
 
 .flip-button:active { transform: translateY(0) scale(0.96); }
 
 .flip-button:focus-visible {
-  outline: 2px solid #f9ac8a;
+  outline: 2px solid #c87958;
   outline-offset: 2px;
 }
 

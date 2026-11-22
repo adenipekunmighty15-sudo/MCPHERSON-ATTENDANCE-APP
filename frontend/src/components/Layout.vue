@@ -671,13 +671,13 @@ onUnmounted(() => {
 .orb-1 {
   top: -15%; left: -5%;
   width: 35%; height: 35%;
-  background: radial-gradient(circle, rgba(30, 64, 175, 0.1), transparent 70%);
+  background: radial-gradient(circle, rgba(61, 104, 75, 0.1), transparent 70%);
   animation: orbFloat 25s ease-in-out infinite;
 }
 .orb-2 {
   bottom: -10%; right: -5%;
   width: 30%; height: 30%;
-  background: radial-gradient(circle, rgba(217, 119, 6, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(185, 100, 69, 0.08), transparent 70%);
   animation: orbFloat 30s ease-in-out infinite reverse;
 }
 .orb-3 {
@@ -1728,14 +1728,14 @@ onUnmounted(() => {
 /* McPherson campus shell */
 .layout {
   background:
-    radial-gradient(ellipse at 86% 0%, rgba(217, 119, 6, 0.07), transparent 34rem),
+    radial-gradient(ellipse at 86% 0%, rgba(185, 100, 69, 0.07), transparent 34rem),
     var(--color-bg);
 }
 
 .layout-bg {
   background-image:
-    linear-gradient(rgba(66, 139, 202, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(66, 139, 202, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(61, 104, 75, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(61, 104, 75, 0.025) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: linear-gradient(to bottom, black, transparent 72%);
 }
@@ -1745,7 +1745,7 @@ onUnmounted(() => {
 }
 
 .sidebar {
-  background: #0f172a;
+  background: #24352a;
   border-right-color: rgba(226, 232, 240, 0.1);
   box-shadow: 8px 0 32px rgba(15, 23, 42, 0.12);
 }
@@ -1765,12 +1765,12 @@ onUnmounted(() => {
 .sidebar-user:hover {
   background: rgba(248, 250, 252, 0.08);
   border-color: rgba(226, 232, 240, 0.2);
-  color: #f8fafc;
+  color: #faf7ef;
 }
 
 .logo-title,
 .sidebar-user-name {
-  color: #f8fafc;
+  color: #faf7ef;
 }
 
 .logo-sub,
@@ -1802,14 +1802,14 @@ onUnmounted(() => {
 
 .nav-item:hover {
   background: rgba(248, 250, 252, 0.08);
-  color: #f8fafc;
+  color: #faf7ef;
   transform: translateX(3px);
 }
 
 .nav-item.active,
 .nav-item.active:hover {
-  background: #f59e0b;
-  color: #0f172a;
+  background: #b96445;
+  color: #24352a;
   font-weight: 700;
 }
 
@@ -1824,7 +1824,7 @@ onUnmounted(() => {
 
 .nav-badge {
   background: #f87171;
-  color: #0f172a;
+  color: #24352a;
 }
 
 .sidebar-footer {
@@ -1834,8 +1834,8 @@ onUnmounted(() => {
 
 .sidebar-avatar,
 .user-avatar {
-  background: #f59e0b;
-  color: #0f172a;
+  background: #b96445;
+  color: #24352a;
   border-radius: 11px;
 }
 
@@ -2056,13 +2056,13 @@ onUnmounted(() => {
 }
 
 .bottom-nav-item.active {
-  background: #f59e0b;
-  color: #0f172a;
+  background: #b96445;
+  color: #24352a;
 }
 
 .bn-badge {
   background: #f87171;
-  color: #0f172a;
+  color: #24352a;
 }
 
 @media (max-width: 768px) {
@@ -2093,53 +2093,53 @@ onUnmounted(() => {
 }
 
 .sidebar {
-  background: #0F172A;
-  border-right-color: rgba(226, 232, 240, 0.08);
+  background: #24352a;
+  border-right-color: rgba(255, 253, 248, 0.12);
 }
 
 .sidebar .logo-icon,
 .sidebar .sidebar-logo {
-  color: #F59E0B;
+  color: #b96445;
 }
 
 .sidebar .logo-title,
 .sidebar .sidebar-user-name {
-  color: #F8FAFC;
+  color: #faf7ef;
 }
 
 .sidebar .logo-sub,
 .sidebar .sidebar-user-role,
 .sidebar .nav-group-label {
-  color: rgba(226, 232, 240, 0.55);
+  color: rgba(255, 253, 248, 0.58);
 }
 
 .sidebar .nav-item {
-  color: rgba(226, 232, 240, 0.72);
+  color: rgba(255, 253, 248, 0.76);
 }
 
 .sidebar .nav-item:hover {
-  background: rgba(248, 250, 252, 0.07);
-  color: #F8FAFC;
+  background: rgba(255, 253, 248, 0.09);
+  color: #faf7ef;
 }
 
 .sidebar .nav-item.active {
-  background: rgba(245, 158, 11, 0.14);
-  color: #FBBF24;
+  background: rgba(200, 121, 88, 0.2);
+  color: #f2b28f;
   font-weight: 700;
 }
 
 .sidebar .nav-active-bar {
-  background: #F59E0B;
+  background: #b96445;
 }
 
 .sidebar .sidebar-avatar {
-  background: #F59E0B;
-  color: #0F172A;
+  background: #b96445;
+  color: #24352a;
 }
 
 .sidebar .sidebar-logout {
-  border-color: rgba(226, 232, 240, 0.16);
-  color: rgba(226, 232, 240, 0.72);
+  border-color: rgba(255, 253, 248, 0.2);
+  color: rgba(255, 253, 248, 0.78);
 }
 
 .topbar {
@@ -2150,8 +2150,8 @@ onUnmounted(() => {
 
 .portal-role {
   background: var(--color-accent-soft);
-  border: 1px solid rgba(217, 119, 6, 0.18);
-  color: #B45309;
+  border: 1px solid rgba(185, 100, 69, 0.18);
+  color: #9f5037;
 }
 
 .semester-pill {
@@ -2189,7 +2189,7 @@ onUnmounted(() => {
 }
 
 .citadel-badge.streak {
-  color: #B45309;
+  color: #9f5037;
   background: var(--color-warning-soft);
   border-color: rgba(245, 158, 11, 0.2);
 }
@@ -2230,7 +2230,7 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #428BCA, #D97706);
+  background: linear-gradient(135deg, #3d684b, #b96445);
   color: #FFFFFF;
   font-size: 13px;
   font-weight: 800;
@@ -2336,13 +2336,13 @@ onUnmounted(() => {
 }
 
 .bottom-nav-item.active {
-  color: #FBBF24;
+  color: #f2b28f;
   background: rgba(245, 158, 11, 0.14);
 }
 
 .bn-badge {
-  background: #F59E0B;
-  color: #0F172A;
+  background: #b96445;
+  color: #24352a;
 }
 
 .page-enter-active {

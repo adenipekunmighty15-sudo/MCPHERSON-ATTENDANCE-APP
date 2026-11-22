@@ -329,7 +329,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 10%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(249, 172, 138, 0.18), rgba(1, 10, 42, 0.08) 45%, transparent 70%);
+  background: radial-gradient(circle, rgba(249, 172, 138, 0.18), rgba(36, 53, 42, 0.08) 45%, transparent 70%);
   filter: blur(18px);
   opacity: 0.7;
 }
@@ -337,7 +337,7 @@ onBeforeUnmount(() => {
 .spatial-scene.is-fallback {
   background:
     radial-gradient(circle at 50% 45%, rgba(249, 172, 138, 0.22), transparent 32%),
-    radial-gradient(circle at 60% 60%, rgba(66, 139, 202, 0.16), transparent 46%);
+    radial-gradient(circle at 60% 60%, rgba(61, 104, 75, 0.16), transparent 46%);
 }
 
 .spatial-scene.is-fallback::before {

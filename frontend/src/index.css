@@ -5,42 +5,42 @@
 @layer base {
   :root {
     /* === CITADEL OF CHAMPIONS — unified academic palette === */
-    --color-bg: #F8FAFC;
-    --color-bg-alt: #F1F5F9;
+    --color-bg: #faf7ef;
+    --color-bg-alt: #eee8da;
     --color-surface: #FFFFFF;
-    --color-surface-elevated: #F8FAFC;
+    --color-surface-elevated: #faf7ef;
     --color-surface-raised: #FFFFFF;
-    --color-border: #E2E8F0;
-    --color-border-strong: #CBD5E1;
-    --color-border-accent: rgba(66, 139, 202, 0.2);
-    --color-text-primary: #010A2A;
-    --color-text-secondary: #334155;
-    --color-text-tertiary: #64748B;
-    --color-text-quaternary: #94A3B8;
-    --color-primary: #428BCA;
-    --color-primary-hover: #2f6da3;
-    --color-primary-soft: rgba(66, 139, 202, 0.09);
-    --color-primary-glow: rgba(66, 139, 202, 0.18);
-    --color-primary-muted: rgba(66, 139, 202, 0.12);
-    --color-primary-light: #5B9ED6;
-    --color-accent: #D97757;
-    --color-accent-hover: #C26242;
+    --color-border: #e5dece;
+    --color-border-strong: #cfc5b2;
+    --color-border-accent: rgba(61, 104, 75, 0.2);
+    --color-text-primary: #24352a;
+    --color-text-secondary: #4c5b50;
+    --color-text-tertiary: #718074;
+    --color-text-quaternary: #929b8e;
+    --color-primary: #3d684b;
+    --color-primary-hover: #2d523b;
+    --color-primary-soft: rgba(61, 104, 75, 0.09);
+    --color-primary-glow: rgba(61, 104, 75, 0.18);
+    --color-primary-muted: rgba(61, 104, 75, 0.12);
+    --color-primary-light: #6f9270;
+    --color-accent: #b96445;
+    --color-accent-hover: #9f5037;
     --color-accent-soft: rgba(249, 172, 138, 0.18);
-    --color-secondary: #334155;
+    --color-secondary: #4c5b50;
     --color-secondary-soft: rgba(51, 65, 85, 0.08);
-    --color-deep: #010A2A;
-    --color-muted: #F1F5F9;
+    --color-deep: #24352a;
+    --color-muted: #eee8da;
     --color-success: #10B981;
     --color-success-soft: rgba(16, 185, 129, 0.12);
     --color-error: #EF4444;
     --color-error-soft: rgba(239, 68, 68, 0.1);
-    --color-warning: #F59E0B;
+    --color-warning: #b96445;
     --color-warning-soft: rgba(245, 158, 11, 0.12);
-    --color-info: #428BCA;
-    --color-info-soft: rgba(66, 139, 202, 0.1);
-    --color-gold: #D97757;
+    --color-info: #3d684b;
+    --color-info-soft: rgba(61, 104, 75, 0.1);
+    --color-gold: #b96445;
     --color-gold-soft: rgba(249, 172, 138, 0.18);
-    --color-coral: #F9AC8A;
+    --color-coral: #c87958;
     --color-coral-soft: rgba(249, 172, 138, 0.16);
 
     /* Spacing scale */
@@ -461,7 +461,7 @@
   }
 
   .status-present { background: var(--color-success-soft); color: #047857; }
-  .status-late { background: var(--color-warning-soft); color: #B45309; }
+  .status-late { background: var(--color-warning-soft); color: #9f5037; }
   .status-absent { background: var(--color-error-soft); color: #DC2626; }
 
   .config-banner {
@@ -622,7 +622,7 @@
   height: 100%;
   transform: scaleX(var(--scroll-progress, 0));
   transform-origin: 0 50%;
-  background: linear-gradient(90deg, #010a2a 0%, #16406b 30%, #428bca 62%, #f9ac8a 100%);
+  background: linear-gradient(90deg, #24352a 0%, #3d684b 30%, #3d684b 62%, #c87958 100%);
   box-shadow: 0 0 14px rgba(249, 172, 138, 0.55);
   transition: transform 90ms linear;
 }
@@ -661,13 +661,13 @@
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 14px 38px rgba(1, 10, 42, 0.08);
+  box-shadow: 0 14px 38px rgba(36, 53, 42, 0.08);
   backdrop-filter: blur(14px);
 }
 
 .spatial-rail-item.is-active .rail-card {
-  border-color: rgba(66, 139, 202, 0.45);
-  box-shadow: 0 22px 52px rgba(1, 10, 42, 0.14), 0 0 0 1px rgba(249, 172, 138, 0.22);
+  border-color: rgba(61, 104, 75, 0.45);
+  box-shadow: 0 22px 52px rgba(36, 53, 42, 0.14), 0 0 0 1px rgba(249, 172, 138, 0.22);
 }
 
 @media (max-width: 720px) {

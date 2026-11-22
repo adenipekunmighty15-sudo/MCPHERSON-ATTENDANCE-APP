@@ -74,7 +74,7 @@ export default function AuthFrame({ eyebrow, title, description, badge, children
         <section className="flex items-center justify-center px-5 py-10 sm:px-10">
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#F6F8FC]">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#faf7ef]">
                 <ShimmerImage src="/mcu-logo.png" alt="" width={36} height={36} />
               </span>
               <span className="leading-tight">
@@ -83,7 +83,7 @@ export default function AuthFrame({ eyebrow, title, description, badge, children
               </span>
             </div>
 
-            <div className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-navy/10 bg-[#F6F8FC] px-4 py-3">
+            <div className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-navy/10 bg-[#faf7ef] px-4 py-3">
               <div className="leading-tight">
                 <strong className="block text-sm">{UNIVERSITY.name}</strong>
                 <small className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-navy/50">

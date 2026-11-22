@@ -130,7 +130,7 @@ function LoginForm() {
                 key={domain}
                 type="button"
                 onClick={() => applyDomain(domain)}
-                className="rounded-full border border-navy/10 bg-[#F6F8FC] px-2.5 py-1 text-[11px] font-medium text-navy/60 transition hover:border-blue/40 hover:text-blue"
+                className="rounded-full border border-navy/10 bg-[#faf7ef] px-2.5 py-1 text-[11px] font-medium text-navy/60 transition hover:border-blue/40 hover:text-blue"
               >
                 @{domain}
               </button>

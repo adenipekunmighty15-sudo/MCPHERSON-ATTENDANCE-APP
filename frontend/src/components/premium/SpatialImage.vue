@@ -68,10 +68,10 @@ defineProps({
   aspect-ratio: 4 / 5;
   border: 1px solid rgba(248, 250, 252, 0.18);
   border-radius: 26px;
-  background: #010a2a;
+  background: #24352a;
   box-shadow:
-    0 42px 90px rgba(1, 10, 42, 0.34),
-    0 16px 34px rgba(1, 10, 42, 0.2),
+    0 42px 90px rgba(36, 53, 42, 0.34),
+    0 16px 34px rgba(36, 53, 42, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
   transform-style: preserve-3d;
 }
@@ -104,7 +104,7 @@ defineProps({
   position: absolute;
   inset: 0;
   z-index: 8;
-  background-image: linear-gradient(100deg, #07133a 18%, #173566 40%, #0d2050 58%, #07133a 82%);
+  background-image: linear-gradient(100deg, #1d2c23 18%, #31543b 40%, #24352a 58%, #1d2c23 82%);
   background-size: 220% 100%;
   animation: spatialImageShimmer 1.35s linear infinite;
   transform: translateZ(90px);
@@ -157,8 +157,8 @@ defineProps({
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(1, 10, 42, 0.42) 0%, transparent 32%),
-    linear-gradient(0deg, rgba(1, 10, 42, 0.92) 0%, rgba(1, 10, 42, 0.34) 34%, transparent 62%);
+    linear-gradient(180deg, rgba(36, 53, 42, 0.42) 0%, transparent 32%),
+    linear-gradient(0deg, rgba(36, 53, 42, 0.92) 0%, rgba(36, 53, 42, 0.34) 34%, transparent 62%);
   transform: translateZ(18px);
 }
 
@@ -178,7 +178,7 @@ defineProps({
   padding: 6px 10px;
   border: 1px solid rgba(248, 250, 252, 0.22);
   border-radius: 999px;
-  background: rgba(1, 10, 42, 0.4);
+  background: rgba(36, 53, 42, 0.4);
   color: rgba(248, 250, 252, 0.88);
   font-size: 8px;
   font-weight: 800;
@@ -230,7 +230,7 @@ defineProps({
   font-size: 9px;
   font-weight: 650;
   backdrop-filter: blur(12px);
-  box-shadow: 0 10px 22px rgba(1, 10, 42, 0.16);
+  box-shadow: 0 10px 22px rgba(36, 53, 42, 0.16);
 }
 
 .spatial-image:hover .float-one { translate: -4px -2px; }
@@ -247,7 +247,7 @@ defineProps({
   align-items: flex-end;
   justify-content: space-between;
   gap: 14px;
-  color: #f8fafc;
+  color: #faf7ef;
   transform: translateZ(52px);
 }
 
@@ -293,7 +293,7 @@ defineProps({
   border: 1px solid rgba(248, 250, 252, 0.24);
   border-radius: 50%;
   background: rgba(248, 250, 252, 0.12);
-  color: #f9ac8a;
+  color: #c87958;
   backdrop-filter: blur(10px);
   transition: background 220ms ease, transform 220ms ease;
 }

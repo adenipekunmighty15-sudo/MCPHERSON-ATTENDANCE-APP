@@ -50,7 +50,7 @@ defineProps({
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   animation: metricIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--delay);
-  box-shadow: 0 10px 24px rgba(30, 64, 175, 0.05);
+  box-shadow: 0 10px 24px rgba(61, 104, 75, 0.05);
 }
 [data-theme="dark"] .metric-card {
   background: linear-gradient(135deg, rgba(16, 35, 58, 0.95), rgba(22, 49, 77, 0.9));

@@ -159,8 +159,8 @@ async function handleLogout() {
 .skip-link:focus { top: 0; }
 .admin-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .bg-orb { position: absolute; border-radius: 50%; filter: blur(120px); }
-.orb-1 { top: -15%; left: -5%; width: 35%; height: 35%; background: radial-gradient(circle, rgba(30,64,175,0.12), transparent 70%); animation: orbFloat 25s ease-in-out infinite; }
-.orb-2 { bottom: -10%; right: -5%; width: 30%; height: 30%; background: radial-gradient(circle, rgba(217,119,6,0.08), transparent 70%); animation: orbFloat 30s ease-in-out infinite reverse; }
+.orb-1 { top: -15%; left: -5%; width: 35%; height: 35%; background: radial-gradient(circle, rgba(61, 104, 75,0.12), transparent 70%); animation: orbFloat 25s ease-in-out infinite; }
+.orb-2 { bottom: -10%; right: -5%; width: 30%; height: 30%; background: radial-gradient(circle, rgba(185, 100, 69,0.08), transparent 70%); animation: orbFloat 30s ease-in-out infinite reverse; }
 @keyframes orbFloat { 0%,100% { transform: translate(0,0) scale(1); } 25% { transform: translate(30px,-40px) scale(1.1); } 50% { transform: translate(-20px,20px) scale(0.9); } 75% { transform: translate(40px,30px) scale(1.05); } }
 .admin-sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; background: var(--color-surface); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; z-index: 100; transition: transform 0.35s cubic-bezier(0.16,1,0.3,1); }
 .sidebar-header { display: flex; align-items: center; padding: 16px; min-height: 64px; border-bottom: 1px solid var(--color-border); }
@@ -225,25 +225,25 @@ async function handleLogout() {
 @media (prefers-reduced-motion: reduce) { .admin-layout *, .admin-layout *::before, .admin-layout *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 
 .admin-sidebar {
-  background: #0f172a;
-  border-right-color: rgba(226, 232, 240, 0.1);
+  background: #24352a;
+  border-right-color: rgba(255, 253, 248, 0.12);
 }
-.admin-sidebar .logo-icon { color: #fbbf24; }
+.admin-sidebar .logo-icon { color: #d48967; }
 .admin-sidebar .logo-title,
-.admin-sidebar .sidebar-user-name { color: #f8fafc; }
+.admin-sidebar .sidebar-user-name { color: #faf7ef; }
 .admin-sidebar .logo-sub,
 .admin-sidebar .sidebar-user-role,
-.admin-sidebar .nav-group-label { color: rgba(226, 232, 240, 0.58); }
-.admin-sidebar .nav-item { color: rgba(226, 232, 240, 0.72); }
-.admin-sidebar .nav-item:hover { background: rgba(248, 250, 252, 0.08); color: #f8fafc; }
-.admin-sidebar .nav-item.active { background: #f59e0b; color: #0f172a; font-weight: 700; }
-.admin-sidebar .sidebar-footer { border-top-color: rgba(226, 232, 240, 0.12); }
-.admin-sidebar .sidebar-avatar { background: #f59e0b; color: #0f172a; }
-.admin-sidebar .sidebar-logout { border-color: rgba(226, 232, 240, 0.18); color: rgba(226, 232, 240, 0.72); }
+.admin-sidebar .nav-group-label { color: rgba(255, 253, 248, 0.58); }
+.admin-sidebar .nav-item { color: rgba(255, 253, 248, 0.76); }
+.admin-sidebar .nav-item:hover { background: rgba(255, 253, 248, 0.09); color: #faf7ef; }
+.admin-sidebar .nav-item.active { background: #b96445; color: #24352a; font-weight: 700; }
+.admin-sidebar .sidebar-footer { border-top-color: rgba(255, 253, 248, 0.12); }
+.admin-sidebar .sidebar-avatar { background: #b96445; color: #24352a; }
+.admin-sidebar .sidebar-logout { border-color: rgba(255, 253, 248, 0.2); color: rgba(255, 253, 248, 0.78); }
 .admin-sidebar .sidebar-logout:hover { background: rgba(248, 113, 113, 0.14); color: #fca5a5; }
-.admin-layout .bottom-nav { background: rgba(15, 23, 42, 0.97); border-color: rgba(226, 232, 240, 0.14); }
-.admin-layout .bottom-nav-item { color: rgba(226, 232, 240, 0.72); }
-.admin-layout .bottom-nav-item.active { background: #f59e0b; color: #0f172a; }
+.admin-layout .bottom-nav { background: rgba(36, 53, 42, 0.97); border-color: rgba(255, 253, 248, 0.14); }
+.admin-layout .bottom-nav-item { color: rgba(255, 253, 248, 0.72); }
+.admin-layout .bottom-nav-item.active { background: #b96445; color: #24352a; }
 
 /* === CITADEL ADMIN SHELL REFINEMENT === */
 .admin-layout {
@@ -255,17 +255,17 @@ async function handleLogout() {
 }
 
 .admin-sidebar {
-  background: #0F172A;
+  background: #24352a;
   border-right-color: rgba(226, 232, 240, 0.08);
 }
 
 .admin-sidebar .logo-icon {
-  color: #F59E0B;
+  color: #b96445;
 }
 
 .admin-sidebar .nav-item.active {
   background: rgba(245, 158, 11, 0.14);
-  color: #FBBF24;
+  color: #f2b28f;
 }
 
 .admin-topbar {
@@ -281,8 +281,8 @@ async function handleLogout() {
   padding: 5px 10px;
   border-radius: 9999px;
   background: var(--color-accent-soft);
-  border: 1px solid rgba(217, 119, 6, 0.18);
-  color: #B45309;
+  border: 1px solid rgba(185, 100, 69, 0.18);
+  color: #9f5037;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -318,8 +318,8 @@ async function handleLogout() {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #F59E0B;
-  color: #0F172A;
+  background: #b96445;
+  color: #24352a;
   font-size: 13px;
   font-weight: 800;
 }

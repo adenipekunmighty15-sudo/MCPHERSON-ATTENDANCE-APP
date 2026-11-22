@@ -112,7 +112,7 @@ export default function SignupPage() {
         </>
       }
     >
-      <div className={`${noticeClass} mb-6 border-blue/20 bg-[#F6F8FC] text-navy/70`} role="status">
+      <div className={`${noticeClass} mb-6 border-blue/20 bg-[#faf7ef] text-navy/70`} role="status">
         <strong className="block text-navy">Student accounts only</strong>
         Staff and lecturer accounts are provisioned by the ICT directorate. Contact{' '}
         <a href="mailto:ict@mcu.edu.ng" className="font-semibold text-blue hover:underline">ict@mcu.edu.ng</a> for access.
@@ -123,7 +123,7 @@ export default function SignupPage() {
           Portal authentication is in maintenance mode. Please try again shortly.
         </div>
       ) : null}
-      {info ? <div className={`${noticeClass} mb-5 border-blue/20 bg-[#F6F8FC] text-blue`} role="status">{info}</div> : null}
+      {info ? <div className={`${noticeClass} mb-5 border-blue/20 bg-[#faf7ef] text-blue`} role="status">{info}</div> : null}
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div className="grid gap-5 sm:grid-cols-2">

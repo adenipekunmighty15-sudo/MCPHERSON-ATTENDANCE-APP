@@ -126,7 +126,7 @@ function complete() {
 .walkthrough__counter {
   font-size: 12px;
   font-weight: 600;
-  color: #94A3B8;
+  color: #929b8e;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 24px;
@@ -161,7 +161,7 @@ function complete() {
   margin: 0 0 8px;
   font-size: 20px;
   font-weight: 700;
-  color: #0F172A;
+  color: #24352a;
 }
 
 .walkthrough__desc {
@@ -183,7 +183,7 @@ function complete() {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #E2E8F0;
+  background: #e5dece;
   transition: background 0.2s ease, transform 0.2s ease;
   transform-style: preserve-3d;
 }
@@ -225,14 +225,14 @@ function complete() {
 }
 
 .btn-3d-ghost {
-  border-color: #e2e8f0;
+  border-color: #e5dece;
   background: #fff;
   color: #475569;
 }
 
 .btn-3d-ghost:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #eee8da;
+  color: #24352a;
 }
 
 .btn-3d:focus-visible,

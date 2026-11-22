@@ -933,7 +933,14 @@ function MessagingSection({
                   {thread.map((message, index) => (
                     <article key={message.id || index} className={`${styles.messageBubble} ${message.senderId === 'me' ? styles.messageMine : ''}`}>
                       {message.content}
-                      <time className={styles.messageTime}>{formatTime(message.timestamp)}</time>
+                      <time className={styles.messageTime}>
+                        {formatTime(message.timestamp)}
+                        {message.senderId === 'me' ? (
+                          <span className={styles.messageTicks} aria-label={message.status === 'read' ? 'Read' : 'Sent'}>
+                            {message.status === 'read' ? '✓✓' : '✓'}
+                          </span>
+                        ) : null}
+                      </time>
                     </article>
                   ))}
                 </div>

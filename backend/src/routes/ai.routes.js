@@ -581,7 +581,7 @@ router.post('/api/ai/chat/stream', authenticate, async (req, res) => {
       literature: 'You are a thoughtful literature guide. Ground interpretations in the text and distinguish evidence from possible readings.',
       career: 'You are a practical career advisor. Give balanced guidance and concrete next steps, noting when advice depends on the student’s circumstances.',
     }
-    const systemPrompt = (expertPrompts[expert] || expertPrompts.general) + ' Be conversational and clear. Use headings only when helpful, be concise for simple requests, and do not reveal private step-by-step reasoning.'
+    const systemPrompt = (expertPrompts[expert] || expertPrompts.general) + ' Talk like a friendly tutor in a chat: warm, natural, and direct. Keep simple requests short, write short paragraphs, use headings only when they genuinely help, and do not reveal private step-by-step reasoning.'
 
     let webContext = ''
     if (doWebSearch) {

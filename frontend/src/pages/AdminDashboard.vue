@@ -296,7 +296,7 @@ onMounted(fetchData)
 .risk-table .empty { text-align: center; color: var(--color-text-tertiary); padding: 32px; }
 .rate-pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
 .rate-pill.low { background: rgba(239,68,68,0.12); color: #EF4444; }
-.rate-pill.mid { background: rgba(251,191,36,0.12); color: #F59E0B; }
+.rate-pill.mid { background: rgba(251,191,36,0.12); color: #b96445; }
 .notify-btn { padding: 4px 14px; border-radius: 8px; border: none; background: var(--color-primary-soft); color: var(--color-primary); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .notify-btn:hover { background: var(--color-primary); color: #fff; }
 .export-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
