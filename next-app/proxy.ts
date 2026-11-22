@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Supabase sessions live in browser storage, so this middleware deliberately
+ * Supabase sessions live in browser storage, so this proxy deliberately
  * does not attempt to read them (that would block valid users server-side).
  * Legacy shortcuts are redirected; client-side guards enforce auth/admin.
  * The dashboard is a real portal page and must never bounce to the landing page.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname.replace(/\/+$/, '') || '/'
 
   if (pathname === '/admin') {
