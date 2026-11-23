@@ -235,7 +235,7 @@ export default function DashboardWorkspace() {
 
   const attendanceResource = useApiResource<unknown>('/attendance')
   const sessionsResource = useApiResource<unknown>('/sessions/active')
-  const coursesResource = useApiResource<unknown>('/courses/enrolled')
+  const coursesResource = useApiResource<unknown>('/student-courses')
   const timetableResource = useApiResource<unknown>('/timetable')
   const studyStatsResource = useApiResource<StudyStats>('/study-materials/stats')
   const studyMaterialsResource = useApiResource<unknown>('/study-materials')
@@ -244,7 +244,13 @@ export default function DashboardWorkspace() {
 
   const attendance = useMemo(() => asRows<AttendanceRecord>(attendanceResource.data), [attendanceResource.data])
   const sessions = useMemo(() => asRows<LiveSession>(sessionsResource.data), [sessionsResource.data])
-  const courses = useMemo(() => asRows<Course>(coursesResource.data), [coursesResource.data])
+  const courses = useMemo(() => {
+    const data = coursesResource.data as { courses?: unknown[] } | unknown[] | null
+    if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray((data as { courses?: unknown[] }).courses)) {
+      return asRows<Course>((data as { courses?: unknown[] }).courses)
+    }
+    return asRows<Course>(data)
+  }, [coursesResource.data])
   const timetable = useMemo(() => asRows<TimetableEntry>(timetableResource.data), [timetableResource.data])
   const materials = useMemo(() => asRows<StudyMaterial>(studyMaterialsResource.data), [studyMaterialsResource.data])
   const complaints = useMemo(() => asRows<Complaint>(complaintsResource.data), [complaintsResource.data])
@@ -370,7 +376,7 @@ export default function DashboardWorkspace() {
               courses={courses}
               loading={coursesResource.loading}
               error={coursesResource.error}
-              onReload={coursesResource.reload}
+              onReload={() => { coursesResource.reload() }}
             />
           ) : null}
 
@@ -1026,100 +1032,90 @@ function MessagingSection({
 
   return (
     <>
-      <Panel title="Messages" copy="Direct conversations with students and lecturers, stored on the university server.">
-        <StateBlock loading={loading} error={error} empty={conversations.length ? undefined : 'No conversations yet.'} onRetry={onReload} />
-        <div className={`${styles.grid} ${styles.gridTwo}`}>
-          <div className={styles.list}>
-            <div className={design.filterBar}>
-              <div className={design.searchWrap}>
-                <span className={design.searchIcon} aria-hidden="true">⌕</span>
-                <input
-                  className={design.searchInput}
-                  value={conversationSearch}
-                  onChange={(event) => setConversationSearch(event.target.value)}
-                  placeholder="Search conversations"
-                  aria-label="Search conversations"
-                />
-              </div>
-              <div className={design.filterTabs}>
-                {(['All', 'Unread'] as const).map((filter) => (
-                  <button
-                    key={filter}
-                    type="button"
-                    className={`${design.filterTab} ${messageFilter === filter ? design.filterTabActive : ''}`}
-                    onClick={() => setMessageFilter(filter)}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
+      <section className={styles.waApp} aria-label="Messages">
+        <aside className={styles.waSidebar}>
+          <header className={styles.waSidebarHead}>
+            <div>
+              <h3>Chats</h3>
+              <p>McPherson messaging</p>
             </div>
-            {visibleConversations.length ? visibleConversations.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={styles.quickCard}
-                aria-pressed={selectedId === item.id}
-                onClick={() => setSelectedId(item.id)}
-              >
-                <div className={styles.cardRow}>
-                  <strong>{item.partner?.name || 'Conversation'}</strong>
-                  {item.unreadCount ? <span className={styles.pill}>{item.unreadCount} new</span> : null}
-                </div>
-                <small>{item.lastMessage?.content || 'No messages yet'}</small>
-                <small>{formatTime(item.lastMessage?.timestamp || item.updatedAt)}</small>
-              </button>
-            )) : <StateBlock loading={false} error="" empty="No conversations match this filter." />}
-            <button type="button" className={styles.button} onClick={() => void openContacts()}>New conversation</button>
+            <button type="button" className={styles.waIconBtn} onClick={() => void openContacts()} aria-label="New chat">+</button>
+          </header>
+          <div className={styles.waSearch}>
+            <input value={conversationSearch} onChange={(event) => setConversationSearch(event.target.value)} placeholder="Search or start new chat" aria-label="Search conversations" />
           </div>
+          <div className={styles.waFilters}>
+            {(['All', 'Unread'] as const).map((filter) => (
+              <button key={filter} type="button" className={`${styles.waFilter} ${messageFilter === filter ? styles.waFilterActive : ''}`} onClick={() => setMessageFilter(filter)}>{filter}</button>
+            ))}
+          </div>
+          <StateBlock loading={loading} error={error} empty={conversations.length ? undefined : 'No conversations yet.'} onRetry={onReload} />
+          <div className={styles.waChatList}>
+            {visibleConversations.map((item) => (
+              <button key={item.id} type="button" className={`${styles.waChatItem} ${selectedId === item.id ? styles.waChatItemActive : ''}`} onClick={() => setSelectedId(item.id)}>
+                <span className={styles.waAvatar}>{(item.partner?.name || 'C').slice(0, 1).toUpperCase()}</span>
+                <span className={styles.waChatBody}>
+                  <span className={styles.waChatTop}>
+                    <strong>{item.partner?.name || 'Conversation'}</strong>
+                    <time>{formatTime(item.lastMessage?.timestamp || item.updatedAt)}</time>
+                  </span>
+                  <span className={styles.waChatBottom}>
+                    <small>{item.lastMessage?.content || 'No messages yet'}</small>
+                    {item.unreadCount ? <span className={styles.waUnread}>{item.unreadCount}</span> : null}
+                  </span>
+                </span>
+              </button>
+            ))}
+            {!loading && !visibleConversations.length ? <p className={styles.waEmptySide}>No chats match this filter.</p> : null}
+          </div>
+        </aside>
 
-          <div>
-            {showContacts ? (
-              <div className={styles.list}>
-                <h3 className={styles.cardTitle}>Choose a person</h3>
+        <main className={styles.waMain}>
+          {showContacts ? (
+            <div className={styles.waContacts}>
+              <div className={styles.waMainHead}><div><strong>New chat</strong><p>Select a person to start messaging</p></div><button type="button" className={styles.button} onClick={() => setShowContacts(false)}>Close</button></div>
+              <div className={styles.waContactList}>
                 {contacts.length ? contacts.map((contact) => (
-                  <button key={contact.id} type="button" className={styles.quickCard} onClick={() => void startConversation(contact.id)}>
-                    <strong>{contact.name || 'User'}</strong>
-                    <small>{[contact.role, contact.department].filter(Boolean).join(' · ')}</small>
+                  <button key={contact.id} type="button" className={styles.waContact} onClick={() => void startConversation(contact.id)}>
+                    <span className={styles.waAvatar}>{(contact.name || 'U').slice(0, 1).toUpperCase()}</span>
+                    <span><strong>{contact.name || 'User'}</strong><small>{[contact.role, contact.department].filter(Boolean).join(' · ')}</small></span>
                   </button>
                 )) : <StateBlock loading={false} error="" empty="No contacts available." />}
-                <button type="button" className={styles.button} onClick={() => setShowContacts(false)}>Cancel</button>
               </div>
-            ) : selected ? (
-              <>
-                <h3 className={styles.cardTitle}>{selected.partner?.name || 'Conversation'}</h3>
-                <p className={styles.cardMeta}>{[selected.partner?.role, selected.partner?.department].filter(Boolean).join(' · ')}</p>
-                <div className={styles.messageThread} role="log" aria-live="polite">
-                  <StateBlock loading={threadLoading} error="" empty={thread.length ? undefined : 'No messages yet. Say hello.'} />
-                  {thread.map((message, index) => (
-                    <article key={message.id || index} className={`${styles.messageBubble} ${message.senderId === 'me' ? styles.messageMine : ''}`}>
-                      {message.content}
-                      <time className={styles.messageTime}>
+            </div>
+          ) : selected ? (
+            <>
+              <header className={styles.waMainHead}>
+                <div className={styles.waMainUser}>
+                  <span className={styles.waAvatar}>{(selected.partner?.name || 'C').slice(0, 1).toUpperCase()}</span>
+                  <div><strong>{selected.partner?.name || 'Conversation'}</strong><p>{[selected.partner?.role, selected.partner?.department].filter(Boolean).join(' · ') || 'Direct message'}</p></div>
+                </div>
+              </header>
+              <div className={styles.waThread} role="log" aria-live="polite">
+                <StateBlock loading={threadLoading} error="" empty={thread.length ? undefined : 'No messages yet. Say hello.'} />
+                {thread.map((message, index) => (
+                  <div key={message.id || index} className={`${styles.waRow} ${message.senderId === 'me' ? styles.waRowMine : ''}`}>
+                    <article className={`${styles.waBubble} ${message.senderId === 'me' ? styles.waBubbleMine : ''}`}>
+                      <span>{message.content}</span>
+                      <time className={styles.waTime}>
                         {formatTime(message.timestamp)}
-                        {message.senderId === 'me' ? (
-                          <span className={styles.messageTicks} aria-label={message.status === 'read' ? 'Read' : 'Sent'}>
-                            {message.status === 'read' ? '✓✓' : '✓'}
-                          </span>
-                        ) : null}
+                        {message.senderId === 'me' ? <span className={styles.waTicks} aria-label={message.status === 'read' ? 'Read' : 'Sent'}>{message.status === 'read' ? '✓✓' : '✓'}</span> : null}
                       </time>
                     </article>
-                  ))}
-                </div>
-                <form onSubmit={(event) => void send(event)} style={{ marginTop: 12 }}>
-                  <label className={styles.field}>
-                    <span>Write a message</span>
-                    <textarea className={styles.textarea} maxLength={5000} value={text} onChange={(event) => setText(event.target.value)} />
-                  </label>
-                  <button type="submit" className={`${styles.button} ${styles.buttonPrimary}`} disabled={!text.trim()}>Send message</button>
-                </form>
-              </>
-            ) : (
-              <StateBlock loading={false} error="" empty="Choose a conversation or start a new one." />
-            )}
-            {notice ? <p className={styles.cardMeta} role="status">{notice}</p> : null}
-          </div>
-        </div>
-      </Panel>
+                  </div>
+                ))}
+              </div>
+              <form className={styles.waComposer} onSubmit={(event) => void send(event)}>
+                <textarea className={styles.waInput} maxLength={5000} value={text} onChange={(event) => setText(event.target.value)} placeholder="Type a message" aria-label="Write a message" />
+                <button type="submit" className={styles.waSend} disabled={!text.trim()} aria-label="Send message">Send</button>
+              </form>
+            </>
+          ) : (
+            <div className={styles.waWelcome}><div className={styles.waWelcomeMark}>MCU</div><h3>McPherson Messages</h3><p>Send and receive messages with students and lecturers. Choose a chat or start a new conversation.</p></div>
+          )}
+          {notice ? <p className={styles.waNotice} role="status">{notice}</p> : null}
+        </main>
+      </section>
     </>
   )
 }

@@ -20,6 +20,7 @@ export type Course = {
   id?: string | number
   courseId?: string | number
   course_id?: string | number
+  ccmasCourseId?: string
   code?: string
   courseCode?: string
   course_code?: string
@@ -42,6 +43,12 @@ export type Course = {
   meetingTime?: string
   meeting_time?: string
   status?: string
+  level?: number | string | null
+  source?: string | null
+  selected?: boolean
+  addedByStudent?: boolean
+  auto?: boolean
+  recommended?: boolean
   [key: string]: unknown
 }
 
@@ -289,6 +296,26 @@ export default function CoursesSectionNext({ courses, loading, error, onReload }
   const menuId = `course-departments-${generatedId}`
   const headingId = `courses-heading-${generatedId}`
 
+  const [studentCourses, setStudentCourses] = useState<Course[]>([])
+  const [studentLoading, setStudentLoading] = useState(false)
+  const [studentError, setStudentError] = useState('')
+  const [studentNotice, setStudentNotice] = useState('')
+  const [addingCourseId, setAddingCourseId] = useState('')
+
+  const loadStudentCourses = useCallback(async () => {
+    setStudentLoading(true)
+    setStudentError('')
+    try {
+      const payload = await api.get<{ courses?: Course[] }>('/student-courses', { cache: false })
+      setStudentCourses(Array.isArray(payload?.courses) ? payload.courses : [])
+    } catch (err) {
+      setStudentError(messageOf(err))
+      setStudentCourses([])
+    } finally {
+      setStudentLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     let active = true
     async function loadDepartments() {
@@ -304,10 +331,11 @@ export default function CoursesSectionNext({ courses, loading, error, onReload }
       }
     }
     void loadDepartments()
+    void loadStudentCourses()
     return () => {
       active = false
     }
-  }, [])
+  }, [loadStudentCourses])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -318,7 +346,8 @@ export default function CoursesSectionNext({ courses, loading, error, onReload }
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [menuOpen])
 
-  const normalizedCourses = useMemo(() => courses.map(normalizeCourse), [courses])
+  const sourceCourses = studentCourses.length > 0 ? studentCourses : courses
+  const normalizedCourses = useMemo(() => sourceCourses.map(normalizeCourse), [sourceCourses])
   const filteredCourses = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     return normalizedCourses.filter((course) => {
@@ -327,6 +356,21 @@ export default function CoursesSectionNext({ courses, loading, error, onReload }
       return matchesDepartment && matchesSearch
     })
   }, [normalizedCourses, searchQuery, selectedDepartmentId])
+
+  async function addCourseToMyList(ccmasCourseId: string) {
+    if (!ccmasCourseId) return
+    setAddingCourseId(ccmasCourseId)
+    setStudentNotice('')
+    try {
+      await api.post('/student-courses', { ccmasCourseId })
+      setStudentNotice('Course added to My courses.')
+      await loadStudentCourses()
+    } catch (err) {
+      setStudentNotice(messageOf(err))
+    } finally {
+      setAddingCourseId('')
+    }
+  }
 
   const selectedDepartmentName = useMemo(
     () => departments.find((dept) => dept.id === selectedDepartmentId)?.name || '',
@@ -498,6 +542,9 @@ export default function CoursesSectionNext({ courses, loading, error, onReload }
             setSelectedCcmasCourse(course)
             setActiveTab('notes')
           }}
+          onAddCourse={(courseId) => { void addCourseToMyList(courseId) }}
+          addingCourseId={addingCourseId}
+          notice={studentNotice}
         />
       ) : null}
 

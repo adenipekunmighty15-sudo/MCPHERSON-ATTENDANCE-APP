@@ -236,11 +236,28 @@ export default function CourseNotesSection({ selectedCourse }: { selectedCourse:
               rows={14}
             />
           </label>
+          {editor.content.trim() ? (
+            <div className={s.field}>
+              <span>PDF-like preview</span>
+              <div className={s.notePreview} aria-label="Note preview">
+                <pre>{editor.content}</pre>
+              </div>
+            </div>
+          ) : null}
 
           <div className={s.editorActions}>
             <button type="button" className={s.secondaryButton} onClick={useBuiltinNotes} disabled={!editor.courseCode}>
               Use built-in notes
             </button>
+            <a
+              className={s.secondaryButton}
+              href={editor.courseCode ? `https://www.google.com/search?q=${encodeURIComponent(`${editor.courseCode} ${editor.courseTitle} course note filetype:pdf`)}` : 'https://ccmas.nuc.edu.ng/'}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Find on web/PDF
+            </a>
+            <a className={s.secondaryButton} href="https://ccmas.nuc.edu.ng/" target="_blank" rel="noreferrer">CCMAS database</a>
             <button type="button" className={s.primaryButton} onClick={() => void saveNote()} disabled={saving}>
               {saving ? 'Saving…' : editor.id ? 'Update note' : 'Save note'}
             </button>

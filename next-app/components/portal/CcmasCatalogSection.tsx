@@ -44,7 +44,17 @@ function messageOf(error: unknown): string {
   return 'The CCMAS catalog is unavailable right now.'
 }
 
-export default function CcmasCatalogSection({ onOpenNotes }: { onOpenNotes: (course: CcmasCourse) => void }) {
+export default function CcmasCatalogSection({
+  onOpenNotes,
+  onAddCourse,
+  addingCourseId,
+  notice,
+}: {
+  onOpenNotes: (course: CcmasCourse) => void
+  onAddCourse: (ccmasCourseId: string) => void
+  addingCourseId: string
+  notice: string
+}) {
   const [overview, setOverview] = useState<Overview | null>(null)
   const [courses, setCourses] = useState<CcmasCourse[]>([])
   const [total, setTotal] = useState(0)
@@ -178,6 +188,7 @@ export default function CcmasCatalogSection({ onOpenNotes }: { onOpenNotes: (cou
             </div>
           ) : null}
 
+          {notice ? <p className={s.notice} role="status">{notice}</p> : null}
           {error ? <p className={s.error} role="alert">{error}</p> : null}
           {loading ? <p className={s.state}>Loading CCMAS courses…</p> : null}
           {!loading && !courses.length ? <p className={s.state}>No courses match this search.</p> : null}
@@ -218,6 +229,9 @@ export default function CcmasCatalogSection({ onOpenNotes }: { onOpenNotes: (cou
                       <div className={s.courseActions}>
                         <button type="button" className={s.primaryButton} onClick={() => onOpenNotes(course)}>
                           Open in notes
+                        </button>
+                        <button type="button" className={s.secondaryButton} onClick={() => onAddCourse(course.id)} disabled={addingCourseId === course.id}>
+                          {addingCourseId === course.id ? 'Adding…' : 'Add to my courses'}
                         </button>
                         <a href={course.sourceUrl} target="_blank" rel="noreferrer" className={s.secondaryButton}>
                           NUC source

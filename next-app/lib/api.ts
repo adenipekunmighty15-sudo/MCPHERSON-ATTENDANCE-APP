@@ -65,6 +65,7 @@ const INVALIDATION_MAP: Record<string, string[]> = {
   '/study-folders': ['GET:/study-folders'],
   '/course-notes': ['GET:/course-notes'],
   '/ccmas': ['GET:/ccmas/overview', 'GET:/ccmas/courses'],
+  '/student-courses': ['GET:/student-courses', 'GET:/courses/enrolled'],
   '/general-chat/messages': ['GET:/general-chat/messages'],
 }
 

@@ -129,6 +129,8 @@
 .courseResults strong { min-width: 64px; color: #0e8d95; font-size: 10px; }
 .courseResults span { font-size: 11px; }
 .editorActions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.notePreview { max-height: 280px; overflow: auto; border: 1px solid rgba(36,53,42,.1); border-radius: 12px; background: #fff; padding: 16px; box-shadow: inset 0 1px 0 rgba(255,255,255,.8); }
+.notePreview pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.7 ui-serif, Georgia, serif; color: var(--mcu-navy); }
 
 .noteList { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .noteList li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; border: 1px solid rgba(36, 53, 42, 0.08); border-radius: 11px; padding: 11px; background: var(--mcu-surface-raised); }

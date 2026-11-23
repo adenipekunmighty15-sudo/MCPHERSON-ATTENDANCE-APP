@@ -150,20 +150,22 @@
 .pageTitle { margin: 6px 0 6px !important; font-size: clamp(1.5rem, 3vw, 2.1rem) !important; letter-spacing: -.03em !important; }
 .pageCopy { max-width: 700px; margin: 0 !important; color: var(--mcu-muted); font-size: 13px; line-height: 1.7; }
 
-.grid { display: grid; gap: 14px; }
-.gridTwo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.gridThree { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.gridFour { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid { display: grid; gap: 14px; min-width: 0; }
+.gridTwo { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
+.gridThree { grid-template-columns: repeat(3, minmax(0, 1fr)); min-width: 0; }
+.gridFour { grid-template-columns: repeat(4, minmax(0, 1fr)); min-width: 0; }
 
 .stat {
+  min-width: 0;
   border: 1px solid rgba(36, 53, 42,.08);
   border-radius: 14px;
   background: var(--mcu-surface-raised);
   padding: 16px;
+  overflow: hidden;
 }
-.statLabel { color: var(--mcu-muted); font-size: 11px; font-weight: 700; }
-.statValue { display: block; margin-top: 8px; color: #24352a; font-size: 24px; font-weight: 800; letter-spacing: -.04em; }
-.statDetail { display: block; margin-top: 4px; color: #929b8e; font-size: 11px; }
+.statLabel { display: block; color: var(--mcu-muted); font-size: 11px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.statValue { display: block; margin-top: 8px; color: #24352a; font-size: clamp(20px, 2.4vw, 24px); font-weight: 800; letter-spacing: -.04em; line-height: 1.1; overflow-wrap: anywhere; }
+.statDetail { display: block; margin-top: 4px; color: #929b8e; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
 
 .card {
   border: 1px solid rgba(36, 53, 42,.08);
@@ -282,3 +284,53 @@
   .content { padding: 18px; }
   .gridThree, .gridTwo, .quickGrid { grid-template-columns: 1fr; }
 }
+@media (max-width: 560px) {
+  .gridFour { grid-template-columns: 1fr; }
+  .stat { padding: 14px; }
+}
+
+/* WhatsApp-style messaging */
+.waApp{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:640px;border:1px solid rgba(36,53,42,.08);border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 12px 30px rgba(36,53,42,.06)}
+.waSidebar{display:flex;flex-direction:column;min-width:0;border-right:1px solid rgba(36,53,42,.08);background:#fff}
+.waSidebarHead,.waMainHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:#f0f2f5;border-bottom:1px solid rgba(36,53,42,.08)}
+.waSidebarHead h3,.waMainHead strong{margin:0;font-size:16px;color:#111b21}
+.waSidebarHead p,.waMainHead p,.waWelcome p,.waNotice{margin:2px 0 0;color:#667781;font-size:12px}
+.waIconBtn{width:36px;height:36px;border:0;border-radius:50%;background:#e7fce3;color:#008069;font-size:22px;font-weight:700;cursor:pointer}
+.waSearch{padding:8px 12px;background:#fff;border-bottom:1px solid rgba(36,53,42,.06)}
+.waSearch input,.waInput{width:100%;border:0;border-radius:8px;padding:10px 12px;background:#f0f2f5;color:#111b21;font:inherit;font-size:13px;outline:none}
+.waFilters{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(36,53,42,.06)}
+.waFilter{border:0;border-radius:999px;padding:6px 12px;background:#f0f2f5;color:#54656f;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.waFilterActive{background:#e7fce3;color:#008069}
+.waChatList,.waContactList{flex:1;overflow:auto;background:#fff}
+.waChatItem,.waContact{display:flex;width:100%;align-items:center;gap:12px;border:0;border-bottom:1px solid rgba(36,53,42,.05);padding:12px 14px;background:#fff;color:#111b21;text-align:left;cursor:pointer}
+.waChatItem:hover,.waContact:hover{background:#f5f6f6}
+.waChatItemActive{background:#f0f2f5}
+.waAvatar{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:50%;background:#dfe5e7;color:#54656f;font-weight:800}
+.waChatBody{min-width:0;flex:1}
+.waChatTop,.waChatBottom{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.waChatTop strong,.waContact strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.waChatTop time,.waChatBottom small,.waContact small{color:#667781;font-size:12px}
+.waChatBottom small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.waUnread{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#25d366;color:#fff;font-size:11px;font-weight:800}
+.waEmptySide{padding:20px;color:#667781;font-size:13px;text-align:center}
+.waMain{display:flex;flex-direction:column;min-width:0;background:#efeae2}
+.waMainUser{display:flex;align-items:center;gap:12px;min-width:0}
+.waThread{flex:1;overflow:auto;padding:18px 24px;background:linear-gradient(180deg,#efeae2,#e7ddd3)}
+.waRow{display:flex;margin-bottom:8px}
+.waRowMine{justify-content:flex-end}
+.waBubble{max-width:min(72%,680px);padding:8px 10px 6px;border-radius:8px;border-top-left-radius:0;background:#fff;color:#111b21;font-size:14px;line-height:1.45;box-shadow:0 1px .5px rgba(11,20,26,.13);white-space:pre-wrap;overflow-wrap:anywhere}
+.waBubbleMine{border-top-left-radius:8px;border-top-right-radius:0;background:#d9fdd3}
+.waTime{display:inline-flex;align-items:center;gap:4px;float:right;margin:6px 0 0 10px;color:#667781;font-size:11px;line-height:1}
+.waTicks{color:#53bdeb;letter-spacing:-2px;font-size:12px}
+.waComposer{display:flex;gap:10px;padding:10px 16px;background:#f0f2f5;border-top:1px solid rgba(36,53,42,.08)}
+.waInput{min-height:44px;max-height:120px;resize:vertical;border-radius:22px;padding:11px 14px;background:#fff}
+.waSend{border:0;border-radius:22px;padding:0 18px;background:#008069;color:#fff;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.waSend:disabled{opacity:.55;cursor:not-allowed}
+.waWelcome,.waContacts{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;background:#f0f2f5}
+.waWelcomeMark{display:grid;place-items:center;width:72px;height:72px;margin-bottom:14px;border-radius:50%;background:#008069;color:#fff;font-weight:800}
+.waWelcome h3{margin:0 0 8px;color:#41525d;font-size:28px;font-weight:500}
+.waContacts{align-items:stretch;justify-content:flex-start;padding:0;text-align:left}
+.waContact span{display:grid;gap:2px}
+.waContact small{display:block}
+.waNotice{padding:8px 16px;background:#f0f2f5;border-top:1px solid rgba(36,53,42,.08)}
+@media (max-width:900px){.waApp{grid-template-columns:1fr;min-height:560px}.waSidebar{max-height:320px;border-right:0;border-bottom:1px solid rgba(36,53,42,.08)}.waThread{padding:14px}.waBubble{max-width:88%}}

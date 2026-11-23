@@ -139,6 +139,7 @@ import trackingRoutes from './src/routes/tracking.routes.js'
 import messagesRoutes from './src/routes/messages.routes.js'
 import ccmasRoutes from './src/routes/ccmas.routes.js'
 import notesRoutes from './src/routes/notes.routes.js'
+import studentCoursesRoutes from './src/routes/student-courses.routes.js'
 
 app.use(authRoutes)
 app.use(complaintsRoutes)
@@ -170,6 +171,7 @@ app.use(trackingRoutes)
 app.use(messagesRoutes)
 app.use(ccmasRoutes)
 app.use(notesRoutes)
+app.use(studentCoursesRoutes)
 
 // Serve uploads
 app.use('/uploads', express.static(uploadDir))

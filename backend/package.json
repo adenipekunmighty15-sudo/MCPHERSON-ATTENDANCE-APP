@@ -8,7 +8,8 @@
     "dev": "node --watch server.js",
     "test": "node --test test",
     "test:ai-keys": "node scripts/test/verify-ai-keys.mjs",
-    "migrate:course-notes": "node scripts/apply-course-notes-migration.mjs"
+    "migrate:course-notes": "node scripts/apply-course-notes-migration.mjs",
+    "migrate:student-courses": "node scripts/apply-student-course-selections-migration.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",
