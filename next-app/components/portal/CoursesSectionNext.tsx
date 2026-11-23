@@ -12,6 +12,8 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { api } from '@/lib/api'
+import CcmasCatalogSection, { type CcmasCourse } from './CcmasCatalogSection'
+import CourseNotesSection from './CourseNotesSection'
 import styles from './CoursesSectionNext.module.css'
 
 export type Course = {
@@ -51,6 +53,7 @@ type Props = {
 }
 
 type Department = { id: string; name: string; code: string }
+type CoursesTab = 'enrolled' | 'catalog' | 'notes'
 
 type NormalizedCourse = {
   key: string
@@ -274,6 +277,8 @@ function CourseCard({ course }: { course: NormalizedCourse }) {
 }
 
 export default function CoursesSectionNext({ courses, loading, error, onReload }: Props) {
+  const [activeTab, setActiveTab] = useState<CoursesTab>('enrolled')
+  const [selectedCcmasCourse, setSelectedCcmasCourse] = useState<CcmasCourse | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -350,6 +355,27 @@ export default function CoursesSectionNext({ courses, loading, error, onReload }
 
   return (
     <section className={styles.panel} aria-labelledby={headingId}>
+      <div className={styles.tabs} role="tablist" aria-label="Course views">
+        {([
+          ['enrolled', 'My courses'],
+          ['catalog', 'CCMAS catalog'],
+          ['notes', 'Inbuilt notes'],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === id}
+            className={`${styles.tab} ${activeTab === id ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'enrolled' ? (
+        <>
       <header className={styles.header}>
         <div className={styles.heading}>
           <p className={styles.eyebrow}>Enrolled courses</p>
@@ -463,6 +489,19 @@ export default function CoursesSectionNext({ courses, loading, error, onReload }
           {filteredCourses.map((course) => <CourseCard key={course.key} course={course} />)}
         </div>
       )}
+        </>
+      ) : null}
+
+      {activeTab === 'catalog' ? (
+        <CcmasCatalogSection
+          onOpenNotes={(course) => {
+            setSelectedCcmasCourse(course)
+            setActiveTab('notes')
+          }}
+        />
+      ) : null}
+
+      {activeTab === 'notes' ? <CourseNotesSection selectedCourse={selectedCcmasCourse} /> : null}
     </section>
   )
 }

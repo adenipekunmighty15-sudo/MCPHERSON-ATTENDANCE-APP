@@ -9,6 +9,7 @@ import {
   getCheckinKey,
   verifyCheckinCode,
 } from '../services/checkinCode.js'
+import { canManageSession, normalizeManualStatus } from '../services/attendanceWorkflow.js'
 
 const router = Router()
 
@@ -285,6 +286,125 @@ router.get('/api/sessions/:id/attendees', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch session attendees:', err.message)
     res.status(500).json({ error: 'Failed to fetch session attendees' })
+  }
+})
+
+// Lecturer roster: everyone actively enrolled in the session course plus their
+// attendance state for today. Lecturers never supply enrollment themselves.
+router.get('/api/sessions/:id/roster', authenticate, async (req, res) => {
+  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json({ error: 'Invalid session ID' })
+  try {
+    const { rows: sessionRows } = await query(
+      `SELECT id, course_id AS "courseId", course_name AS "courseName",
+        lecturer_id AS "lecturerId", status
+       FROM public.live_sessions WHERE id = $1`,
+      [req.params.id]
+    )
+    if (!sessionRows.length) return res.status(404).json({ error: 'Session not found' })
+    const session = sessionRows[0]
+    if (!canManageSession(req.user, session)) {
+      return res.status(403).json({ error: 'Not authorized to view this roster' })
+    }
+    if (!session.courseId) {
+      return res.status(400).json({ error: 'Session is missing a course identifier' })
+    }
+
+    const { rows } = await query(
+      `SELECT e.user_id AS "userId",
+        u.name AS "studentName", u.email AS "studentEmail",
+        COALESCE(u.admission_number, '') AS "matricNumber",
+        COALESCE(a.status, 'absent') AS status,
+        COALESCE(a.method, '') AS method,
+        a.timestamp
+       FROM public.enrollments e
+       JOIN public.users u ON u.id = e.user_id
+       LEFT JOIN public.attendance a
+         ON a.user_id = e.user_id AND a.course_id = e.course_id AND a.date = $2::date
+       WHERE e.course_id = $1 AND e.status = 'active'
+       ORDER BY u.name ASC`,
+      [session.courseId, nigeriaDate()]
+    )
+    res.status(200).json(rows)
+  } catch (err) {
+    console.error('Failed to fetch session roster:', err.message)
+    res.status(500).json({ error: 'Failed to fetch session roster' })
+  }
+})
+
+// Manual marking for lecturers. Status is validated server-side and the
+// student must be actively enrolled in the session course.
+router.post('/api/sessions/:id/attendance', authenticate, async (req, res) => {
+  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json({ error: 'Invalid session ID' })
+  const status = normalizeManualStatus(req.body?.status)
+  if (!status) return res.status(400).json({ error: 'A valid attendance status is required' })
+  if (!UUID_PATTERN.test(req.body?.userId || '')) {
+    return res.status(400).json({ error: 'A valid student ID is required' })
+  }
+
+  try {
+    const { rows: sessionRows } = await query(
+      `SELECT id, course_id AS "courseId", course_name AS "courseName",
+        lecturer_id AS "lecturerId", timetable_id AS "timetableId", status
+       FROM public.live_sessions WHERE id = $1`,
+      [req.params.id]
+    )
+    if (!sessionRows.length) return res.status(404).json({ error: 'Session not found' })
+    const session = sessionRows[0]
+    if (!canManageSession(req.user, session)) {
+      return res.status(403).json({ error: 'Not authorized to mark attendance for this session' })
+    }
+    if (!session.courseId) {
+      return res.status(400).json({ error: 'Session is missing a course identifier' })
+    }
+
+    const { rows: enrollmentRows } = await query(
+      `SELECT 1 FROM public.enrollments
+       WHERE user_id = $1 AND course_id = $2 AND status = 'active'
+       LIMIT 1`,
+      [req.body.userId, session.courseId]
+    )
+    if (!enrollmentRows.length) {
+      return res.status(403).json({ error: 'Student is not actively enrolled in this course' })
+    }
+
+    const today = nigeriaDate()
+    const { rows: existingRows } = await query(
+      `SELECT id FROM public.attendance
+       WHERE user_id = $1 AND course_id = $2 AND date = $3::date
+       LIMIT 1`,
+      [req.body.userId, session.courseId, today]
+    )
+
+    const values = [status, req.params.id, req.params.id, 'manual', today, new Date().toISOString()]
+    const { rows } = existingRows.length
+      ? await query(
+          `UPDATE public.attendance
+           SET status = $1, live_session_id = $2, session_id = $3, method = $4,
+             date = $5::date, timestamp = $6::timestamptz,
+             location = 'Marked by lecturer', updated_at = NOW()
+           WHERE id = $7
+           RETURNING id, user_id AS "userId", course_id AS "courseId",
+             course_name AS "courseName", status, method, date, timestamp,
+             session_id AS "sessionId"`,
+          [...values, existingRows[0].id]
+        )
+      : await query(
+          `INSERT INTO public.attendance
+            (id, user_id, course_id, course_name, live_session_id, timetable_id,
+             status, method, date, timestamp, location, session_id)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8::date,
+             $9::timestamptz, 'Marked by lecturer', $10)
+           RETURNING id, user_id AS "userId", course_id AS "courseId",
+             course_name AS "courseName", status, method, date, timestamp,
+             session_id AS "sessionId"`,
+          [req.body.userId, session.courseId, session.courseName, req.params.id,
+            session.timetableId || null, status, 'manual', today, new Date().toISOString(), req.params.id]
+        )
+
+    res.status(200).json(rows[0])
+  } catch (err) {
+    console.error('Failed to mark attendance:', err.message)
+    res.status(500).json({ error: 'Failed to mark attendance' })
   }
 })
 

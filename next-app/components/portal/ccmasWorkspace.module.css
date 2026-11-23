@@ -1,0 +1,153 @@
+.wrap { display: grid; gap: 18px; color: var(--mcu-navy); }
+
+.catalogHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-radius: 20px;
+  padding: 24px 26px;
+  background: linear-gradient(125deg, #1d3d35, #172a24);
+  color: #f7fbf8;
+}
+.catalogHead h2 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.03em; }
+.catalogHead p { max-width: 680px; margin: 0; color: rgba(247, 251, 248, 0.7); font-size: 12px; line-height: 1.65; }
+.eyebrow { display: block; margin-bottom: 8px; color: #5fdde2; font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.sourceBadge { display: grid; justify-items: center; min-width: 92px; }
+.sourceBadge strong { font-size: 28px; }
+.sourceBadge span { color: rgba(247, 251, 248, 0.65); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+.catalogGrid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.departmentPanel,
+.resultsPanel,
+.editorCard,
+.notesListCard {
+  border: 1px solid rgba(36, 53, 42, 0.08);
+  border-radius: 18px;
+  padding: 20px;
+  background: var(--mcu-surface);
+}
+.departmentPanel { position: sticky; top: 18px; max-height: calc(100vh - 80px); overflow-y: auto; }
+.panelTitle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.panelTitle strong { font-size: 14px; }
+.linkButton,
+.noteActions button,
+.loadMore,
+.secondaryButton,
+.primaryButton {
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 13px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.linkButton { padding: 4px 8px; background: transparent; color: #0e8d95; }
+.linkButton:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.departmentList { display: grid; gap: 14px; }
+.facultyGroup { display: grid; gap: 4px; }
+.facultyLabel { margin-bottom: 2px; color: var(--mcu-muted); font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.departmentButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--mcu-navy);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+.departmentButton:hover { background: var(--mcu-surface-raised); }
+.departmentButtonActive { background: rgba(37, 203, 214, 0.14); color: #0e6d73; font-weight: 800; }
+.departmentButton small { color: var(--mcu-muted); font-size: 10px; }
+
+.toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
+.search { display: flex; align-items: center; gap: 8px; flex: 1; border: 1px solid rgba(36, 53, 42, 0.12); border-radius: 10px; padding: 0 12px; background: var(--mcu-surface-raised); }
+.search span { color: var(--mcu-muted); font-size: 16px; }
+.search input { width: 100%; border: 0; padding: 11px 0; background: transparent; color: var(--mcu-navy); font: inherit; font-size: 12px; outline: none; }
+.toolbar select { border: 1px solid rgba(36, 53, 42, 0.12); border-radius: 10px; padding: 0 12px; background: var(--mcu-surface-raised); color: var(--mcu-navy); font: inherit; font-size: 11px; }
+
+.activeFilter { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--mcu-muted); font-size: 11px; }
+.activeFilter button { border: 0; background: transparent; color: #0e8d95; font: inherit; font-weight: 800; cursor: pointer; }
+.state, .error, .notice { margin: 10px 0; font-size: 11px; line-height: 1.55; }
+.state { color: var(--mcu-muted); }
+.error { color: #b91c1c; }
+.notice { color: #0e8d95; }
+
+.courseList { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.courseList li { overflow: hidden; border: 1px solid rgba(36, 53, 42, 0.08); border-radius: 12px; background: var(--mcu-surface-raised); }
+.courseItemOpen { border-color: rgba(37, 203, 214, 0.4); }
+.courseItemHead { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; padding: 13px 14px; background: transparent; color: var(--mcu-navy); font: inherit; text-align: left; cursor: pointer; }
+.courseCode { min-width: 68px; color: #0e8d95; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 800; }
+.courseInfo { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.courseInfo strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.courseInfo small { color: var(--mcu-muted); font-size: 10px; }
+.levelPill { border-radius: 999px; padding: 4px 8px; background: rgba(36, 53, 42, 0.07); color: var(--mcu-muted); font-size: 9px; font-weight: 800; }
+.chevron { color: var(--mcu-muted); font-size: 17px; }
+.courseDetail { display: grid; gap: 14px; border-top: 1px solid rgba(36, 53, 42, 0.08); padding: 16px 14px; }
+.courseDetail h4 { margin: 0 0 7px; font-size: 11px; }
+.courseDetail ul { display: grid; gap: 5px; margin: 0; padding-left: 18px; color: var(--mcu-muted); font-size: 11px; line-height: 1.55; }
+.courseDetail p { margin: 0; color: var(--mcu-muted); font-size: 11px; line-height: 1.65; }
+.courseActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.primaryButton { background: linear-gradient(120deg, #168d94, #25cbd6); color: #fff; }
+.secondaryButton { border: 1px solid rgba(36, 53, 42, 0.12); background: transparent; color: var(--mcu-navy); text-decoration: none; }
+.loadMore { display: block; margin: 16px auto 0; border: 1px solid rgba(36, 53, 42, 0.12); background: transparent; color: var(--mcu-navy); }
+.endNote { margin: 16px 0 0; color: var(--mcu-muted); font-size: 10px; text-align: center; }
+
+.notesGrid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr); gap: 16px; align-items: start; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field span { color: var(--mcu-muted); font-size: 10px; font-weight: 750; }
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  border: 1px solid rgba(36, 53, 42, 0.12);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: var(--mcu-surface-raised);
+  color: var(--mcu-navy);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+  resize: vertical;
+}
+.field input:focus,
+.field textarea:focus { border-color: #25cbd6; }
+.formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.coursePicker { position: relative; }
+.courseResults { position: absolute; z-index: 5; top: 100%; left: 0; right: 0; display: grid; max-height: 230px; overflow-y: auto; border: 1px solid rgba(36, 53, 42, 0.1); border-radius: 10px; background: var(--mcu-surface); box-shadow: 0 12px 28px rgba(15, 42, 32, 0.12); }
+.courseResults button { display: flex; gap: 10px; border: 0; border-bottom: 1px solid rgba(36, 53, 42, 0.06); padding: 10px 12px; background: transparent; color: var(--mcu-navy); font: inherit; text-align: left; cursor: pointer; }
+.courseResults button:hover { background: var(--mcu-surface-raised); }
+.courseResults strong { min-width: 64px; color: #0e8d95; font-size: 10px; }
+.courseResults span { font-size: 11px; }
+.editorActions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+.noteList { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.noteList li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; border: 1px solid rgba(36, 53, 42, 0.08); border-radius: 11px; padding: 11px; background: var(--mcu-surface-raised); }
+.noteInfo { display: grid; gap: 3px; min-width: 0; }
+.noteCode { color: #0e8d95; font-size: 9px; font-weight: 800; }
+.noteInfo strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.noteInfo small { color: var(--mcu-muted); font-size: 9px; }
+.noteActions { display: flex; gap: 4px; }
+.noteActions button { padding: 5px 8px; background: var(--mcu-surface); color: var(--mcu-navy); font-size: 10px; }
+.deleteButton { color: #b91c1c !important; }
+
+@media (max-width: 960px) {
+  .catalogGrid, .notesGrid { grid-template-columns: 1fr; }
+  .departmentPanel { position: static; max-height: none; }
+}
+
+@media (max-width: 640px) {
+  .catalogHead { align-items: flex-start; flex-direction: column; }
+  .toolbar, .formGrid { flex-direction: column; grid-template-columns: 1fr; }
+  .editorActions { justify-content: stretch; }
+  .editorActions button { flex: 1; }
+}

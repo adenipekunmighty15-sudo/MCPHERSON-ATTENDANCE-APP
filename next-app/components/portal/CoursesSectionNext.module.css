@@ -446,3 +446,30 @@
   .card:hover { transform: none; }
   .skeletonBlock::after { animation: none; }
 }
+
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  border: 1px solid var(--courses-border);
+  border-radius: 999px;
+  padding: 4px;
+  background: var(--mcu-surface-raised, transparent);
+}
+
+.tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 15px;
+  background: transparent;
+  color: var(--courses-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--mcu-forest, #3d684b);
+  color: #fff;
+}
