@@ -161,9 +161,16 @@ Changing those API-host values does not require a frontend rebuild.
 
 Initialize an empty database from `backend/scripts/schema_corrected.sql`, then
 apply each numbered SQL update in `backend/src/migrations` once, in order.
-Migrations 007–014 add attendance protections, venue ownership, complaint and
+Migrations 007–016 add attendance protections, venue ownership, complaint and
 library features, face-data privacy, Data API lockdown, study-group invites,
-and private direct messaging.
+private direct messaging, and personal course notes (`course_notes`).
+
+For the course-notes migration on a configured backend environment, run:
+
+```powershell
+cd backend
+npm run migrate:course-notes
+```
 Migration 012 disables direct Supabase Data API access to public tables; the application
 uses the authenticated backend API for database operations. The
 attendance uniqueness migration stops if existing duplicate check-ins need

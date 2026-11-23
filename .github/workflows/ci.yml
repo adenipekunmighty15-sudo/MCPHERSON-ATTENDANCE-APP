@@ -2,29 +2,50 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, 'redesign/**' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, 'redesign/**' ]
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-      
-      - name: Install frontend dependencies
-        run: npm install
-        working-directory: frontend
-
-      - name: Build frontend
-        run: npm run build
-        working-directory: frontend
+          cache-dependency-path: |
+            backend/package-lock.json
+            next-app/package-lock.json
+            frontend/package-lock.json
 
       - name: Install backend dependencies
-        run: npm install
+        run: npm ci
         working-directory: backend
+
+      - name: Backend tests
+        run: npm test
+        working-directory: backend
+
+      - name: Backend audit
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: backend
+
+      - name: Install Next app dependencies
+        run: npm ci
+        working-directory: next-app
+
+      - name: Next app lint/typecheck
+        run: npm run lint
+        working-directory: next-app
+
+      - name: Next app build
+        run: npm run build
+        working-directory: next-app
+
+      - name: Next app audit
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: next-app
