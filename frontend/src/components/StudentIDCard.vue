@@ -989,8 +989,10 @@ onBeforeUnmount(() => {
 }
 
 @keyframes cardIdle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%, 100% { transform: translate3d(0, 0, 0) rotateX(-1.5deg) rotateY(-4deg) rotateZ(-0.8deg); }
+  25% { transform: translate3d(0, -4px, 2px) rotateX(0.5deg) rotateY(-1deg) rotateZ(0.2deg); }
+  50% { transform: translate3d(0, -9px, 5px) rotateX(1.5deg) rotateY(4deg) rotateZ(0.8deg); }
+  75% { transform: translate3d(0, -4px, 2px) rotateX(0.5deg) rotateY(1deg) rotateZ(-0.2deg); }
 }
 
 @keyframes cardGlare {

@@ -213,6 +213,55 @@ router.get('/api/study-materials/:id', authenticate, async (req, res) => {
   }
 })
 
+router.put('/api/study-materials/:id/notes', authenticate, async (req, res) => {
+  try {
+    const { improvedNote } = req.body
+    if (typeof improvedNote !== 'string' || !improvedNote.trim() || improvedNote.length > 50000) {
+      return res.status(400).json({ error: 'Notes must contain between 1 and 50,000 characters' })
+    }
+    if (!await requireOwnedStudyMaterial(req.params.id, req.user.id)) {
+      return res.status(404).json({ error: 'Study pack not found' })
+    }
+    await query('UPDATE public.study_materials SET improved_note = $1 WHERE id = $2 AND created_by = $3', [improvedNote, req.params.id, req.user.id])
+    res.status(200).json({ improvedNote })
+  } catch (err) {
+    console.error('Save study notes failed:', err.message)
+    res.status(500).json({ error: 'Failed to save study notes' })
+  }
+})
+
+router.post('/api/study-materials/:id/notes/refine', authenticate, async (req, res) => {
+  try {
+    const instruction = typeof req.body?.instruction === 'string' ? req.body.instruction.trim() : ''
+    if (!instruction || instruction.length > 500) {
+      return res.status(400).json({ error: 'Tell the assistant how to improve these notes (up to 500 characters)' })
+    }
+    if (!await requireOwnedStudyMaterial(req.params.id, req.user.id)) {
+      return res.status(404).json({ error: 'Study pack not found' })
+    }
+    const { rows } = await query(
+      'SELECT title, source_text, improved_note, summary FROM public.study_materials WHERE id = $1 AND created_by = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Study pack not found' })
+    const material = rows[0]
+    const result = await aiChat([
+      {
+        role: 'system',
+        content: `You are an academic study-notes editor. Revise the existing notes according to the student's request. Keep factual claims grounded in the supplied material, preserve useful detail, and return only the revised notes in Markdown. Do not add commentary or claim unsupported facts.\n\nPack: ${material.title}\nSource material:\n${String(material.source_text || '').slice(0, 18000)}\n\nCurrent notes:\n${String(material.improved_note || material.summary || '').slice(0, 18000)}`
+      },
+      { role: 'user', content: instruction },
+    ])
+    const revisedNotes = typeof result?.final === 'string' ? result.final.trim() : ''
+    if (!revisedNotes) return res.status(503).json({ error: 'The study assistant could not refine these notes right now' })
+    await query('UPDATE public.study_materials SET improved_note = $1 WHERE id = $2 AND created_by = $3', [revisedNotes, req.params.id, req.user.id])
+    res.status(200).json({ improvedNote: revisedNotes })
+  } catch (err) {
+    console.error('Refine study notes failed:', err.message)
+    res.status(500).json({ error: 'Failed to refine study notes' })
+  }
+})
+
 router.post('/api/study-materials/search-web', authenticate, async (req, res) => {
   try {
     const { query } = req.body
@@ -444,6 +493,10 @@ CRITICAL RULES:
   const aiTime = Date.now() - startTime
   log('PACK', `Ready in ${aiTime}ms using AI`)
 
+  const finalFlashcards = (Array.isArray(pack.flashcards) ? pack.flashcards : []).slice(0, flashcardCount)
+  const finalQuiz = (Array.isArray(pack.quiz) ? pack.quiz : []).slice(0, quizCount)
+  const finalKeyPoints = (Array.isArray(pack.keyPoints) ? pack.keyPoints : []).slice(0, keyPointCount)
+
   // Phase 3: DB persist (best-effort, does not block response)
   let savedId = null
   try {
@@ -461,8 +514,8 @@ CRITICAL RULES:
         finalTitle,
         combinedText,
         typeof pack.summary === 'string' ? pack.summary : JSON.stringify(pack.summary || ''),
-        JSON.stringify(Array.isArray(pack.keyPoints) ? pack.keyPoints : []),
-        JSON.stringify(Array.isArray(pack.quiz) ? pack.quiz : []),
+        JSON.stringify(finalKeyPoints),
+        JSON.stringify(finalQuiz),
         JSON.stringify(Array.isArray(pack.diagrams) ? pack.diagrams : []),
         typeof pack.improvedNote === 'string' ? pack.improvedNote : JSON.stringify(pack.improvedNote || ''),
         req.user.id,
@@ -470,7 +523,7 @@ CRITICAL RULES:
     )
     log('DB', 'Material inserted')
 
-    const cards = Array.isArray(pack.flashcards) ? pack.flashcards : []
+    const cards = finalFlashcards
     let inserted = 0
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i] || {}
@@ -496,15 +549,13 @@ CRITICAL RULES:
   }
 
   // Phase 4: Build response (always succeeds)
-  const finalFlashcards = Array.isArray(pack.flashcards) ? pack.flashcards : []
-  const finalQuiz = Array.isArray(pack.quiz) ? pack.quiz : []
   const responseData = {
     id: savedId,
     courseId: courseId || null,
     title: finalTitle,
     sourceText: combinedText,
     summary: typeof pack.summary === 'string' ? pack.summary : JSON.stringify(pack.summary || ''),
-    keyPoints: Array.isArray(pack.keyPoints) ? pack.keyPoints : [],
+    keyPoints: finalKeyPoints,
     quiz: finalQuiz,
     diagrams: Array.isArray(pack.diagrams) ? pack.diagrams : [],
     improvedNote: typeof pack.improvedNote === 'string' ? pack.improvedNote : JSON.stringify(pack.improvedNote || ''),
@@ -536,6 +587,12 @@ router.post('/api/study-materials/upload', authenticate, upload.fields([
   const flashcardCount = Math.min(Math.max(parseInt(fc) || 10, 1), 50)
   const quizCount = Math.min(Math.max(parseInt(qc) || 8, 1), 30)
   const keyPointCount = Math.min(Math.max(parseInt(kpc) || 6, 1), 30)
+  const quizDifficulty = ['beginner', 'intermediate', 'advanced'].includes(req.body.quizDifficulty)
+    ? req.body.quizDifficulty
+    : 'intermediate'
+  const quizFormat = ['multiple_choice', 'true_false', 'fill_blank', 'mixed'].includes(req.body.quizFormat)
+    ? req.body.quizFormat
+    : 'multiple_choice'
   const audioFiles = req.files?.audio || []
   const docFiles = [...(req.files?.document || []), ...(req.files?.pdf || [])]
   const imageFiles = req.files?.image || []
@@ -633,6 +690,8 @@ CRITICAL RULES:
 - Use LaTeX for math: $...$ inline, $$...$$ display
 - Return ONLY valid JSON — no markdown, no code fences, no commentary`
 
+  const quizSettings = `\nQUIZ SETTINGS: Generate exactly ${quizCount} quiz questions and ${flashcardCount} flashcards and ${keyPointCount} key points when the material supports them. Difficulty: ${quizDifficulty}. Format: ${quizFormat}. For true_false items use type "true_false", options ["True", "False"], answerIndex 0 or 1, and an explanation. For fill_blank items use type "fill_blank", include ___ in the question, and return the exact answer in a string "answer" field with an explanation. For mixed, balance multiple-choice, true/false, and fill-in-the-blank. For multiple_choice, use only multiple-choice.`
+  const uploadSystemPrompt = `${uploadSystemInstruction}${quizSettings}`
   const uploadUserPrompt = `Generate a study pack for the following material:\n\n${combinedText.slice(0, 30000)}`
 
   // UNBREAKABLE AI — try every available path
@@ -642,7 +701,7 @@ CRITICAL RULES:
       try {
         log('AI', 'Path A: AI council (' + combinedText.length + ' chars)')
         const aiContent = combinedText.length > 28000 ? combinedText.slice(0, 28000) + '\n\n[CONTENT TRUNCATED - Text exceeds maximum length]' : combinedText
-        const prompt = `${uploadSystemInstruction}\n\nMaterial:\n${aiContent}`
+        const prompt = `${uploadSystemPrompt}\n\nMaterial:\n${aiContent}`
         const aiDeadline = Math.min(40000, deadline - Date.now())
         const result = await Promise.race([
           aiChat([{ role: 'user', content: prompt }], { verifyWithSearch: false, turboMode: false }),
@@ -678,7 +737,7 @@ CRITICAL RULES:
           const pdl = Math.min(20000, deadline - Date.now())
           const result = await Promise.race([
             getAiResponse(fp, [
-              { role: 'system', content: uploadSystemInstruction },
+              { role: 'system', content: uploadSystemPrompt },
               { role: 'user', content: uploadUserPrompt }
             ], { temperature: 0.3 }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), pdl))
@@ -720,6 +779,9 @@ CRITICAL RULES:
   log('PACK', `Ready in ${aiTime}ms using AI`)
 
   // DB persist (best-effort)
+  const finalFlashcards = (Array.isArray(pack.flashcards) ? pack.flashcards : []).slice(0, flashcardCount)
+  const finalQuiz = (Array.isArray(pack.quiz) ? pack.quiz : []).slice(0, quizCount)
+  const finalKeyPoints = (Array.isArray(pack.keyPoints) ? pack.keyPoints : []).slice(0, keyPointCount)
   let savedId = null
   try {
     // Ensure user exists in public.users (FK constraint)
@@ -736,8 +798,8 @@ CRITICAL RULES:
         uploadTitle,
         combinedText,
         typeof pack.summary === 'string' ? pack.summary : JSON.stringify(pack.summary || ''),
-        JSON.stringify(Array.isArray(pack.keyPoints) ? pack.keyPoints : []),
-        JSON.stringify(Array.isArray(pack.quiz) ? pack.quiz : []),
+        JSON.stringify(finalKeyPoints),
+        JSON.stringify(finalQuiz),
         JSON.stringify(Array.isArray(pack.diagrams) ? pack.diagrams : []),
         typeof pack.improvedNote === 'string' ? pack.improvedNote : JSON.stringify(pack.improvedNote || ''),
         req.user.id,
@@ -745,7 +807,7 @@ CRITICAL RULES:
     )
     log('DB', 'Material inserted')
 
-    const cards = Array.isArray(pack.flashcards) ? pack.flashcards : []
+    const cards = finalFlashcards
     let inserted = 0
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i] || {}
@@ -771,15 +833,13 @@ CRITICAL RULES:
   }
 
   // Build response (always succeeds)
-  const finalFlashcards = Array.isArray(pack.flashcards) ? pack.flashcards : []
-  const finalQuiz = Array.isArray(pack.quiz) ? pack.quiz : []
   const responseData = {
     id: savedId,
     courseId: courseId || null,
     title: uploadTitle,
     sourceText: combinedText,
     summary: typeof pack.summary === 'string' ? pack.summary : JSON.stringify(pack.summary || ''),
-    keyPoints: Array.isArray(pack.keyPoints) ? pack.keyPoints : [],
+    keyPoints: finalKeyPoints,
     quiz: finalQuiz,
     diagrams: Array.isArray(pack.diagrams) ? pack.diagrams : [],
     improvedNote: typeof pack.improvedNote === 'string' ? pack.improvedNote : JSON.stringify(pack.improvedNote || ''),

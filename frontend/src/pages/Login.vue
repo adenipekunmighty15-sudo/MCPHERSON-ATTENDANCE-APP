@@ -122,7 +122,7 @@
             <p>
               {{ mode === 'signin'
                 ? 'Use your registered university account to access your portal.'
-                : `Set up your ${currentUniversity.name} portal account in one short step.` }}
+                : `Add your ${currentUniversity.name} details, then create a secure password.` }}
             </p>
           </header>
 
@@ -182,6 +182,8 @@
               novalidate
               @submit.prevent="handleLogin"
             >
+              <fieldset class="credential-group">
+                <legend>University account</legend>
               <div class="field" :class="fieldClass('email')">
                 <div class="input-wrap">
                   <Mail class="input-icon" :size="17" aria-hidden="true" />
@@ -236,6 +238,7 @@
                 <p v-if="errors.password" id="signin-password-error" class="field-error" role="alert">{{ errors.password }}</p>
               </div>
 
+              </fieldset>
               <div class="field-meta">
                 <label class="remember-me">
                   <input v-model="rememberMe" type="checkbox" name="remember" />
@@ -296,6 +299,8 @@
               </fieldset>
 
               <template v-if="userRole === 'student'">
+                <section class="signup-section" aria-labelledby="signup-account-heading">
+                  <header class="signup-section-heading"><h3 id="signup-account-heading">Account details</h3><p>Your university identity and contact.</p></header>
               <div class="field-grid">
                 <div class="field" :class="fieldClass('fullName')">
                   <div class="input-wrap">
@@ -362,6 +367,9 @@
 
               <p id="signup-email-hint" class="field-hint">Accepted domains: {{ allowedEmailDomains.join(', ') }}</p>
 
+                </section>
+                <section class="signup-section" aria-labelledby="signup-academic-heading">
+                  <header class="signup-section-heading"><h3 id="signup-academic-heading">Academic profile</h3><p>Choose the department connected to your account.</p></header>
               <div ref="comboboxRef" class="field combobox-field" :class="fieldClass('department')">
                 <div class="input-wrap combo-wrap" :class="{ 'is-open': departmentOpen }">
                   <GraduationCap class="input-icon" :size="17" aria-hidden="true" />
@@ -436,6 +444,9 @@
                 <p v-if="errors.department" class="field-error" role="alert">{{ errors.department }}</p>
               </div>
 
+                </section>
+                <section class="signup-section" aria-labelledby="signup-security-heading">
+                  <header class="signup-section-heading"><h3 id="signup-security-heading">Account security</h3><p>Create a password that meets each check.</p></header>
               <div class="field-grid">
                 <div class="field" :class="fieldClass('password')">
                   <div class="input-wrap">
@@ -514,6 +525,7 @@
                 </div>
               </div>
 
+                </section>
               <button v-magnetic="0.16" v-ripple v-squash v-anticipate v-origin v-instant type="submit" class="submit-btn ux-touch-target ux-primary-action ux-solid" :disabled="isBusy" :aria-busy="isBusy">
                 <span>{{ isBusy ? 'Creating account...' : 'Create Account' }}</span>
                 <ArrowRight v-if="!isBusy" :size="17" aria-hidden="true" />
@@ -2024,10 +2036,66 @@ onUnmounted(() => {
   transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease, transform 260ms ease;
 }
 
+.credential-group {
+  min-width: 0;
+  margin: 0 0 14px;
+  padding: 11px 13px 1px;
+  border: 1px solid var(--slate-line);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.credential-group legend {
+  padding: 0 7px;
+  color: #607064;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.signup-section {
+  min-width: 0;
+  margin-bottom: 11px;
+  padding: 13px 13px 1px;
+  border: 1px solid var(--slate-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(36, 53, 42, 0.035);
+}
+
+.signup-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.signup-section-heading h3 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.015em;
+}
+
+.signup-section-heading p {
+  margin: 0;
+  color: #718074;
+  font-size: 9px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.signup-section > .field:last-child,
+.signup-section > .field-grid:last-child {
+  margin-bottom: 0;
 }
 
 .field {
@@ -2074,6 +2142,18 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(249, 172, 138, 0.14);
 }
 
+.input-wrap input:-webkit-autofill,
+.input-wrap input:-webkit-autofill:hover,
+.input-wrap input:-webkit-autofill:focus,
+.input-wrap input:-webkit-autofill:active,
+.input-wrap input:autofill {
+  -webkit-text-fill-color: var(--navy);
+  caret-color: var(--navy);
+  background-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+}
+
 .input-wrap label {
   position: absolute;
   top: 16px;
@@ -2086,7 +2166,9 @@ onUnmounted(() => {
 }
 
 .input-wrap input:focus + label,
-.input-wrap input:not(:placeholder-shown) + label {
+.input-wrap input:not(:placeholder-shown) + label,
+.input-wrap input:-webkit-autofill + label,
+.input-wrap input:autofill + label {
   transform: translateY(-10px) scale(0.8);
   color: var(--navy);
   font-weight: 700;
@@ -2698,6 +2780,9 @@ onUnmounted(() => {
   .auth-workspace { padding-inline: 12px; }
   .auth-card { padding: 20px 16px; border-radius: 18px; }
   .field-grid { grid-template-columns: 1fr; gap: 0; }
+  .signup-section { padding: 11px 10px 1px; }
+  .signup-section-heading { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .signup-section-heading p { text-align: left; }
   .showcase-cards { grid-template-columns: 1fr; }
   .mobile-brand .badge-compact { display: none; }
   .domain-chip { font-size: 8px; }

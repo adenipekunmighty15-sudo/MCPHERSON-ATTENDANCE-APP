@@ -6,7 +6,7 @@
         <div class="brand-mark"><Sparkles :size="18" /></div>
         <div>
           <strong>Study Hub</strong>
-          <span>TurboLearn workspace</span>
+          <span>McPherson Study Studio</span>
         </div>
       </div>
 
@@ -112,6 +112,36 @@
                 </label>
               </div>
 
+              <details class="study-options">
+                <summary>Customize your study pack</summary>
+                <div class="options-grid">
+                  <label>Flashcards
+                    <select v-model.number="flashcardCount" :disabled="generating">
+                      <option :value="8">8 cards</option><option :value="12">12 cards</option>
+                      <option :value="20">20 cards</option><option :value="30">30 cards</option>
+                    </select>
+                  </label>
+                  <label>Quiz questions
+                    <select v-model.number="quizCount" :disabled="generating">
+                      <option :value="5">5 questions</option><option :value="10">10 questions</option>
+                      <option :value="15">15 questions</option><option :value="20">20 questions</option>
+                    </select>
+                  </label>
+                  <label>Difficulty
+                    <select v-model="quizDifficulty" :disabled="generating">
+                      <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </label>
+                  <label>Question types
+                    <select v-model="quizFormat" :disabled="generating">
+                      <option value="multiple_choice">Multiple choice</option><option value="true_false">True or false</option>
+                      <option value="fill_blank">Fill in the blank</option><option value="mixed">Mixed</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
+
               <div v-if="files.length" class="file-chips">
                 <div v-for="(file, i) in files" :key="i" class="file-chip">
                   <component :is="fileIcon(file)" :size="13" />
@@ -173,26 +203,47 @@
               <button class="ghost-btn" @click="loadPacks">Retry</button>
             </div>
             <div v-else-if="packsLoading" class="library-loading" role="status">Loading your study packs…</div>
-            <div v-if="!packsError && packs.length" class="pack-grid">
-              <button v-for="pack in packs" :key="pack.id" class="pack-card" @click="openPack(pack.id)">
+            <div v-if="!packsError" class="library-tools">
+              <label class="library-filter">Show
+                <select v-model="folderFilter" aria-label="Filter study packs by folder">
+                  <option value="all">All study packs</option>
+                  <option value="unfiled">Unfiled</option>
+                  <option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option>
+                </select>
+              </label>
+              <form class="folder-create" @submit.prevent="createFolder">
+                <input v-model="newFolderName" aria-label="New folder name" maxlength="60" placeholder="New folder name" />
+                <button type="submit" :disabled="folderBusy || !newFolderName.trim()">Create folder</button>
+              </form>
+              <span v-if="folderNotice" class="folder-notice" role="status">{{ folderNotice }}</span>
+            </div>
+            <div v-if="folderError" class="inline-error library-error" role="alert"><AlertCircle :size="15" /> {{ folderError }}</div>
+            <div v-if="!packsError && visiblePacks.length" class="pack-grid">
+              <article v-for="pack in visiblePacks" :key="pack.id" class="pack-card">
                 <div class="pack-card-top">
                   <span class="pack-icon"><FileText :size="18" /></span>
                   <span class="pack-date">{{ shortDate(pack.createdAt) }}</span>
                 </div>
-                <h3>{{ pack.title }}</h3>
+                <button class="pack-open" @click="openPack(pack.id)"><h3>{{ pack.title }}</h3></button>
                 <p>{{ truncate(stripMarkdown(pack.summary || pack.sourceText || ''), 110) }}</p>
                 <div class="pack-stats">
                   <span><Layers :size="13" /> {{ pack.flashcardCount || 0 }} cards</span>
                   <span><ListChecks :size="13" /> {{ Array.isArray(pack.quiz) ? pack.quiz.length : 0 }} quiz</span>
                   <span v-if="pack.podcastUrl"><Headphones :size="13" /> Audio</span>
                 </div>
-              </button>
+                <label class="pack-folder">Folder
+                  <select :value="pack.folderId || ''" :disabled="folderBusy" @change="movePackToFolder(pack, $event)">
+                    <option value="">Unfiled</option>
+                    <option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option>
+                  </select>
+                </label>
+              </article>
             </div>
             <div v-else-if="!packsError && !packsLoading" class="empty-state">
               <Library :size="34" />
-              <h3>Your library is empty</h3>
-              <p>Generate your first study pack and it will appear here.</p>
-              <button class="primary-btn small" @click="goWorkspace">Create a pack</button>
+              <h3>{{ packs.length ? 'No packs in this folder' : 'Your library is empty' }}</h3>
+              <p>{{ packs.length ? 'Choose another folder or move a pack here.' : 'Generate your first study pack and it will appear here.' }}</p>
+              <button v-if="!packs.length" class="primary-btn small" @click="goWorkspace">Create a pack</button>
             </div>
           </div>
 
@@ -227,8 +278,30 @@
               <div v-if="activity === 'notes'" key="notes" class="activity-panel">
                 <div class="notes-layout">
                   <article class="note-sheet">
-                    <div class="sheet-kicker">SMART NOTES</div>
-                    <div class="markdown-body" v-safe-html="renderMarkdown(activePack?.improvedNote || activePack?.summary)"></div>
+                    <div class="note-toolbar">
+                      <div class="sheet-kicker">SMART NOTES</div>
+                      <div class="note-actions">
+                        <button v-if="!editingNotes" class="ghost-btn" @click="startEditingNotes">Edit notes</button>
+                        <template v-else>
+                          <button class="ghost-btn" :disabled="noteSaving" @click="cancelEditingNotes">Cancel</button>
+                          <button class="primary-btn small" :disabled="noteSaving || !noteDraft.trim()" @click="saveNotes">
+                            <Loader2 v-if="noteSaving" :size="14" class="spin" />{{ noteSaving ? 'Saving...' : 'Save notes' }}
+                          </button>
+                        </template>
+                      </div>
+                    </div>
+                    <textarea v-if="editingNotes" v-model="noteDraft" class="note-editor" aria-label="Edit study notes" rows="22" />
+                    <div v-else class="markdown-body" v-safe-html="renderMarkdown(activePack?.improvedNote || activePack?.summary)"></div>
+                    <div class="note-refine">
+                      <label for="refine-instruction">Ask AI to improve these notes</label>
+                      <div><input id="refine-instruction" v-model="noteInstruction" maxlength="500" placeholder="e.g. Make a one-page revision guide" :disabled="noteRefining" />
+                        <button class="ghost-btn" :disabled="noteRefining || !noteInstruction.trim() || aiUnavailable" @click="refineNotes">
+                          <Loader2 v-if="noteRefining" :size="14" class="spin" /><WandSparkles v-else :size="14" />{{ noteRefining ? 'Refining...' : 'Refine' }}
+                        </button>
+                      </div>
+                      <p v-if="noteStatus" role="status">{{ noteStatus }}</p>
+                      <p v-if="noteError" class="note-error" role="alert">{{ noteError }}</p>
+                    </div>
                   </article>
                   <aside class="key-panel">
                     <h3><Sparkles :size="15" /> Key takeaways</h3>
@@ -274,18 +347,28 @@
               <div v-else-if="activity === 'quiz'" key="quiz" class="activity-panel">
                 <div class="panel-head">
                   <div><h3><ListChecks :size="16" /> Quick quiz</h3><p>Test yourself on this material.</p></div>
-                  <span v-if="quizFinished" class="count-pill">{{ quizScore }}/{{ quiz.length }}</span>
+                  <div class="quiz-summary"><span v-if="quizFinished" class="count-pill">{{ quizScore }}/{{ quiz.length }}</span>
+                    <button v-if="quizFinished" class="ghost-btn" @click="resetQuiz">Try again</button></div>
                 </div>
                 <div v-if="quiz.length" class="quiz-wrap">
                   <div v-for="(q, qi) in quiz" :key="qi" class="quiz-card">
                     <p class="quiz-q"><span>{{ qi + 1 }}.</span> {{ q.question }}</p>
-                    <div class="quiz-options">
-                      <button v-for="(opt, oi) in q.options" :key="oi"
-                        :class="quizAnswers[qi] === oi ? (oi === q.answerIndex ? 'correct' : 'wrong') : ''"
+                    <template v-if="quizQuestionType(q) === 'fill_blank'">
+                      <form class="fill-answer" @submit.prevent="answerQuiz(qi, quizDraft[qi])">
+                        <input v-model="quizDraft[qi]" :disabled="quizAnswers[qi] !== undefined" placeholder="Type your answer" :aria-label="`Answer question ${qi + 1}`" />
+                        <button class="primary-btn small" type="submit" :disabled="quizAnswers[qi] !== undefined || !quizDraft[qi]?.trim()">Check answer</button>
+                      </form>
+                      <p v-if="quizAnswers[qi] !== undefined" class="quiz-feedback" :class="{ correct: quizIsCorrect(q, quizAnswers[qi]), wrong: !quizIsCorrect(q, quizAnswers[qi]) }">
+                        {{ quizIsCorrect(q, quizAnswers[qi]) ? 'Correct' : `Answer: ${quizCorrectAnswer(q)}` }}
+                      </p>
+                    </template>
+                    <div v-else class="quiz-options">
+                      <button v-for="(opt, oi) in quizOptions(q)" :key="oi"
+                        :class="quizAnswers[qi] === oi ? (oi === quizCorrectOption(q) ? 'correct' : 'wrong') : ''"
                         :disabled="quizAnswers[qi] !== undefined" @click="answerQuiz(qi, oi)">
                         <span class="opt-letter">{{ String.fromCharCode(65 + oi) }}</span>
                         {{ opt }}
-                        <Check v-if="quizAnswers[qi] !== undefined && oi === q.answerIndex" :size="15" />
+                        <Check v-if="quizAnswers[qi] !== undefined && oi === quizCorrectOption(q)" :size="15" />
                       </button>
                     </div>
                     <p v-if="quizAnswers[qi] !== undefined && q.explanation" class="quiz-explain">{{ q.explanation }}</p>
@@ -300,15 +383,19 @@
                   <div class="audio-icon"><Headphones :size="30" /></div>
                   <div>
                     <h3>Listen to your notes</h3>
-                    <p>A short audio recap generated from this pack.</p>
+                    <p>Choose how long and detailed your audio review should be.</p>
                   </div>
+                </div>
+                <div class="podcast-options">
+                  <label>Length<select v-model.number="podcastLength"><option :value="2500">Short</option><option :value="4500">Standard</option><option :value="7500">Extended</option></select></label>
+                  <label>Depth<select v-model="podcastDepth"><option value="overview">Quick overview</option><option value="balanced">Balanced review</option><option value="deep_dive">Detailed deep dive</option></select></label>
                   <button class="primary-btn small" :disabled="podcastBusy || aiUnavailable" :title="aiUnavailable ? 'No AI provider is online' : undefined" @click="makePodcast">
-                    <Loader2 v-if="podcastBusy" :size="15" class="spin" />
-                    <WandSparkles v-else :size="15" />
-                    {{ activePack?.podcastUrl ? 'Regenerate' : 'Generate audio' }}
+                    <Loader2 v-if="podcastBusy" :size="15" class="spin" /><WandSparkles v-else :size="15" />
+                    {{ activePack?.podcastUrl ? 'Regenerate audio' : 'Generate audio' }}
                   </button>
                 </div>
                 <audio v-if="activePack?.podcastUrl" :src="activePack.podcastUrl" controls class="audio-player" />
+                <div v-if="activePack?.podcastUrl" class="podcast-actions"><a :href="activePack.podcastUrl" download>Download audio</a><details v-if="podcastScript"><summary>Read the audio script</summary><p>{{ podcastScript }}</p></details></div>
                 <div v-if="audioError" class="inline-error"><AlertCircle :size="15" /> {{ audioError }}</div>
               </div>
 
@@ -408,6 +495,17 @@ const authStore = useAuthStore()
 /* ── Workspace state ── */
 const view = ref('workspace')
 const packs = ref([])
+const folders = ref([])
+const folderFilter = ref('all')
+const newFolderName = ref('')
+const folderBusy = ref(false)
+const folderError = ref('')
+const folderNotice = ref('')
+const visiblePacks = computed(() => packs.value.filter(pack => {
+  if (folderFilter.value === 'all') return true
+  if (folderFilter.value === 'unfiled') return !pack.folderId
+  return String(pack.folderId || '') === String(folderFilter.value)
+}))
 const courses = ref([])
 const selectedCourseId = ref('')
 const studentDepartment = computed(() => authStore.user?.department || '')
@@ -415,6 +513,13 @@ const packsLoading = ref(false)
 const packsError = ref('')
 const activePack = ref(null)
 const activity = ref('notes')
+const editingNotes = ref(false)
+const noteDraft = ref('')
+const noteInstruction = ref('')
+const noteSaving = ref(false)
+const noteRefining = ref(false)
+const noteStatus = ref('')
+const noteError = ref('')
 const sourceText = ref('')
 const sourceUrl = ref('')
 const files = ref([])
@@ -427,6 +532,10 @@ const aiUnavailable = computed(() => aiChecked.value && aiOnlineCount.value === 
 const genStep = ref(0)
 const error = ref('')
 const genSteps = ['Reading your sources', 'Understanding the material', 'Writing notes & cards', 'Building quiz & audio recap']
+const flashcardCount = ref(12)
+const quizCount = ref(10)
+const quizDifficulty = ref('intermediate')
+const quizFormat = ref('multiple_choice')
 
 const railItems = [
   { id: 'new', label: 'New pack', icon: Plus, view: 'workspace', action: goWorkspace },
@@ -459,7 +568,7 @@ async function checkAIProviders() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadPacks(), loadGoals(), loadCourses(), checkAIProviders()])
+  await Promise.all([loadPacks(), loadFolders(), loadGoals(), loadCourses(), checkAIProviders()])
 })
 onUnmounted(() => {
   if (interval) { clearInterval(interval); interval = null }
@@ -516,6 +625,54 @@ async function loadPacks() {
   }
 }
 
+async function loadFolders() {
+  folderError.value = ''
+  try {
+    const { data } = await api.get('/study-folders')
+    folders.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    folderError.value = friendlyError(e)
+  }
+}
+
+async function createFolder() {
+  const name = newFolderName.value.trim()
+  if (!name || folderBusy.value) return
+  folderBusy.value = true
+  folderError.value = ''
+  folderNotice.value = ''
+  try {
+    const { data } = await api.post('/study-folders', { name })
+    folders.value = [...folders.value, data].sort((a, b) => a.name.localeCompare(b.name))
+    folderFilter.value = data.id
+    newFolderName.value = ''
+    folderNotice.value = `Created “${data.name}”. Move packs into it below.`
+  } catch (e) {
+    folderError.value = friendlyError(e)
+  } finally {
+    folderBusy.value = false
+  }
+}
+
+async function movePackToFolder(pack, event) {
+  const folderId = event.target.value || null
+  const previousFolder = pack.folderId || ''
+  if (String(folderId || '') === String(previousFolder)) return
+  folderBusy.value = true
+  folderError.value = ''
+  folderNotice.value = ''
+  try {
+    await api.put(`/study-materials/${pack.id}/folder`, { folderId })
+    pack.folderId = folderId
+    folderNotice.value = folderId ? `Moved “${pack.title}” to ${folders.value.find(folder => folder.id === folderId)?.name || 'folder'}.` : `Removed “${pack.title}” from its folder.`
+  } catch (e) {
+    event.target.value = previousFolder
+    folderError.value = friendlyError(e)
+  } finally {
+    folderBusy.value = false
+  }
+}
+
 async function loadCourses() {
   try {
     const { data } = await api.get('/courses/enrolled')
@@ -550,6 +707,10 @@ async function generatePack() {
   const form = new FormData()
   form.append('sourceText', sourceText.value.trim())
   form.append('title', deriveTitle())
+  form.append('flashcardCount', String(flashcardCount.value))
+  form.append('quizCount', String(quizCount.value))
+  form.append('quizDifficulty', quizDifficulty.value)
+  form.append('quizFormat', quizFormat.value)
   if (selectedCourseId.value) form.append('courseId', selectedCourseId.value)
   if (sourceUrl.value.trim()) form.append('youtubeUrl', sourceUrl.value.trim())
   for (const file of files.value) form.append(fieldFor(file), file)
@@ -591,13 +752,64 @@ async function openPack(id) {
 
 function resetActivities() {
   activity.value = 'notes'
+  editingNotes.value = false
+  noteDraft.value = ''
+  noteStatus.value = ''
+  noteError.value = ''
   flippedCard.value = -1
   quizAnswers.value = {}
+  quizDraft.value = {}
   audioError.value = ''
+  podcastScript.value = ''
   chatMessages.value = Array.isArray(activePack.value?.chatHistory)
     ? activePack.value.chatHistory.slice(-20)
     : []
   chatInput.value = ''
+}
+
+function startEditingNotes() {
+  noteDraft.value = activePack.value?.improvedNote || activePack.value?.summary || ''
+  noteError.value = ''
+  noteStatus.value = ''
+  editingNotes.value = true
+}
+function cancelEditingNotes() {
+  editingNotes.value = false
+  noteDraft.value = ''
+}
+async function saveNotes() {
+  if (!activePack.value?.id || !noteDraft.value.trim() || noteSaving.value) return
+  noteSaving.value = true
+  noteError.value = ''
+  noteStatus.value = ''
+  try {
+    const { data } = await api.put(`/study-materials/${activePack.value.id}/notes`, { improvedNote: noteDraft.value })
+    activePack.value = { ...activePack.value, improvedNote: data.improvedNote }
+    editingNotes.value = false
+    noteStatus.value = 'Your notes are saved.'
+  } catch (e) {
+    noteError.value = friendlyError(e)
+  } finally {
+    noteSaving.value = false
+  }
+}
+async function refineNotes() {
+  const instruction = noteInstruction.value.trim()
+  if (!activePack.value?.id || !instruction || noteRefining.value) return
+  noteRefining.value = true
+  noteError.value = ''
+  noteStatus.value = ''
+  try {
+    const { data } = await api.post(`/study-materials/${activePack.value.id}/notes/refine`, { instruction }, { timeout: 120000 })
+    activePack.value = { ...activePack.value, improvedNote: data.improvedNote }
+    noteDraft.value = data.improvedNote
+    editingNotes.value = false
+    noteStatus.value = 'AI refined your notes and saved the changes.'
+  } catch (e) {
+    noteError.value = friendlyError(e)
+  } finally {
+    noteRefining.value = false
+  }
 }
 
 /* ── Derived pack data ── */
@@ -621,14 +833,47 @@ const quiz = computed(() => {
 })
 const flippedCard = ref(-1)
 const quizAnswers = ref({})
+const quizDraft = ref({})
 const quizFinished = computed(() => Object.keys(quizAnswers.value).length >= quiz.value.length && quiz.value.length > 0)
-const quizScore = computed(() => quiz.value.filter((q, i) => quizAnswers.value[i] === q.answerIndex).length)
+const quizScore = computed(() => quiz.value.filter((q, i) => quizAnswers.value[i] !== undefined && quizIsCorrect(q, quizAnswers.value[i])).length)
+
+function quizQuestionType(question) {
+  const type = String(question?.type || '').toLowerCase().replace(/[^a-z]/g, '')
+  if (['fillblank', 'fillintheblank', 'shortanswer'].includes(type)) return 'fill_blank'
+  if (['truefalse', 'tf'].includes(type)) return 'true_false'
+  return 'multiple_choice'
+}
+function quizOptions(question) {
+  if (quizQuestionType(question) === 'true_false') return ['True', 'False']
+  return Array.isArray(question?.options) ? question.options : []
+}
+function quizCorrectOption(question) {
+  if (Number.isInteger(Number(question?.answerIndex))) return Number(question.answerIndex)
+  const answer = String(question?.answer ?? question?.correctAnswer ?? '').trim().toLowerCase()
+  if (quizQuestionType(question) === 'true_false') return ['true', 't', 'yes'].includes(answer) ? 0 : 1
+  const options = quizOptions(question)
+  return options.findIndex(option => String(option).trim().toLowerCase() === answer)
+}
+function quizCorrectAnswer(question) {
+  const answer = question?.answer ?? question?.correctAnswer
+  if (answer !== undefined && answer !== null && String(answer).trim()) return String(answer)
+  const option = quizOptions(question)[quizCorrectOption(question)]
+  return option === undefined ? 'See the study notes' : String(option)
+}
+function quizIsCorrect(question, answer) {
+  if (quizQuestionType(question) === 'fill_blank') {
+    const expected = quizCorrectAnswer(question).trim().toLocaleLowerCase().replace(/[.,!?;:]$/, '')
+    const actual = String(answer || '').trim().toLocaleLowerCase().replace(/[.,!?;:]$/, '')
+    return Boolean(actual) && actual === expected
+  }
+  return Number(answer) === quizCorrectOption(question)
+}
 function answerQuiz(qi, oi) {
   if (quizAnswers.value[qi] !== undefined) return
   quizAnswers.value = { ...quizAnswers.value, [qi]: oi }
   const answers = { ...quizAnswers.value, [qi]: oi }
   if (Object.keys(answers).length === quiz.value.length && activePack.value?.id) {
-    const correctAnswers = quiz.value.filter((question, index) => answers[index] === Number(question.answerIndex)).length
+    const correctAnswers = quiz.value.filter((question, index) => quizIsCorrect(question, answers[index])).length
     api.post('/study-sessions', {
       materialId: activePack.value.id,
       sessionType: 'quiz',
@@ -639,18 +884,31 @@ function answerQuiz(qi, oi) {
     }).catch(e => console.warn('[StudyHub] Save quiz result failed:', e))
   }
 }
+function resetQuiz() {
+  quizAnswers.value = {}
+  quizDraft.value = {}
+}
 
 /* ── Podcast ── */
 const podcastBusy = ref(false)
 const audioError = ref('')
+const podcastLength = ref(4500)
+const podcastDepth = ref('balanced')
+const podcastScript = ref('')
 async function makePodcast() {
   if (!activePack.value?.id) return
   podcastBusy.value = true
   audioError.value = ''
   try {
-    const { data } = await api.post(`/study-materials/${activePack.value.id}/podcast`, {}, { timeout: 180000 })
+    const { data } = await api.post(`/study-materials/${activePack.value.id}/podcast`, {
+      maxLength: podcastLength.value,
+      depth: podcastDepth.value,
+    }, { timeout: 180000 })
     const url = data?.url || data?.audioUrl || data?.data?.url || data?.data?.audioUrl
-    if (url) activePack.value = { ...activePack.value, podcastUrl: url }
+    if (url) {
+      activePack.value = { ...activePack.value, podcastUrl: url }
+      podcastScript.value = data?.script || data?.data?.script || ''
+    }
     else audioError.value = 'The audio recap is not ready yet. Please try again.'
   } catch (e) {
     audioError.value = friendlyError(e)
@@ -845,6 +1103,11 @@ watch(goals, saveGoals, { deep: true })
 .composer-tools { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .tool-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; font-size: 11px; font-weight: 600; color: #4c5b50; background: #fff; cursor: pointer; }
 .tool-btn:hover { border-color: #cfc5b2; }
+.study-options { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.study-options summary { color: var(--navy); font-size: 11px; font-weight: 700; cursor: pointer; }
+.options-grid { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 10px; padding-top: 12px; }
+.options-grid label, .podcast-options label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 600; }
+.options-grid select, .podcast-options select, .library-filter select, .pack-folder select { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); padding: 8px 9px; font: inherit; }
 .course-tool select { min-width: 210px; max-width: 310px; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
 .library-error { justify-content: space-between; }
 .library-loading { padding: 28px; text-align: center; color: #718074; font-size: 12px; }
@@ -879,16 +1142,26 @@ watch(goals, saveGoals, { deep: true })
 .eyebrow { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--gold); margin: 0 0 6px; }
 .section-head h2, .pack-header h2 { font-family: var(--font-display); font-size: 26px; color: var(--navy); margin: 0; }
 .section-head .sub { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+.library-tools { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; margin: -6px 0 20px; }
+.library-filter { display: grid; gap: 5px; color: var(--muted); font-size: 10px; font-weight: 600; min-width: 170px; }
+.folder-create { display: flex; align-items: center; gap: 6px; }
+.folder-create input { width: 180px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--ink); font-size: 11px; }
+.folder-create button { border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--navy); padding: 8px 10px; font-size: 10px; font-weight: 600; cursor: pointer; }
+.folder-create button:disabled { opacity: .5; cursor: not-allowed; }
+.folder-notice { color: #3f805f; font-size: 10px; }
 .pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-.pack-card { text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; cursor: pointer; transition: transform .18s, box-shadow .18s; }
+.pack-card { text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; transition: transform .18s, box-shadow .18s; }
 .pack-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(36, 53, 42, .07); }
 .pack-card-top { display: flex; justify-content: space-between; align-items: center; }
 .pack-icon { width: 36px; height: 36px; border-radius: 10px; background: #eee8da; color: var(--gold); display: grid; place-items: center; }
 .pack-date { font-size: 10px; color: #929b8e; }
 .pack-card h3 { font-size: 14px; color: var(--navy); margin: 14px 0 7px; line-height: 1.3; }
+.pack-open { border: 0; background: transparent; padding: 0; text-align: left; cursor: pointer; }
+.pack-open h3 { margin-top: 14px; }
 .pack-card p { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 0 0 14px; }
 .pack-stats { display: flex; gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
 .pack-stats span { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: #718074; }
+.pack-folder { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted); font-size: 10px; }
 .empty-state { text-align: center; padding: 70px 20px; color: #929b8e; }
 .empty-state h3 { color: var(--navy); font-size: 16px; margin: 14px 0 6px; }
 .empty-state p { font-size: 12px; margin: 0 0 16px; }
@@ -912,6 +1185,16 @@ watch(goals, saveGoals, { deep: true })
 
 .notes-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
 .note-sheet { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 26px 28px; }
+.note-toolbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.note-actions { display: flex; align-items: center; gap: 7px; }
+.note-editor { width: 100%; min-height: 480px; resize: vertical; border: 1px solid var(--line); border-radius: 10px; padding: 14px; color: var(--ink); background: #fffdf8; font: 12px/1.7 var(--font-sans); }
+.note-editor:focus, .note-refine input:focus, .fill-answer input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.note-refine { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 14px; }
+.note-refine > label { display: block; margin-bottom: 7px; color: var(--navy); font-size: 11px; font-weight: 700; }
+.note-refine > div { display: flex; gap: 7px; }
+.note-refine input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-size: 11px; }
+.note-refine p { color: #3f805f; font-size: 10px; margin: 7px 0 0; }
+.note-refine p.note-error { color: #b4473a; }
 .sheet-kicker { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--gold); margin-bottom: 16px; }
 .markdown-body :deep(h1) { font-family: var(--font-display); font-size: 22px; color: var(--navy); margin: 20px 0 10px; }
 .markdown-body :deep(h2) { font-size: 16px; color: var(--navy); margin: 20px 0 8px; }
@@ -942,6 +1225,7 @@ watch(goals, saveGoals, { deep: true })
 .flashcard.flipped .card-hint { color: var(--gold); }
 
 .quiz-wrap { display: grid; gap: 14px; }
+.quiz-summary { display: flex; align-items: center; gap: 8px; }
 .quiz-card { background: #fff; border: 1px solid var(--line); border-radius: 13px; padding: 18px; }
 .quiz-q { font-size: 13px; font-weight: 600; color: var(--navy); margin: 0 0 14px; line-height: 1.5; }
 .quiz-q span { color: var(--gold); margin-right: 6px; }
@@ -952,13 +1236,24 @@ watch(goals, saveGoals, { deep: true })
 .quiz-options .correct { border-color: #8FC7A8; background: #F0FAF4; color: #2F7A52; }
 .quiz-options .wrong { border-color: #E8B3AA; background: #FEF3F1; color: #B4473A; }
 .quiz-explain { font-size: 11px; color: #718074; border-left: 2px solid var(--gold); padding-left: 10px; margin: 12px 0 0; line-height: 1.6; }
+.fill-answer { display: flex; gap: 8px; }
+.fill-answer input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 11px; }
+.quiz-feedback { font-size: 11px; font-weight: 600; margin: 10px 0 0; }
+.quiz-feedback.correct { color: #2f7a52; }
+.quiz-feedback.wrong { color: #b4473a; }
 
 .audio-hero { display: flex; align-items: center; gap: 18px; background: var(--navy); color: #fff; border-radius: 14px; padding: 24px; }
 .audio-icon { width: 56px; height: 56px; border-radius: 14px; background: rgba(212,175,55,.15); color: var(--gold); display: grid; place-items: center; flex: none; }
 .audio-hero h3 { margin: 0 0 5px; font-size: 15px; }
 .audio-hero p { margin: 0; font-size: 11px; color: #A9B6CA; }
 .audio-hero .primary-btn { margin-left: auto; background: var(--gold); color: var(--navy); flex: none; }
+.podcast-options { display: flex; align-items: end; gap: 10px; margin-top: 14px; }
+.podcast-options label { min-width: 145px; }
+.podcast-options .primary-btn { margin-left: auto; }
 .audio-player { width: 100%; margin-top: 18px; }
+.podcast-actions { display: flex; gap: 16px; align-items: baseline; margin-top: 9px; font-size: 11px; }
+.podcast-actions a, .podcast-actions summary { color: var(--navy); cursor: pointer; }
+.podcast-actions details p { color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
 
 .chat-panel { display: flex; flex-direction: column; min-height: 480px; }
 .chat-log { flex: 1; background: #fff; border: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 18px; max-height: 460px; overflow-y: auto; }
@@ -1027,5 +1322,21 @@ watch(goals, saveGoals, { deep: true })
   .mobile-nav button { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 8px 12px; border: 1px solid var(--line); border-radius: 99px; background: #fff; color: #4c5b50; font-size: 11px; font-weight: 600; cursor: pointer; }
   .mobile-nav button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
   .scroll { padding: 22px 16px 50px; } .notes-layout { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; }
+}
+@media (max-width: 560px) {
+  .options-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .library-tools, .folder-create { align-items: stretch; }
+  .folder-create { width: 100%; }
+  .folder-create input { flex: 1; width: auto; min-width: 0; }
+  .pack-title-row, .audio-hero { align-items: flex-start; flex-direction: column; }
+  .pack-actions { flex-wrap: wrap; }
+  .note-sheet { padding: 18px; }
+  .note-toolbar { flex-direction: column; }
+  .note-actions { width: 100%; }
+  .note-actions > * { flex: 1; justify-content: center; }
+  .podcast-options { align-items: stretch; flex-direction: column; }
+  .podcast-options label { min-width: 0; }
+  .podcast-options .primary-btn { margin-left: 0; justify-content: center; }
+  .fill-answer { flex-direction: column; }
 }
 </style>

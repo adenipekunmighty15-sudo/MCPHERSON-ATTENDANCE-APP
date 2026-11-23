@@ -12,33 +12,31 @@
         </button>
       </header>
 
-      <section class="campus-hero" v-reveal="{ delay: 60 }">
+      <section class="dashboard-hero" aria-label="Today on campus" v-reveal="{ delay: 60 }">
         <div class="hero-copy">
-          <span class="hero-kicker">MCU · STUDENT PORTAL</span>
+          <span class="hero-kicker">YOUR DAY AT A GLANCE</span>
           <h2>Make room for<br /><em>what matters.</em></h2>
           <p v-if="scheduleLoaded && schedule.length">
             {{ remainingCount }} class{{ remainingCount === 1 ? '' : 'es' }} left on your schedule today.
             {{ countdownTarget ? `Your next class ${countdownLabel} in ${countdown}.` : '' }}
           </p>
-          <p v-else-if="scheduleLoaded">A little space in your day. Check your timetable for what’s next.</p>
+          <p v-else-if="scheduleLoaded">A little space in your day. Check your timetable for what is next.</p>
           <p v-else>Your academic essentials, all in one place.</p>
-          <router-link to="/attendance" class="hero-action ux-touch-target ux-primary-action ux-solid" v-magnetic="0.14" v-ripple v-squash v-anticipate v-origin v-instant>
-            <ClipboardCheck :size="17" />
-            Open attendance
-            <ArrowUpRight :size="16" />
-          </router-link>
+          <div class="hero-actions">
+            <router-link to="/attendance" class="hero-action ux-touch-target ux-primary-action ux-solid" v-magnetic="0.14" v-ripple v-squash v-anticipate v-origin v-instant>
+              <ClipboardCheck :size="17" />
+              Open attendance
+              <ArrowUpRight :size="16" />
+            </router-link>
+            <router-link to="/timetable" class="hero-secondary-action">View timetable <ArrowUpRight :size="15" /></router-link>
+          </div>
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <SpatialScene class="hero-spatial" variant="orb" :intensity="0.9" />
-          <div class="hero-orbit orbit-outer"></div>
-          <div class="hero-orbit orbit-inner"></div>
-          <Logo :size="96" class="hero-stamp" />
-          <span class="hero-spark spark-one">✳</span>
-          <span class="hero-spark spark-two">✳</span>
-        </div>
-        <div class="hero-footer">
-          <span><span class="hero-live-dot"></span>YOUR DAY, IN FOCUS</span>
-          <span>{{ todayDate }}</span>
+        <div class="id-card-stage" role="group" aria-label="Your digital campus ID">
+          <span class="id-card-halo" aria-hidden="true"></span>
+          <span class="id-card-orbit id-card-orbit-one" aria-hidden="true"></span>
+          <span class="id-card-orbit id-card-orbit-two" aria-hidden="true"></span>
+          <StudentIDCard :student="idCardStudent" />
+          <span class="id-card-caption">YOUR DIGITAL ID <i></i> TAP TO FLIP</span>
         </div>
       </section>
 
@@ -132,20 +130,7 @@
         </section>
 
         <aside class="side-stack">
-          <section class="identity-panel" aria-label="Digital campus identity">
-            <div class="identity-panel-head">
-              <div>
-                <span class="section-kicker">CAMPUS IDENTITY</span>
-                <h2>Your digital ID</h2>
-              </div>
-              <router-link to="/profile" class="identity-panel-link" aria-label="Open profile">
-                <ArrowUpRight :size="16" />
-              </router-link>
-            </div>
-            <div class="id-card-slot">
-              <StudentIDCard :student="idCardStudent" />
-            </div>
-          </section>
+
 
           <section class="surface-card shortcuts-card">
             <div class="section-heading">
@@ -215,9 +200,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import Logo from '../components/Logo.vue'
 import StudentIDCard from '../components/StudentIDCard.vue'
-import SpatialScene from '../components/premium/SpatialScene.vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../lib/api'
 import { ArrowUpRight, BookOpen, Calendar, CalendarDays, Check, ClipboardCheck, Library, MapPin, MessageSquare, Trophy } from 'lucide-vue-next'
@@ -235,7 +218,6 @@ const coursesLoaded = ref(false)
 const sessionsLoaded = ref(false)
 const clockNow = ref(Date.now())
 
-const todayDate = new Date().toLocaleDateString('en-NG', { weekday: 'long', month: 'long', day: 'numeric' })
 const formattedDate = new Date().toLocaleDateString('en-NG', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
 
 const firstName = computed(() => authStore.user?.name?.split(' ')[0] || 'Student')
@@ -565,21 +547,16 @@ onBeforeUnmount(() => {
   to { transform: rotate(360deg); }
 }
 
-.campus-hero {
-  position: relative;
-  display: flex;
-  min-height: 255px;
+.dashboard-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
   align-items: center;
-  justify-content: space-between;
-  overflow: hidden;
-  padding: 34px clamp(24px, 4vw, 54px) 58px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 26px;
-  background:
-    radial-gradient(ellipse at 82% 40%, rgba(249, 172, 138, 0.24), transparent 34%),
-    linear-gradient(115deg, #24352a 5%, #31543b 58%, #3d684b 100%);
-  box-shadow: 0 24px 54px rgba(36, 53, 42, 0.22);
-  color: #faf7ef;
+  gap: clamp(24px, 4vw, 64px);
+  min-height: 370px;
+  margin: 8px 0 12px;
+  padding: 4px clamp(8px, 2vw, 28px) 22px;
+  overflow: visible;
+  background: transparent;
 }
 
 .hero-copy {
@@ -589,147 +566,145 @@ onBeforeUnmount(() => {
 }
 
 .hero-kicker {
-  color: rgba(226, 232, 240, 0.72);
+  color: var(--color-primary);
 }
 
 .hero-copy h2 {
   margin: 15px 0 10px;
+  color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(36px, 4.5vw, 56px);
-  font-weight: 500;
-  letter-spacing: -0.045em;
+  font-size: clamp(38px, 4.4vw, 58px);
+  font-weight: 550;
+  letter-spacing: -0.055em;
   line-height: 0.99;
 }
 
 .hero-copy h2 em {
-  color: #c87958;
+  color: var(--color-secondary);
   font-weight: 500;
 }
 
 .hero-copy p {
   max-width: 430px;
   margin: 0;
-  color: rgba(248, 250, 252, 0.76);
+  color: var(--color-text-secondary);
   font-size: 13px;
-  line-height: 1.65;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  margin-top: 21px;
 }
 
 .hero-action {
   display: inline-flex;
-  min-height: 44px;
+  min-height: 46px;
   align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-  padding: 0 15px;
+  gap: 9px;
+  padding: 0 16px;
   border-radius: 12px;
-  background: #c87958;
-  color: #24352a;
+  background: var(--color-primary);
+  color: #fff;
   font-size: 12px;
   font-weight: 750;
   text-decoration: none;
-  transition: transform 180ms ease, background 180ms ease;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
 
 .hero-action:hover {
   transform: translateY(-2px);
-  background: #ffc4ad;
-  color: #24352a;
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
-.hero-action svg:last-child {
-  margin-left: 8px;
+.hero-action svg:last-child { margin-left: 7px; }
+
+.hero-secondary-action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: gap 160ms ease, color 160ms ease;
 }
 
-.hero-art {
-  position: absolute;
-  top: 50%;
-  right: clamp(30px, 9vw, 140px);
-  width: 230px;
-  height: 230px;
-  transform: translateY(-50%);
+.hero-secondary-action:hover { gap: 11px; color: var(--color-primary-hover); }
+
+.id-card-stage {
+  position: relative;
+  z-index: 0;
+  width: min(100%, 470px);
+  justify-self: end;
+  padding: 28px 0 31px;
+  perspective: 1400px;
+  isolation: isolate;
 }
 
-.hero-spatial {
-  inset: -56px -46px;
-  opacity: 0.96;
-}
-
-.hero-art > :not(.hero-spatial) {
+.id-card-stage > .campus-id-card {
+  position: relative;
   z-index: 1;
 }
 
-.hero-orbit {
+.id-card-halo {
   position: absolute;
-  inset: 12px;
-  border: 1px solid rgba(249, 172, 138, 0.3);
-  border-radius: 50%;
-}
-
-.orbit-outer {
-  transform: rotate(-28deg) scaleX(0.75);
-}
-
-.orbit-inner {
-  inset: 35px;
-  border-color: rgba(249, 172, 138, 0.4);
-  transform: rotate(32deg) scaleX(0.75);
-}
-
-.hero-stamp {
-  position: absolute;
+  z-index: -2;
   top: 50%;
   left: 50%;
-  opacity: 0.94;
-  transform: translate(-50%, -50%) rotate(-8deg);
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(61, 104, 75, 0.16), rgba(185, 100, 69, 0.08) 48%, transparent 72%);
+  filter: blur(20px);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
-.hero-spark {
+.id-card-orbit {
   position: absolute;
-  color: #c87958;
-  font-size: 20px;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 110%;
+  height: 80%;
+  border: 1px solid rgba(61, 104, 75, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(-12deg);
 }
 
-.spark-one {
-  top: 18px;
-  right: 40px;
+.id-card-orbit-two {
+  width: 96%;
+  height: 97%;
+  border-color: rgba(185, 100, 69, 0.13);
+  transform: translate(-50%, -50%) rotate(15deg);
 }
 
-.spark-two {
-  bottom: 23px;
-  left: 36px;
-  color: rgba(249, 172, 138, 0.72);
-  font-size: 12px;
-}
-
-.hero-footer {
+.id-card-caption {
   position: absolute;
-  right: 26px;
+  right: 4px;
   bottom: 0;
-  left: 26px;
   display: flex;
-  justify-content: space-between;
-  padding: 13px 0;
-  border-top: 1px solid rgba(226, 232, 240, 0.16);
-  color: rgba(248, 250, 252, 0.62);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
-.hero-footer > span:first-child {
-  display: inline-flex;
   align-items: center;
   gap: 8px;
+  color: var(--color-text-tertiary);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
 }
 
-.hero-live-dot {
-  width: 6px;
-  height: 6px;
+.id-card-caption i {
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: #c87958;
-  box-shadow: 0 0 0 4px rgba(249, 172, 138, 0.2);
+  background: var(--color-secondary);
 }
-
 .active-session-card {
   display: flex;
   align-items: center;
@@ -1652,5 +1627,25 @@ onBeforeUnmount(() => {
     padding: 20px;
     text-align: center;
   }
+}
+
+@media (max-width: 1100px) {
+  .dashboard-hero { grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr); gap: 22px; }
+  .id-card-stage { width: min(100%, 410px); }
+}
+
+@media (max-width: 850px) {
+  .dashboard-hero { grid-template-columns: minmax(0, 1fr) minmax(280px, 0.88fr); gap: 14px; }
+  .hero-copy h2 { font-size: clamp(35px, 5vw, 48px); }
+  .id-card-stage { width: min(100%, 370px); }
+}
+
+@media (max-width: 560px) {
+  .dashboard-hero { grid-template-columns: 1fr; gap: 0; min-height: 0; margin-top: 0; padding: 0 2px 21px; }
+  .hero-copy { max-width: 100%; }
+  .hero-copy h2 { font-size: clamp(37px, 11vw, 48px); }
+  .hero-copy p { font-size: 12px; }
+  .id-card-stage { width: min(100%, 430px); justify-self: center; margin-top: 10px; padding: 18px 0 28px; }
+  .id-card-caption { right: 2px; font-size: 7px; }
 }
 </style>

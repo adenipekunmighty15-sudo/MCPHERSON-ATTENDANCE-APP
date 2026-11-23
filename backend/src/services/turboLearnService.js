@@ -20,7 +20,7 @@ import { nvidiaTTS } from './externalService.js'
 async function generatePodcast(materialId, userId, options = {}) {
   try {
     const { rows: materials } = await query(
-      `SELECT id, title, summary, improved_note, key_points 
+      `SELECT id, title, source_text, summary, improved_note, key_points
        FROM study_materials WHERE id = $1 AND created_by = $2`,
       [materialId, userId]
     )
@@ -30,9 +30,14 @@ async function generatePodcast(materialId, userId, options = {}) {
     }
 
     const material = materials[0]
-    const text = material.summary || material.improved_note || 'Unable to generate podcast from this material'
-    
-    const podcastScript = formatForPodcast(text, options.maxLength || 3000)
+    const depth = ['overview', 'balanced', 'deep_dive'].includes(options.depth) ? options.depth : 'balanced'
+    const maxLength = Math.min(Math.max(Number.parseInt(options.maxLength, 10) || 3500, 1500), 9000)
+    const text = depth === 'overview'
+      ? material.summary || material.improved_note
+      : depth === 'deep_dive'
+        ? [material.improved_note, material.source_text].filter(Boolean).join('\n\n')
+        : material.improved_note || material.summary
+    const podcastScript = formatForPodcast(text || 'Unable to generate podcast from this material', maxLength)
 
     let audioUrl = null
     let status = 'pending'
