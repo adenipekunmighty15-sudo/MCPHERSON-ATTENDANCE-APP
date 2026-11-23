@@ -1,0 +1,72 @@
+.hub{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px;min-height:72vh}
+.sidebar,.main{min-width:0}
+.sidebar{display:flex;flex-direction:column;gap:14px;padding:18px;border:1px solid rgba(36,53,42,.08);border-radius:20px;background:linear-gradient(180deg,#fbfdfb,#f2f7f3)}
+.brand{display:flex;align-items:center;gap:12px}
+.brandMark{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#173f2d;color:#e8fff2;font-size:20px}
+.brand strong,.packListHead strong{display:block;color:#183126;font-size:16px}
+.brand span,.stats span,.timerCard span,.packMeta,.muted,.workspaceHead p,.createHead p{color:#647569;font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stats div,.timerCard,.createCard,.workspace,.loadingState{border:1px solid rgba(36,53,42,.08);border-radius:16px;background:#fff}
+.stats div{padding:12px;text-align:center}
+.stats strong{display:block;color:#183126;font-size:18px;line-height:1}
+.timerCard{padding:14px;display:grid;gap:8px}
+.timerCard strong{font-size:28px;color:#183126;letter-spacing:-.04em}
+.timerCard button,.primaryBtn,.packListHead button,.backBtn,.tab,.reviewRow button,.quizNav button,.packItem{font:inherit}
+.timerCard button,.primaryBtn,.packListHead button{border:0;border-radius:10px;padding:10px 12px;background:#e8efe9;color:#183126;font-weight:700;cursor:pointer}
+.primaryBtn{background:#173f2d;color:#fff}
+.primaryBtn:disabled{opacity:.6;cursor:not-allowed}
+.packListHead{display:flex;align-items:center;justify-content:space-between}
+.packList{display:flex;flex-direction:column;gap:8px;min-height:180px;overflow:auto}
+.packItem{display:block;width:100%;padding:12px;border:1px solid rgba(36,53,42,.08);border-radius:12px;background:#fff;text-align:left;cursor:pointer}
+.packItemActive{border-color:#173f2d;background:#f3f8f4}
+.packTitle{display:block;color:#183126;font-size:13px;font-weight:700;line-height:1.35}
+.packMeta{display:block;margin-top:4px}
+.main{display:flex;flex-direction:column;gap:12px}
+.error,.notice{margin:0;padding:12px 14px;border-radius:12px;font-size:13px}
+.error{background:#fbefeb;color:#b91c1c}
+.notice{background:#eef6f0;color:#28543a}
+.createCard,.workspace,.loadingState{padding:22px}
+.kicker{display:inline-block;margin-bottom:10px;color:#356247;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.createHead h2,.workspaceHead h2{margin:0;color:#183126;font-size:clamp(28px,4vw,42px);line-height:1.05;letter-spacing:-.04em}
+.createHead p{max-width:720px;margin:12px 0 0;line-height:1.7;font-size:14px}
+.createForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}
+.createForm label,.notesToolbar span{display:grid;gap:6px;color:#415249;font-size:12px;font-weight:700}
+.createForm input,.createForm select,.createForm textarea,.notesEditor,.chatComposer textarea{width:100%;border:1px solid rgba(36,53,42,.14);border-radius:12px;padding:12px 13px;background:#fff;color:#183126;font:inherit}
+.createForm textarea,.notesEditor,.chatComposer textarea{resize:vertical;line-height:1.6}
+.full{grid-column:1/-1}
+.createActions{grid-column:1/-1;display:flex;justify-content:flex-end}
+.loadingState{color:#647569}
+.workspaceHead{display:flex;justify-content:space-between;gap:16px;margin-bottom:18px}
+.backBtn{border:0;padding:0;background:none;color:#356247;font-size:12px;font-weight:700;cursor:pointer}
+.workspaceHead p{margin:8px 0 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tab{border:1px solid rgba(36,53,42,.1);border-radius:999px;padding:9px 14px;background:#fff;color:#415249;font-size:13px;font-weight:700;cursor:pointer}
+.tabActive{background:#173f2d;border-color:#173f2d;color:#fff}
+.notesPane,.flashPane,.quizPane,.chatPane{display:grid;gap:14px}
+.notesToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.notesEditor{min-height:420px}
+.flashMeta{color:#647569;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.flashCard{min-height:280px;border:1px solid rgba(36,53,42,.1);border-radius:20px;padding:28px;background:linear-gradient(180deg,#fff,#f5faf6);text-align:left;cursor:pointer}
+.flashLabel{color:#356247;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.flashCard p{margin:18px 0;color:#183126;font-size:24px;line-height:1.45}
+.flashCard small{color:#647569}
+.reviewRow,.quizNav{display:flex;gap:10px;flex-wrap:wrap}
+.reviewRow button,.quizNav button{border:1px solid rgba(36,53,42,.12);border-radius:10px;padding:10px 14px;background:#fff;color:#183126;font-weight:700;cursor:pointer}
+.quizQ{margin:0;color:#183126;font-size:24px;line-height:1.4}
+.options{display:grid;gap:10px}
+.option{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid rgba(36,53,42,.1);border-radius:12px;background:#fff;color:#183126}
+.optionSelected{border-color:#173f2d;background:#f3f8f4}
+.option input{margin-top:3px}
+.quizResult{padding:24px;border:1px solid rgba(36,53,42,.08);border-radius:16px;background:#f7fbf8}
+.quizResult h3{margin:0 0 8px;color:#183126;font-size:28px}
+.quizResult p{margin:0 0 16px;color:#415249}
+.chatLog{display:flex;flex-direction:column;gap:12px;min-height:360px;max-height:560px;overflow:auto;padding:4px}
+.chatMsg{max-width:min(720px,92%);padding:14px 16px;border-radius:16px}
+.chatMsg span{display:block;margin-bottom:4px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.chatMsg p{margin:0;white-space:pre-wrap;line-height:1.65;font-size:14px}
+.chatAi{align-self:flex-start;background:#f3f7f4;color:#183126}
+.chatUser{align-self:flex-end;background:#173f2d;color:#fff}
+.chatUser span{color:rgba(255,255,255,.72)}
+.chatComposer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+@media (max-width:1100px){.hub{grid-template-columns:1fr}.sidebar{order:2}.main{order:1}}
+@media (max-width:720px){.createForm,.chatComposer{grid-template-columns:1fr}.createCard,.workspace,.sidebar{padding:16px}.flashCard p,.quizQ{font-size:20px}}

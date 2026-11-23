@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import {
   useCallback,
@@ -13,6 +13,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { api } from '@/lib/api'
 import AttendanceSectionNext from './AttendanceSectionNext'
 import CoursesSectionNext from './CoursesSectionNext'
+import StudyHubSection from './StudyHubSection'
 import StudentIdCard from './StudentIdCard'
 import { Panel, StateBlock, Stat } from './SectionUI'
 import { DASHBOARD_SECTIONS, type DashboardSection } from './sectionTypes'
@@ -142,7 +143,7 @@ function asRows<T extends Row>(value: unknown): T[] {
 }
 
 function formatDate(value?: string | null): string {
-  if (!value) return '—'
+  if (!value) return 'â€”'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
@@ -391,12 +392,8 @@ export default function DashboardWorkspace() {
 
           {section === 'studyhub' ? (
             <StudyHubSection
-              materials={materials}
-              stats={studyStats}
               courses={courses}
-              loading={studyMaterialsResource.loading || studyStatsResource.loading}
-              error={studyMaterialsResource.error || studyStatsResource.error}
-              onReload={() => {
+              onStatsChange={() => {
                 studyMaterialsResource.reload()
                 studyStatsResource.reload()
               }}
@@ -482,7 +479,7 @@ function OverviewSection({
           <p className={design.dayCopy}>Your campus day, thoughtfully organized.</p>
         </div>
         <button type="button" className={design.refreshButton} disabled={refreshing} onClick={onRefresh}>
-          {refreshing ? 'Refreshing…' : 'Refresh dashboard'}
+          {refreshing ? 'Refreshingâ€¦' : 'Refresh dashboard'}
         </button>
       </header>
 
@@ -497,7 +494,7 @@ function OverviewSection({
         />
         <span className={design.heroMask} aria-hidden="true" />
         <div className={design.heroCopy}>
-          <span className={design.heroKicker}>MCU · Student portal</span>
+          <span className={design.heroKicker}>MCU Â· Student portal</span>
           <h3 className={design.heroTitle}>Make room for<br /><em>what matters.</em></h3>
           <p>
             {timetable.length
@@ -512,8 +509,8 @@ function OverviewSection({
           <span className={`${design.heroOrbit} ${design.heroOrbitOuter}`} />
           <span className={`${design.heroOrbit} ${design.heroOrbitInner}`} />
           <span className={design.heroStamp}>MCU</span>
-          <span className={`${design.heroSpark} ${design.sparkOne}`}>✳</span>
-          <span className={`${design.heroSpark} ${design.sparkTwo}`}>✳</span>
+          <span className={`${design.heroSpark} ${design.sparkOne}`}>âœ³</span>
+          <span className={`${design.heroSpark} ${design.sparkTwo}`}>âœ³</span>
         </div>
         <div className={design.heroFooter}>
           <span><i className={design.heroLiveDot} />Your day, in focus</span>
@@ -522,13 +519,13 @@ function OverviewSection({
       </section>
 
       <section className={design.activeSession} aria-label="Attendance check-in">
-        <span className={design.sessionSymbol} aria-hidden="true">⌖</span>
+        <span className={design.sessionSymbol} aria-hidden="true">âŒ–</span>
         <div className={design.sessionCopy}>
           <span className={design.sessionKicker}>Attendance check-in</span>
           <h3>{activeSession ? activeSession.courseName || 'Active class session' : 'No live session right now'}</h3>
           <p>
             {activeSession
-              ? `${[activeSession.room, activeSession.lecturerName].filter(Boolean).join(' · ') || 'Venue details are not available.'} Enter your lecturer’s current code and allow GPS on the attendance screen.`
+              ? `${[activeSession.room, activeSession.lecturerName].filter(Boolean).join(' Â· ') || 'Venue details are not available.'} Enter your lecturerâ€™s current code and allow GPS on the attendance screen.`
               : 'When a lecturer starts a session, you can verify attendance with GPS and the current six-digit code.'}
           </p>
         </div>
@@ -541,14 +538,14 @@ function OverviewSection({
       <section className={styles.grid} style={{ marginTop: 18 }}>
         <div className={styles.gridFour}>
           <Stat label="Courses" value={courses.length} detail="Active enrolments" />
-          <Stat label="Attendance" value={loading ? '…' : `${present}/${attendance.length}`} detail="Verified records" />
+          <Stat label="Attendance" value={loading ? 'â€¦' : `${present}/${attendance.length}`} detail="Verified records" />
           <Stat label="Study time" value={studyStats.studyMinutes || 0} detail="Minutes logged" />
           <Stat label="Live sessions" value={sessions.length} detail="Happening now" />
         </div>
       </section>
 
       <div className={design.dashboardColumns}>
-        <Panel title="Today’s rhythm" copy="Your next scheduled academic commitments.">
+        <Panel title="Todayâ€™s rhythm" copy="Your next scheduled academic commitments.">
           {schedule.length ? (
             <div className={design.timeline}>
               {schedule.map((item, index) => (
@@ -562,7 +559,7 @@ function OverviewSection({
                   </span>
                   <div className={design.timelineCopy}>
                     <h4>{pick(item, ['course_name', 'courseName', 'title', 'course'])}</h4>
-                    <p>{[pick(item, ['venue', 'room', 'location']), pick(item, ['lecturer', 'lecturer_name'])].filter(Boolean).join(' · ')}</p>
+                    <p>{[pick(item, ['venue', 'room', 'location']), pick(item, ['lecturer', 'lecturer_name'])].filter(Boolean).join(' Â· ')}</p>
                   </div>
                   <span className={design.timelineStatus}>{index === 0 ? 'Up next' : 'Scheduled'}</span>
                 </article>
@@ -584,7 +581,7 @@ function OverviewSection({
             <div className={design.idCardSlot}>
               <StudentIdCard
                 name={user?.name || 'Student'}
-                matricNumber={user?.matricNumber || user?.email || 'MCU/—'}
+                matricNumber={user?.matricNumber || user?.email || 'MCU/â€”'}
                 department={user?.department || 'Computer Science'}
                 role={user?.role || 'student'}
                 avatarUrl={user?.avatarUrl}
@@ -600,7 +597,7 @@ function OverviewSection({
                   <span>{item.label}</span>
                   {item.id === 'messaging' && unreadMessages ? <small>{unreadMessages} unread</small> : null}
                   {item.id === 'feedback' && openFeedback ? <small>{openFeedback} open</small> : null}
-                  <span className={design.shortcutArrow} aria-hidden="true">↗</span>
+                  <span className={design.shortcutArrow} aria-hidden="true">â†—</span>
                 </button>
               ))}
             </div>
@@ -613,14 +610,14 @@ function OverviewSection({
               <strong>{user?.name || 'Student'}</strong>
               <small>{user?.email || 'Manage your profile'}</small>
             </span>
-            <span aria-hidden="true">↗</span>
+            <span aria-hidden="true">â†—</span>
           </button>
         </aside>
       </div>
 
       <Panel
         title="Course attendance"
-        copy="Keep your momentum — attendance progress for your current courses."
+        copy="Keep your momentum â€” attendance progress for your current courses."
         action={<button type="button" className={styles.button} onClick={() => onNavigate('courses')}>All courses</button>}
       >
         {progressCourses.length ? (
@@ -633,7 +630,7 @@ function OverviewSection({
                   <div className={design.courseCardTop}>
                     <span className={design.courseCode}>{courseCode(item)}</span>
                     <span className={`${design.coursePercent} ${rate === null ? '' : low ? design.coursePercentLow : design.coursePercentGood}`}>
-                      {rate === null ? '—' : `${rate}%`}
+                      {rate === null ? 'â€”' : `${rate}%`}
                     </span>
                   </div>
                   <h4>{courseTitle(item)}</h4>
@@ -689,7 +686,7 @@ function CoursesSection({
                 <span className={statusClass(item.status)}>{item.status || 'active'}</span>
               </div>
               <h3 className={styles.cardTitle} style={{ marginTop: 12 }}>{item.title || item.courseName || 'Untitled course'}</h3>
-              <p className={styles.cardMeta}>{[item.lecturer, item.departmentName, item.creditUnits ? `${item.creditUnits} units` : ''].filter(Boolean).join(' · ')}</p>
+              <p className={styles.cardMeta}>{[item.lecturer, item.departmentName, item.creditUnits ? `${item.creditUnits} units` : ''].filter(Boolean).join(' Â· ')}</p>
             </article>
           ))}
         </div>
@@ -743,7 +740,7 @@ function TimetableSection({
   const entryTime = (entry: TimetableEntry) => {
     const start = pick(entry, ['start_time', 'startTime', 'time'])
     const end = pick(entry, ['end_time', 'endTime'])
-    return [start, end].filter(Boolean).join(' – ') || 'Time not specified'
+    return [start, end].filter(Boolean).join(' â€“ ') || 'Time not specified'
   }
 
   return (
@@ -781,7 +778,7 @@ function TimetableSection({
                 <span className={styles.eyebrow}>{pick(selected, ['day', 'day_of_week']) || 'Class details'}</span>
                 <h3 id="class-details-title">{pick(selected, ['course_name', 'courseName', 'title', 'course', 'course_code']) || 'Class'}</h3>
               </div>
-              <button type="button" className={design.closeButton} aria-label="Close details" onClick={() => setSelected(null)}>×</button>
+              <button type="button" className={design.closeButton} aria-label="Close details" onClick={() => setSelected(null)}>Ã—</button>
             </header>
             <dl className={design.detailGrid}>
               <div><dt>Time</dt><dd>{entryTime(selected)}</dd></div>
@@ -793,149 +790,6 @@ function TimetableSection({
           </section>
         </div>
       ) : null}
-    </>
-  )
-}
-
-function StudyHubSection({
-  materials,
-  stats,
-  courses,
-  loading,
-  error,
-  onReload,
-}: {
-  materials: StudyMaterial[]
-  stats: StudyStats
-  courses: Course[]
-  loading: boolean
-  error: string
-  onReload: () => void
-}) {
-  const [title, setTitle] = useState('')
-  const [courseId, setCourseId] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [sourceText, setSourceText] = useState('')
-  const [notice, setNotice] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [timerStart, setTimerStart] = useState<number | null>(null)
-  const [elapsed, setElapsed] = useState(0)
-
-  useEffect(() => {
-    if (!timerStart) return
-    const tick = () => setElapsed(Math.floor((Date.now() - timerStart) / 1000))
-    tick()
-    const interval = window.setInterval(tick, 1000)
-    return () => window.clearInterval(interval)
-  }, [timerStart])
-
-  async function uploadPack(event: FormEvent) {
-    event.preventDefault()
-    if (!title.trim() || (!file && !sourceText.trim())) {
-      setNotice('Add a title and either a document or pasted study text.')
-      return
-    }
-    setBusy(true)
-    setNotice('Creating your study pack…')
-    try {
-      const form = new FormData()
-      form.append('title', title.trim())
-      if (courseId) form.append('courseId', courseId)
-      if (file) form.append('document', file)
-      if (sourceText.trim()) form.append('sourceText', sourceText.trim())
-      await api.upload('/study-materials/upload', form, { timeout: 180000 })
-      setNotice('Study pack created from your material.')
-      setTitle('')
-      setCourseId('')
-      setFile(null)
-      setSourceText('')
-      onReload()
-    } catch (err) {
-      setNotice(messageOf(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function stopTimer() {
-    if (!timerStart) return
-    const startedAt = new Date(timerStart).toISOString()
-    const endedAt = new Date().toISOString()
-    setTimerStart(null)
-    setElapsed(0)
-    try {
-      await api.post('/study-sessions', { startedAt, endedAt, sessionType: 'review' })
-      setNotice('Study time saved to your account.')
-      onReload()
-    } catch (err) {
-      setNotice(messageOf(err))
-    }
-  }
-
-  return (
-    <>
-      <div className={styles.gridFour}>
-        <Stat label="Study time" value={stats.studyMinutes || 0} detail="Minutes saved" />
-        <Stat label="Cards mastered" value={stats.cardsMastered || 0} detail="Spaced repetition" />
-        <Stat label="Quizzes taken" value={stats.quizzesTaken || 0} detail="Practice checks" />
-        <Stat label="Study packs" value={materials.length} detail="Saved materials" />
-      </div>
-
-      <Panel title="Study timer" copy="Only time you actually spend studying is saved when you stop the timer.">
-        <div className={styles.cardRow}>
-          <strong className={styles.statValue}>
-            {String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}
-          </strong>
-          {timerStart ? (
-            <button type="button" className={styles.button} onClick={() => void stopTimer()}>Stop &amp; save</button>
-          ) : (
-            <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => setTimerStart(Date.now())}>Start studying</button>
-          )}
-        </div>
-      </Panel>
-
-      <Panel title="Create a study pack" copy="Upload a document or paste notes. The backend creates real flashcards and a quiz from your material.">
-        <form onSubmit={(event) => void uploadPack(event)}>
-          <label className={styles.field}>
-            <span>Title</span>
-            <input className={styles.input} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Chapter 4 — Database design" />
-          </label>
-          <label className={styles.field}>
-            <span>Course (optional)</span>
-            <select className={styles.select} value={courseId} onChange={(event) => setCourseId(event.target.value)}>
-              <option value="">No course</option>
-              {courses.map((course, index) => (
-                <option key={course.id || index} value={course.id || ''}>{course.title || course.courseName || course.code || 'Course'}</option>
-              ))}
-            </select>
-          </label>
-          <label className={styles.field}>
-            <span>Document</span>
-            <input className={styles.input} type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp" onChange={(event) => setFile(event.target.files?.[0] || null)} />
-          </label>
-          <label className={styles.field}>
-            <span>Or paste study text</span>
-            <textarea className={styles.textarea} value={sourceText} onChange={(event) => setSourceText(event.target.value)} placeholder="Paste at least a few lines of notes…" />
-          </label>
-          <button type="submit" className={`${styles.button} ${styles.buttonPrimary}`} disabled={busy}>{busy ? 'Creating…' : 'Create study pack'}</button>
-          {notice ? <p className={styles.cardMeta} role="status">{notice}</p> : null}
-        </form>
-      </Panel>
-
-      <Panel title="Saved study packs" copy="Materials generated from your uploads and notes.">
-        <StateBlock loading={loading} error={error} empty={materials.length ? undefined : 'No study packs yet.'} onRetry={onReload} />
-        {materials.length ? (
-          <div className={styles.gridThree}>
-            {materials.map((item, index) => (
-              <article key={item.id || index} className={styles.card}>
-                <h3 className={styles.cardTitle}>{item.title || 'Untitled study pack'}</h3>
-                <p className={styles.cardMeta}>Created {formatDate(item.createdAt || item.created_at)}</p>
-                <span className={statusClass(item.status)}>{item.status || 'ready'}</span>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </Panel>
     </>
   )
 }
@@ -1078,7 +932,7 @@ function MessagingSection({
                 {contacts.length ? contacts.map((contact) => (
                   <button key={contact.id} type="button" className={styles.waContact} onClick={() => void startConversation(contact.id)}>
                     <span className={styles.waAvatar}>{(contact.name || 'U').slice(0, 1).toUpperCase()}</span>
-                    <span><strong>{contact.name || 'User'}</strong><small>{[contact.role, contact.department].filter(Boolean).join(' · ')}</small></span>
+                    <span><strong>{contact.name || 'User'}</strong><small>{[contact.role, contact.department].filter(Boolean).join(' Â· ')}</small></span>
                   </button>
                 )) : <StateBlock loading={false} error="" empty="No contacts available." />}
               </div>
@@ -1088,7 +942,7 @@ function MessagingSection({
               <header className={styles.waMainHead}>
                 <div className={styles.waMainUser}>
                   <span className={styles.waAvatar}>{(selected.partner?.name || 'C').slice(0, 1).toUpperCase()}</span>
-                  <div><strong>{selected.partner?.name || 'Conversation'}</strong><p>{[selected.partner?.role, selected.partner?.department].filter(Boolean).join(' · ') || 'Direct message'}</p></div>
+                  <div><strong>{selected.partner?.name || 'Conversation'}</strong><p>{[selected.partner?.role, selected.partner?.department].filter(Boolean).join(' Â· ') || 'Direct message'}</p></div>
                 </div>
               </header>
               <div className={styles.waThread} role="log" aria-live="polite">
@@ -1099,7 +953,7 @@ function MessagingSection({
                       <span>{message.content}</span>
                       <time className={styles.waTime}>
                         {formatTime(message.timestamp)}
-                        {message.senderId === 'me' ? <span className={styles.waTicks} aria-label={message.status === 'read' ? 'Read' : 'Sent'}>{message.status === 'read' ? '✓✓' : '✓'}</span> : null}
+                        {message.senderId === 'me' ? <span className={styles.waTicks} aria-label={message.status === 'read' ? 'Read' : 'Sent'}>{message.status === 'read' ? 'âœ“âœ“' : 'âœ“'}</span> : null}
                       </time>
                     </article>
                   </div>
@@ -1191,7 +1045,7 @@ function FeedbackSection({
             <span>Message</span>
             <textarea className={styles.textarea} value={message} onChange={(event) => setMessage(event.target.value)} />
           </label>
-          <button type="submit" className={`${styles.button} ${styles.buttonPrimary}`} disabled={busy}>{busy ? 'Sending…' : 'Send feedback'}</button>
+          <button type="submit" className={`${styles.button} ${styles.buttonPrimary}`} disabled={busy}>{busy ? 'Sendingâ€¦' : 'Send feedback'}</button>
           {notice ? <p className={styles.cardMeta} role="status">{notice}</p> : null}
         </form>
       </Panel>
@@ -1207,7 +1061,7 @@ function FeedbackSection({
                   <span className={statusClass(item.status)}>{item.status || 'open'}</span>
                 </div>
                 <p className={styles.cardMeta}>{item.message}</p>
-                <p className={styles.cardMeta}>{formatDate(item.createdAt)} · {item.priority || 'medium'} priority</p>
+                <p className={styles.cardMeta}>{formatDate(item.createdAt)} Â· {item.priority || 'medium'} priority</p>
                 {item.adminResponse ? <p className={styles.cardMeta}><strong>Response:</strong> {item.adminResponse}</p> : null}
               </article>
             ))}
@@ -1276,7 +1130,7 @@ function SettingsSection({
             <span>Matric / staff number</span>
             <input className={styles.input} value={user?.matricNumber || ''} readOnly aria-readonly="true" />
           </label>
-          <button type="submit" className={`${styles.button} ${styles.buttonPrimary}`} disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>
+          <button type="submit" className={`${styles.button} ${styles.buttonPrimary}`} disabled={busy}>{busy ? 'Savingâ€¦' : 'Save changes'}</button>
           {notice ? <p className={styles.cardMeta} role="status">{notice}</p> : null}
         </form>
 
@@ -1285,7 +1139,7 @@ function SettingsSection({
             <h3 className={styles.cardTitle}>Account</h3>
             <p className={styles.cardMeta}>Role: {user?.role || 'student'}</p>
             <p className={styles.cardMeta}>Provider: {user?.provider || 'email'}</p>
-            <p className={styles.cardMeta}>McPherson University · one portal, one account.</p>
+            <p className={styles.cardMeta}>McPherson University Â· one portal, one account.</p>
           </div>
           <button type="button" className={`${styles.button} ${styles.buttonDanger}`} style={{ marginTop: 14 }} onClick={onSignOut}>
             Sign out
